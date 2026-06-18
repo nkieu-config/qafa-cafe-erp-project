@@ -147,15 +147,61 @@ model RecipeItem {
   quantity     Float
 }
 
+model Customer {
+  id        Int      @id @default(autoincrement())
+  phone     String   @unique
+  name      String
+  points    Int      @default(0)
+  tier      Tier     @default(REGULAR)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Tier {
+  REGULAR
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model Promotion {
+  id            Int          @id @default(autoincrement())
+  code          String       @unique
+  description   String
+  discountType  DiscountType
+  discountValue Float
+  minPurchase   Float?
+  isActive      Boolean      @default(true)
+  startDate     DateTime?
+  endDate       DateTime?
+  orders        Order[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
 model Order {
-  id          Int         @id @default(autoincrement())
-  totalAmount Float
-  userId      Int
-  user        User        @relation(fields: [userId], references: [id])
-  branchId    Int
-  branch      Branch      @relation(fields: [branchId], references: [id])
-  items       OrderItem[]
-  createdAt   DateTime    @default(now())
+  id             Int         @id @default(autoincrement())
+  totalAmount    Float
+  discountAmount Float       @default(0)
+  netAmount      Float       @default(0)
+  pointsEarned   Int         @default(0)
+  pointsRedeemed Int         @default(0)
+  userId         Int
+  user           User        @relation(fields: [userId], references: [id])
+  branchId       Int
+  branch         Branch      @relation(fields: [branchId], references: [id])
+  customerId     Int?
+  customer       Customer?   @relation(fields: [customerId], references: [id])
+  promotionId    Int?
+  promotion      Promotion?  @relation(fields: [promotionId], references: [id])
+  items          OrderItem[]
+  createdAt      DateTime    @default(now())
 }
 
 model OrderItem {

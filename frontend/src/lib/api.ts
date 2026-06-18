@@ -57,3 +57,14 @@ export const getBranch = (id: number) => fetchAPI(`/branches/${id}`);
 export const createTransfer = (data: any) => fetchAPI(`/branches/transfers`, { method: 'POST', body: JSON.stringify(data) });
 export const getTransfers = (branchId: number) => fetchAPI(`/branches/${branchId}/transfers`);
 export const acceptTransfer = (transferId: number) => fetchAPI(`/branches/transfers/${transferId}/accept`, { method: 'POST' });
+
+// Customers
+export const getCustomers = () => fetchAPI('/customers');
+export const getCustomerByPhone = (phone: string) => fetchAPI(`/customers/phone/${phone}`);
+export const createCustomer = (data: any) => fetchAPI('/customers', { method: 'POST', body: JSON.stringify(data) });
+
+// Promotions
+export const getPromotions = () => fetchAPI('/promotions');
+export const createPromotion = (data: any) => fetchAPI('/promotions', { method: 'POST', body: JSON.stringify(data) });
+export const togglePromotion = (id: number, isActive: boolean) => fetchAPI(`/promotions/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ isActive }) });
+export const validatePromotion = (code: string, subtotal: number) => fetchAPI('/promotions/validate', { method: 'POST', body: JSON.stringify({ code, subtotal }) });

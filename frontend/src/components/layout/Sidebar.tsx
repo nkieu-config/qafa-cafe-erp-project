@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingCart, Package, Coffee, Settings, Truck } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Coffee, Settings, Truck, Users, TicketPercent } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 
@@ -11,6 +11,8 @@ const navItems = [
   { name: "Point of Sale", href: "/pos", icon: ShoppingCart },
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Procurement", href: "/procurement", icon: Truck },
+  { name: "Customers", href: "/customers", icon: Users },
+  { name: "Promotions", href: "/promotions", icon: TicketPercent },
 ];
 
 export function Sidebar() {
