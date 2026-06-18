@@ -68,3 +68,17 @@ export const getPromotions = () => fetchAPI('/promotions');
 export const createPromotion = (data: any) => fetchAPI('/promotions', { method: 'POST', body: JSON.stringify(data) });
 export const togglePromotion = (id: number, isActive: boolean) => fetchAPI(`/promotions/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ isActive }) });
 export const validatePromotion = (code: string, subtotal: number) => fetchAPI('/promotions/validate', { method: 'POST', body: JSON.stringify({ code, subtotal }) });
+
+// HR
+export const clockIn = (branchId: number) => fetchAPI('/hr/clock-in', { method: 'POST', body: JSON.stringify({ branchId }) });
+export const clockOut = () => fetchAPI('/hr/clock-out', { method: 'POST' });
+export const getMyAttendance = () => fetchAPI('/hr/attendance/me');
+export const getActiveClockIn = () => fetchAPI('/hr/attendance/status');
+
+export const createShift = (data: any) => fetchAPI('/hr/shifts', { method: 'POST', body: JSON.stringify(data) });
+export const getShiftsByBranch = (branchId: number) => fetchAPI(`/hr/shifts/branch/${branchId}`);
+export const getMyShifts = () => fetchAPI('/hr/shifts/me');
+
+export const getPayroll = (branchId: number, month: number, year: number) => fetchAPI(`/hr/payroll?branchId=${branchId}&month=${month}&year=${year}`);
+export const updateHourlyRate = (userId: number, hourlyRate: number) => fetchAPI(`/hr/users/${userId}/rate`, { method: 'PATCH', body: JSON.stringify({ hourlyRate }) });
+export const getHrUsers = (branchId?: number) => fetchAPI(`/hr/users${branchId ? `?branchId=${branchId}` : ''}`);

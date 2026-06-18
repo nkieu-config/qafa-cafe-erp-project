@@ -14,10 +14,13 @@ model User {
   role      Role     @default(STAFF)
   branchId  Int?
   branch    Branch?  @relation(fields: [branchId], references: [id])
+  hourlyRate Float   @default(0)
   orders    Order[]
   transfersRequested StockTransfer[] @relation("TransferRequestedBy")
   transfersApproved  StockTransfer[] @relation("TransferApprovedBy")
   auditLogs AuditLog[]
+  shifts    Shift[]
+  attendanceRecords AttendanceRecord[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -39,6 +42,8 @@ model Branch {
   inventoryBatches InventoryBatch[]
   transfersOut   StockTransfer[]   @relation("TransferFrom")
   transfersIn    StockTransfer[]   @relation("TransferTo")
+  shifts         Shift[]
+  attendanceRecords AttendanceRecord[]
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 }
@@ -253,4 +258,29 @@ model PurchaseOrderItem {
   ingredient        Ingredient    @relation(fields: [ingredientId], references: [id])
   quantityRequested Float
   unitPrice         Float
+}
+
+model Shift {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  branchId  Int
+  branch    Branch   @relation(fields: [branchId], references: [id])
+  startTime DateTime
+  endTime   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AttendanceRecord {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  branchId   Int
+  branch     Branch   @relation(fields: [branchId], references: [id])
+  clockIn    DateTime @default(now())
+  clockOut   DateTime?
+  totalHours Float?   // Calculated on clock out
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

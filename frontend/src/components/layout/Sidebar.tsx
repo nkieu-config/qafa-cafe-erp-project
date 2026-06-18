@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingCart, Package, Coffee, Settings, Truck, Users, TicketPercent } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Coffee, Settings, Truck, Users, TicketPercent, UserSquare2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
+import { ClockInOutWidget } from "@/components/hr/ClockInOutWidget";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -13,6 +14,7 @@ const navItems = [
   { name: "Procurement", href: "/procurement", icon: Truck },
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Promotions", href: "/promotions", icon: TicketPercent },
+  { name: "Human Resources", href: "/hr", icon: UserSquare2 },
 ];
 
 export function Sidebar() {
@@ -35,15 +37,17 @@ export function Sidebar() {
         </div>
       )}
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          // Exact match for dashboard to avoid active state on other paths
+          const isReallyActive = item.href === '/' ? pathname === '/' : isActive;
           return (
             <Link
               key={item.name}
               href={item.href}
               className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-                isActive
+                isReallyActive
                   ? "bg-orange-50 text-orange-600 font-medium"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               }`}
@@ -55,6 +59,8 @@ export function Sidebar() {
         })}
       </nav>
       
+      {user && <ClockInOutWidget />}
+
       <div className="p-4 border-t">
         <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50" onClick={logout}>
           Logout
