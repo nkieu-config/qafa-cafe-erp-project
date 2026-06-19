@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingCart, Package, Coffee, Settings, Truck, Users, TicketPercent, UserSquare2, BarChart3, Wallet, Trash2, Banknote } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Coffee, Settings, Truck, Users, TicketPercent, UserSquare2, BarChart3, Wallet, Trash2, Banknote, ChefHat } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ClockInOutWidget } from "@/components/hr/ClockInOutWidget";
@@ -16,6 +16,7 @@ const navItems = [
   { name: "Procurement", href: "/procurement", icon: Truck },
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Promotions", href: "/promotions", icon: TicketPercent },
+  { name: "Kitchen Display", href: "/kds", icon: ChefHat },
   { name: "Employee Directory", href: "/hr/employees", icon: UserSquare2 },
   { name: "Payroll Management", href: "/hr/payroll", icon: Banknote },
   { name: "Finance HQ", href: "/finance", icon: Wallet },

@@ -53,6 +53,8 @@ export const createProduct = (data: { name: string; price: number; category: str
 export const createOrder = (data: { userId: number; branchId: number; items: { productId: number; quantity: number }[] }) => 
   fetchAPI('/orders', { method: 'POST', body: JSON.stringify(data) });
 export const getOrders = () => fetchAPI('/orders');
+export const getKdsOrders = (branchId: number) => fetchAPI(`/orders/kds?branchId=${branchId}`);
+export const updateOrderStatus = (orderId: number, status: string) => fetchAPI(`/orders/${orderId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 
 // Procurement & Branches
 export const getPurchaseOrders = () => fetchAPI('/purchase-orders');
