@@ -84,10 +84,14 @@ export class HrService {
   }
 
   // ==================== PAYROLL ====================
-  async getPayroll(branchId: number, month: number, year: number) {
-    // Generate start and end dates for the month
+  async generatePayrollRun(branchId: number, month: number, year: number) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    const existingRun = await this.prisma.payrollRun.findFirst({
+      where: { branchId, month, year }
+    });
+    if (existingRun) throw new BadRequestException('Payroll run already exists for this month.');
 
     const records = await this.prisma.attendanceRecord.findMany({
       where: {
@@ -98,27 +102,77 @@ export class HrService {
       include: { user: true }
     });
 
-    const payrollMap = new Map<number, any>();
+    const userMap = new Map<number, any>();
 
     for (const record of records) {
       const u = record.user;
-      if (!payrollMap.has(u.id)) {
-        payrollMap.set(u.id, {
+      if (!userMap.has(u.id)) {
+        userMap.set(u.id, {
           userId: u.id,
-          name: u.name,
-          email: u.email,
           hourlyRate: u.hourlyRate,
-          totalHours: 0,
-          totalPay: 0
+          standardHours: 0,
+          otHours: 0
         });
       }
 
-      const p = payrollMap.get(u.id);
-      p.totalHours += record.totalHours || 0;
-      p.totalPay = p.totalHours * p.hourlyRate;
+      const p = userMap.get(u.id);
+      const hrs = record.totalHours || 0;
+      if (hrs > 8) {
+        p.standardHours += 8;
+        p.otHours += (hrs - 8);
+      } else {
+        p.standardHours += hrs;
+      }
     }
 
-    return Array.from(payrollMap.values());
+    const payslipsData = Array.from(userMap.values()).map(p => {
+      const basePay = p.standardHours * p.hourlyRate;
+      const otPay = p.otHours * p.hourlyRate * 1.5;
+      const grossPay = basePay + otPay;
+      
+      const socialSecurity = Math.min(basePay * 0.05, 750);
+      const taxDeduction = grossPay * 0.03;
+      const netPay = grossPay - socialSecurity - taxDeduction;
+
+      return {
+        userId: p.userId,
+        standardHours: p.standardHours,
+        otHours: p.otHours,
+        basePay,
+        otPay,
+        grossPay,
+        socialSecurity,
+        taxDeduction,
+        netPay
+      };
+    });
+
+    return this.prisma.payrollRun.create({
+      data: {
+        branchId,
+        month,
+        year,
+        payslips: {
+          create: payslipsData
+        }
+      },
+      include: { payslips: true }
+    });
+  }
+
+  async getPayrollRuns(branchId: number) {
+    return this.prisma.payrollRun.findMany({
+      where: { branchId },
+      include: { payslips: { include: { user: true } } },
+      orderBy: [{ year: 'desc' }, { month: 'desc' }]
+    });
+  }
+
+  async approvePayrollRun(runId: number) {
+    return this.prisma.payrollRun.update({
+      where: { id: runId },
+      data: { status: 'APPROVED' }
+    });
   }
 
   async updateHourlyRate(userId: number, hourlyRate: number) {

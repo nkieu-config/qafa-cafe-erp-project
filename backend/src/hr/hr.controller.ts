@@ -42,9 +42,23 @@ export class HrController {
     return this.hrService.getMyShifts(req.user.userId);
   }
 
-  @Get('payroll')
-  getPayroll(@Query('branchId', ParseIntPipe) branchId: number, @Query('month', ParseIntPipe) month: number, @Query('year', ParseIntPipe) year: number) {
-    return this.hrService.getPayroll(branchId, month, year);
+  @Post('payroll/generate')
+  generatePayrollRun(
+    @Body('branchId', ParseIntPipe) branchId: number, 
+    @Body('month', ParseIntPipe) month: number, 
+    @Body('year', ParseIntPipe) year: number
+  ) {
+    return this.hrService.generatePayrollRun(branchId, month, year);
+  }
+
+  @Get('payroll-runs')
+  getPayrollRuns(@Query('branchId', ParseIntPipe) branchId: number) {
+    return this.hrService.getPayrollRuns(branchId);
+  }
+
+  @Patch('payroll-runs/:id/approve')
+  approvePayrollRun(@Param('id', ParseIntPipe) id: number) {
+    return this.hrService.approvePayrollRun(id);
   }
 
   @Patch('users/:userId/rate')
