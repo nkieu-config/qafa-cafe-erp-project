@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Request, Query, Patch } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -21,6 +21,16 @@ export class OrdersController {
   @Get()
   findAll() {
     return this.ordersService.findAll();
+  }
+
+  @Get('kds')
+  getKdsOrders(@Query('branchId', ParseIntPipe) branchId: number) {
+    return this.ordersService.getKdsOrders(branchId);
+  }
+
+  @Patch(':id/status')
+  updateOrderStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: string) {
+    return this.ordersService.updateOrderStatus(id, status);
   }
 
   @Get(':id')

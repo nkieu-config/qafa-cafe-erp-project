@@ -178,4 +178,26 @@ export class OrdersService {
       include: { items: true, branch: true, customer: true, promotion: true } 
     });
   }
+
+  // ==================== KDS (Kitchen Display System) ====================
+  async getKdsOrders(branchId: number) {
+    return this.prisma.order.findMany({
+      where: { 
+        branchId,
+        status: { in: ['PENDING', 'PREPARING'] } 
+      },
+      include: { 
+        items: { include: { product: true } }, 
+        customer: true 
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+  }
+
+  async updateOrderStatus(orderId: number, status: any) {
+    return this.prisma.order.update({
+      where: { id: orderId },
+      data: { status }
+    });
+  }
 }
