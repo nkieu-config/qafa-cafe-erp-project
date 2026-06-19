@@ -200,6 +200,13 @@ enum DiscountType {
   FIXED_AMOUNT
 }
 
+enum OrderStatus {
+  PENDING
+  PREPARING
+  COMPLETED
+  CANCELLED
+}
+
 model Order {
   id             Int         @id @default(autoincrement())
   totalAmount    Float
@@ -208,6 +215,7 @@ model Order {
   totalCogs      Float       @default(0)
   pointsEarned   Int         @default(0)
   pointsRedeemed Int         @default(0)
+  status         OrderStatus @default(PENDING)
   userId         Int
   user           User        @relation(fields: [userId], references: [id])
   branchId       Int
