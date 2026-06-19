@@ -153,4 +153,109 @@ export class BranchesService {
       });
     });
   }
+
+  async addInventoryBatch(branchId: number, data: { ingredientId: number, quantity: number, expiryDate?: string }, userId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const batch = await tx.inventoryBatch.create({
+        data: {
+          branchId,
+          ingredientId: data.ingredientId,
+          quantity: data.quantity,
+          expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+          status: 'ACTIVE'
+        }
+      });
+
+      const inv = await tx.branchInventory.findUnique({
+        where: { branchId_ingredientId: { branchId, ingredientId: data.ingredientId } }
+      });
+
+      if (inv) {
+        await tx.branchInventory.update({
+          where: { id: inv.id },
+          data: { stock: { increment: data.quantity } }
+        });
+      } else {
+        await tx.branchInventory.create({
+          data: {
+            branchId,
+            ingredientId: data.ingredientId,
+            stock: data.quantity,
+            minStock: 0
+          }
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId,
+          action: 'ADD_BATCH',
+          targetType: 'InventoryBatch',
+          targetId: batch.id,
+          details: `Added ${data.quantity} units of ingredient ${data.ingredientId}`
+        }
+      });
+
+      return batch;
+    });
+  }
+
+  async reportWaste(branchId: number, data: { batchId?: number, ingredientId: number, quantity: number, reason: string }, userId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      let remainingToDeduct = data.quantity;
+
+      if (data.batchId) {
+        const batch = await tx.inventoryBatch.findUnique({ where: { id: data.batchId } });
+        if (batch && batch.branchId === branchId && batch.status === 'ACTIVE') {
+          const deductQty = Math.min(batch.quantity, remainingToDeduct);
+          remainingToDeduct -= deductQty;
+          await tx.inventoryBatch.update({
+            where: { id: batch.id },
+            data: {
+              quantity: batch.quantity - deductQty,
+              status: batch.quantity - deductQty <= 0 ? 'DEPLETED' : 'ACTIVE'
+            }
+          });
+        }
+      }
+
+      if (remainingToDeduct > 0) {
+        const activeBatches = await tx.inventoryBatch.findMany({
+          where: { branchId, ingredientId: data.ingredientId, status: 'ACTIVE' },
+          orderBy: [{ expiryDate: 'asc' }, { createdAt: 'asc' }]
+        });
+
+        for (const batch of activeBatches) {
+          if (remainingToDeduct <= 0) break;
+          if (batch.quantity <= remainingToDeduct) {
+            remainingToDeduct -= batch.quantity;
+            await tx.inventoryBatch.update({ where: { id: batch.id }, data: { quantity: 0, status: 'DEPLETED' } });
+          } else {
+            await tx.inventoryBatch.update({ where: { id: batch.id }, data: { quantity: batch.quantity - remainingToDeduct } });
+            remainingToDeduct = 0;
+          }
+        }
+      }
+
+      const inv = await tx.branchInventory.findUnique({
+        where: { branchId_ingredientId: { branchId, ingredientId: data.ingredientId } }
+      });
+      if (inv) {
+        await tx.branchInventory.update({
+          where: { id: inv.id },
+          data: { stock: { decrement: data.quantity } }
+        });
+      }
+
+      return tx.wasteLog.create({
+        data: {
+          branchId,
+          ingredientId: data.ingredientId,
+          quantity: data.quantity,
+          reason: data.reason,
+          recordedById: userId
+        }
+      });
+    });
+  }
 }

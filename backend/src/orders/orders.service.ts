@@ -77,7 +77,10 @@ export class OrdersService {
         }
 
         if (remainingToDeduct > 0) {
-          throw new BadRequestException(`Inventory batches out of sync for ingredient ID ${ingredientId}`);
+          // Fallback: If physical stock is there but batches weren't registered by staff,
+          // we allow the POS sale to continue. The aggregate stock was already deducted.
+          // In a mature system, we could log this to a "Virtual Negative Batch" or audit log.
+          console.warn(`[FIFO Warning] Batches out of sync for ingredient ${ingredientId} at branch ${data.branchId}. Missing ${remainingToDeduct} units.`);
         }
       }
 

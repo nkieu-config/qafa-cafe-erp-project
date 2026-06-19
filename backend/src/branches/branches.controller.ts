@@ -34,4 +34,14 @@ export class BranchesController {
   acceptTransfer(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
     return this.branchesService.acceptTransfer(id, req.user.userId);
   }
+
+  @Post(':id/batches')
+  addInventoryBatch(@Param('id', ParseIntPipe) id: number, @Body() data: any, @Request() req: any) {
+    return this.branchesService.addInventoryBatch(id, data, req.user.userId);
+  }
+
+  @Post(':id/waste')
+  reportWaste(@Param('id', ParseIntPipe) id: number, @Body() data: any, @Request() req: any) {
+    return this.branchesService.reportWaste(id, data, req.user.userId);
+  }
 }
