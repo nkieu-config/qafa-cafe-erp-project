@@ -20,6 +20,7 @@ type AuthContextType = {
   logout: () => void;
   activeBranchId: number | null;
   setActiveBranchId: (id: number | null) => void;
+  isInitialized: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [activeBranchId, setActiveBranchId] = useState<number | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(parsedUser);
       setActiveBranchId(parsedUser.branchId || null);
     }
+    setIsInitialized(true);
   }, []);
 
   const login = (newToken: string, newUser: User) => {
@@ -63,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, activeBranchId, setActiveBranchId }}>
+    <AuthContext.Provider value={{ user, token, login, logout, activeBranchId, setActiveBranchId, isInitialized }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,15 +5,19 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { token, user } = useAuth();
+  const { token, isInitialized } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!token && pathname !== '/login') {
+    if (isInitialized && !token && pathname !== '/login') {
       router.push('/login');
     }
-  }, [token, pathname, router]);
+  }, [isInitialized, token, pathname, router]);
+
+  if (!isInitialized) {
+    return <div className="h-screen w-full flex items-center justify-center text-slate-500">Loading…</div>;
+  }
 
   if (!token && pathname !== '/login') {
     return <div className="h-screen w-full flex items-center justify-center text-slate-500">Redirecting to login…</div>;
