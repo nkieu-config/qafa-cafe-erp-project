@@ -1,12 +1,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { AccountingService } from '../accounting/accounting.service';
 
 @Injectable()
 export class ProcurementService {
   constructor(
     private prisma: PrismaService,
-    private auditService: AuditService
+    private auditService: AuditService,
+    private accountingService: AccountingService
   ) {}
 
   findAllSuppliers() {
@@ -132,6 +134,21 @@ export class ProcurementService {
 
       if (userId) {
         await this.auditService.logAction(userId, 'RECEIVE_PO', 'PurchaseOrder', poId, { poNumber: po.poNumber });
+      }
+
+      // Calculate Total Amount
+      const totalAmount = po.items.reduce((sum, item) => sum + (item.quantityRequested * item.unitPrice), 0);
+
+      // Post Accounts Payable (AP) Journal Entry
+      if (totalAmount > 0) {
+        this.accountingService.createJournalEntry({
+          reference: po.poNumber,
+          description: `Accounts Payable for PO ${po.poNumber}`,
+          lines: [
+            { accountCode: '1030', debit: totalAmount, credit: 0, description: 'Inventory received' },
+            { accountCode: '2010', debit: 0, credit: totalAmount, description: 'Accounts Payable recognized' }
+          ]
+        }).catch(err => console.error('[Accounting] Failed to post AP journal entry:', err));
       }
 
       return updatedPo;
