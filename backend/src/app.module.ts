@@ -16,6 +16,8 @@ import { PromotionsModule } from './promotions/promotions.module';
 import { HrModule } from './hr/hr.module';
 import { FinanceModule } from './finance/finance.module';
 import { EventsModule } from './events/events.module';
+import { EquipmentModule } from './equipment/equipment.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -23,7 +25,7 @@ import { EventsModule } from './events/events.module';
       ttl: 60000,
       limit: 60,
     }]),
-    PrismaModule, ProductsModule, IngredientsModule, OrdersModule, AuthModule, BranchesModule, ProcurementModule, CustomersModule, PromotionsModule, HrModule, FinanceModule, EventsModule
+    PrismaModule, ProductsModule, IngredientsModule, OrdersModule, AuthModule, BranchesModule, ProcurementModule, CustomersModule, PromotionsModule, HrModule, FinanceModule, EventsModule, EquipmentModule, ScheduleModule.forRoot()
   ],
   controllers: [AppController],
   providers: [

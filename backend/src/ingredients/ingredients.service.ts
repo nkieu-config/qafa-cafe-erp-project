@@ -5,19 +5,19 @@ import { PrismaService } from '../prisma/prisma.service';
 export class IngredientsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: { name: string; unit: string; stock?: number; minStock?: number }) {
+  async create(data: { name: string; unit: string; costPerUnit?: number; primarySupplierId?: number }) {
     return this.prisma.ingredient.create({ data });
   }
 
   async findAll() {
-    return this.prisma.ingredient.findMany();
+    return this.prisma.ingredient.findMany({ include: { primarySupplier: true } });
   }
 
   async findOne(id: number) {
-    return this.prisma.ingredient.findUnique({ where: { id } });
+    return this.prisma.ingredient.findUnique({ where: { id }, include: { primarySupplier: true } });
   }
 
-  async update(id: number, data: { name?: string; unit?: string; stock?: number; minStock?: number }) {
+  async update(id: number, data: { name?: string; unit?: string; costPerUnit?: number; primarySupplierId?: number }) {
     return this.prisma.ingredient.update({ where: { id }, data });
   }
 

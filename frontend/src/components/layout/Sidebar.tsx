@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingCart, Package, Coffee, Settings, Truck, Users, TicketPercent, UserSquare2, BarChart3, Wallet, Trash2, Banknote, ChefHat } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Coffee, Settings, Truck, Users, TicketPercent, UserSquare2, BarChart3, Wallet, Trash2, Banknote, ChefHat, Wrench } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ClockInOutWidget } from "@/components/hr/ClockInOutWidget";
@@ -16,6 +16,7 @@ const navItems = [
   { name: "Inventory", href: "/inventory", icon: Package, roles: ["SUPER_ADMIN", "MANAGER"] },
   { name: "Waste Log", href: "/inventory/waste", icon: Trash2, roles: ["SUPER_ADMIN", "MANAGER", "STAFF"] },
   { name: "Procurement", href: "/procurement", icon: Truck, roles: ["SUPER_ADMIN", "MANAGER"] },
+  { name: "Equipment", href: "/procurement/equipment", icon: Wrench, roles: ["SUPER_ADMIN", "MANAGER"] },
   { name: "Customers", href: "/customers", icon: Users, roles: ["SUPER_ADMIN", "MANAGER", "STAFF"] },
   { name: "Promotions", href: "/promotions", icon: TicketPercent, roles: ["SUPER_ADMIN", "MANAGER"] },
   { name: "Kitchen Display", href: "/kds", icon: ChefHat, roles: ["SUPER_ADMIN", "MANAGER", "STAFF"] },

@@ -152,3 +152,9 @@ export const exportSales = async (token: string, branchId?: number, startDate?: 
   window.URL.revokeObjectURL(url)
   document.body.removeChild(a)
 }
+
+// Equipment
+export const getEquipment = (branchId?: number) => fetchAPI(`/equipment${branchId ? `?branchId=${branchId}` : ''}`);
+export const createEquipment = (data: any) => fetchAPI('/equipment', { method: 'POST', body: JSON.stringify(data) });
+export const updateEquipment = (id: number, data: any) => fetchAPI(`/equipment/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const logMaintenance = (equipmentId: number, data: any) => fetchAPI(`/equipment/${equipmentId}/maintenance`, { method: 'POST', body: JSON.stringify(data) });

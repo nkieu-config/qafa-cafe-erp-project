@@ -60,21 +60,10 @@ async function main() {
   });
 
   // 3. Create Ingredients (Global Dictionary)
-  const coffeeBeans = await prisma.ingredient.create({
-    data: { name: 'Espresso Beans', unit: 'g', globalMinStock: 1000, costPerUnit: 0.5 },
-  });
-  
-  const milk = await prisma.ingredient.create({
-    data: { name: 'Whole Milk', unit: 'ml', globalMinStock: 2000, costPerUnit: 0.05 },
-  });
-
-  const cup = await prisma.ingredient.create({
-    data: { name: 'Paper Cup', unit: 'pcs', globalMinStock: 100, costPerUnit: 3.5 },
-  });
-
-  const syrup = await prisma.ingredient.create({
-    data: { name: 'Vanilla Syrup', unit: 'ml', globalMinStock: 200, costPerUnit: 0.2 },
-  });
+  const coffeeBeans = await prisma.ingredient.create({ data: { name: 'Espresso Beans', unit: 'g', costPerUnit: 0.5 } });
+  const milk = await prisma.ingredient.create({ data: { name: 'Whole Milk', unit: 'ml', costPerUnit: 0.05 } });
+  const cup = await prisma.ingredient.create({ data: { name: 'Paper Cup', unit: 'pcs', costPerUnit: 3.5 } });
+  const syrup = await prisma.ingredient.create({ data: { name: 'Vanilla Syrup', unit: 'ml', costPerUnit: 0.2 } });
 
   // 4. Create Branch Inventories (Stock per branch)
   await prisma.branchInventory.createMany({

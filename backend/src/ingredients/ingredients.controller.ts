@@ -7,7 +7,7 @@ export class IngredientsController {
   constructor(private readonly ingredientsService: IngredientsService) {}
 
   @Post()
-  create(@Body() createIngredientDto: { name: string; unit: string; stock?: number; minStock?: number }) {
+  create(@Body() createIngredientDto: { name: string; unit: string; costPerUnit?: number; primarySupplierId?: number }) {
     return this.ingredientsService.create(createIngredientDto);
   }
 

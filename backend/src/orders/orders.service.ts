@@ -1,10 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { ProcurementService } from '../procurement/procurement.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService, private eventsGateway: EventsGateway) {}
+  constructor(private prisma: PrismaService, private eventsGateway: EventsGateway, private procurementService: ProcurementService) {}
 
   async createOrder(data: { 
     userId: number; 
@@ -179,6 +180,13 @@ export class OrdersService {
 
       // Emit WebSocket event for KDS
       this.eventsGateway.emitOrderCreated(order);
+
+      // Async trigger Auto-Reorder checks
+      setTimeout(() => {
+        for (const ingredientId of ingredientRequirements.keys()) {
+          this.procurementService.checkAndAutoReorder(data.branchId, ingredientId).catch(err => console.error(err));
+        }
+      }, 0);
 
       return order;
     });
