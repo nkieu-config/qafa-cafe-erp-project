@@ -17,15 +17,15 @@ export default function InventoryLayout({ children }: { children: React.ReactNod
   ]
 
   return (
-    <AnimatedPage className="max-w-[1600px] w-full mx-auto space-y-6">
-      <div className="flex justify-between items-end">
+    <AnimatedPage className="max-w-[1600px] w-full mx-auto space-y-6 h-full flex flex-col">
+      <div className="flex justify-between items-end shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-balance">Inventory</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage stock, transfers, and waste logs.</p>
         </div>
       </div>
 
-      <div className="flex space-x-2 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-fit overflow-x-auto">
+      <div className="flex space-x-2 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-fit overflow-x-auto shrink-0">
         {tabs.filter(t => t.roles.includes(role || '')).map(tab => {
           const isActive = pathname.startsWith(tab.path)
           return (
@@ -45,7 +45,7 @@ export default function InventoryLayout({ children }: { children: React.ReactNod
         })}
       </div>
 
-      <div className="relative">
+      <div className="relative flex-1 min-h-0 w-full overflow-y-auto pb-10">
         {children}
       </div>
     </AnimatedPage>

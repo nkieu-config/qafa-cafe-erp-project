@@ -19,8 +19,8 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
   ]
 
   return (
-    <AnimatedPage className="max-w-[1600px] w-full mx-auto space-y-6">
-      <div className="flex justify-between items-end">
+    <AnimatedPage className="max-w-[1600px] w-full mx-auto space-y-6 h-full flex flex-col">
+      <div className="flex justify-between items-end shrink-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 text-balance">Human Resources</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage staff, shifts, attendance and payroll.</p>
@@ -28,7 +28,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Tabs / Sub-navigation */}
-      <div className="flex space-x-2 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-fit overflow-x-auto">
+      <div className="flex space-x-2 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-fit overflow-x-auto shrink-0">
         {tabs.filter(t => t.roles.includes(role || '')).map(tab => {
           const isActive = pathname.startsWith(tab.path)
           return (
@@ -49,7 +49,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Content for the specific HR page */}
-      <div className="glass-panel p-6 rounded-2xl relative">
+      <div className="glass-panel p-6 rounded-2xl relative flex-1 min-h-0 w-full overflow-y-auto pb-10">
         {children}
       </div>
     </AnimatedPage>
