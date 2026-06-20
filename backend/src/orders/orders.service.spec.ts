@@ -3,18 +3,29 @@ import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
 import { MockPrismaService, PrismaServiceMockProvider } from '../prisma/prisma.service.mock';
+import { EventsGateway } from '../events/events.gateway';
 
 describe('OrdersService', () => {
   let service: OrdersService;
   let prisma: MockPrismaService;
+  let eventsGateway: jest.Mocked<EventsGateway>;
 
   const TEST_BRANCH_ID = 2;
 
   beforeEach(async () => {
+    const mockEventsGateway = {
+      server: { emit: jest.fn() },
+      emitOrderCreated: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrdersService,
         PrismaServiceMockProvider,
+        {
+          provide: EventsGateway,
+          useValue: mockEventsGateway,
+        },
       ],
     }).compile();
 
