@@ -2,10 +2,16 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { ProcurementService } from '../procurement/procurement.service';
+import { CustomersService } from '../customers/customers.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService, private eventsGateway: EventsGateway, private procurementService: ProcurementService) {}
+  constructor(
+    private prisma: PrismaService, 
+    private eventsGateway: EventsGateway, 
+    private procurementService: ProcurementService,
+    private customersService: CustomersService
+  ) {}
 
   async createOrder(data: { 
     userId: number; 
@@ -104,7 +110,7 @@ export class OrdersService {
         
         if (pointsRedeemed > 0) {
           if (customer.points < pointsRedeemed) throw new BadRequestException('Not enough points to redeem');
-          discountAmount += pointsRedeemed / 10; // 10 points = 1 THB
+          discountAmount += pointsRedeemed; // 1 point = 1 THB
           await tx.customer.update({
             where: { id: customer.id },
             data: { points: { decrement: pointsRedeemed } }
@@ -181,10 +187,13 @@ export class OrdersService {
       // Emit WebSocket event for KDS
       this.eventsGateway.emitOrderCreated(order);
 
-      // Async trigger Auto-Reorder checks
+      // Async triggers
       setTimeout(() => {
         for (const ingredientId of ingredientRequirements.keys()) {
           this.procurementService.checkAndAutoReorder(data.branchId, ingredientId).catch(err => console.error(err));
+        }
+        if (customerId) {
+          this.customersService.checkAndUpdateTier(customerId).catch(err => console.error(err));
         }
       }, 0);
 

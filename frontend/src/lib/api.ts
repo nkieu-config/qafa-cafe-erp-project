@@ -68,7 +68,6 @@ export const getTransfers = (branchId: number) => fetchAPI(`/branches/${branchId
 export const acceptTransfer = (transferId: number) => fetchAPI(`/branches/transfers/${transferId}/accept`, { method: 'POST' });
 
 // Customers
-export const getCustomers = () => fetchAPI('/customers');
 export const getCustomerByPhone = (phone: string) => fetchAPI(`/customers/phone/${phone}`);
 export const createCustomer = (data: any) => fetchAPI('/customers', { method: 'POST', body: JSON.stringify(data) });
 
@@ -158,3 +157,11 @@ export const getEquipment = (branchId?: number) => fetchAPI(`/equipment${branchI
 export const createEquipment = (data: any) => fetchAPI('/equipment', { method: 'POST', body: JSON.stringify(data) });
 export const updateEquipment = (id: number, data: any) => fetchAPI(`/equipment/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 export const logMaintenance = (equipmentId: number, data: any) => fetchAPI(`/equipment/${equipmentId}/maintenance`, { method: 'POST', body: JSON.stringify(data) });
+
+// Customers
+export const getCustomers = (search?: string) => fetchAPI(`/customers${search ? `?search=${encodeURIComponent(search)}` : ''}`);
+
+// Reports
+export const getSalesTrends = (branchId?: number) => fetchAPI(`/reports/sales-trends${branchId ? `?branchId=${branchId}` : ''}`);
+export const getTopProducts = (branchId?: number) => fetchAPI(`/reports/top-products${branchId ? `?branchId=${branchId}` : ''}`);
+export const getProfitLoss = (branchId?: number) => fetchAPI(`/reports/profit-loss${branchId ? `?branchId=${branchId}` : ''}`);

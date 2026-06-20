@@ -1,129 +1,172 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCustomers, createCustomer } from "@/lib/api";
+import { fetchAPI } from "@/lib/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, UserPlus } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
-import { AnimatedPage } from "@/components/animated-page";
+import { Search, UserPlus, Star, Award, Crown } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
-  // Form State
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    fetchCustomers();
+    loadCustomers();
   }, []);
 
-  const fetchCustomers = () => {
+  const loadCustomers = async (q?: string) => {
     setLoading(true);
-    getCustomers()
-      .then(setCustomers)
-      .catch((err) => toast.error("Failed to load customers: " + err.message))
-      .finally(() => setLoading(false));
-  };
-
-  const handleCreateCustomer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !phone) return;
-    setIsSubmitting(true);
     try {
-      await createCustomer({ name, phone });
-      toast.success("Customer registered successfully!");
-      setOpen(false);
-      setName("");
-      setPhone("");
-      fetchCustomers();
-    } catch (err: any) {
-      toast.error(err.message);
+      const query = q ? `?search=${encodeURIComponent(q)}` : '';
+      const data = await fetchAPI(`/customers${query}`);
+      setCustomers(data);
+    } catch (error) {
+      console.error(error);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  if (loading) return <div className="p-10 text-center">Loading Customers...</div>;
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    loadCustomers(search);
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await fetchAPI('/customers', {
+        method: 'POST',
+        body: JSON.stringify({ name, phone }),
+      });
+      toast.success("Customer registered successfully!");
+      setName(""); setPhone("");
+      loadCustomers();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const getTierIcon = (tier: string) => {
+    switch (tier) {
+      case 'PLATINUM': return <Crown className="w-4 h-4 text-purple-500" />;
+      case 'GOLD': return <Award className="w-4 h-4 text-amber-500" />;
+      case 'SILVER': return <Star className="w-4 h-4 text-slate-400" />;
+      default: return null;
+    }
+  };
+
+  const getTierBadge = (tier: string) => {
+    switch (tier) {
+      case 'PLATINUM': return "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400";
+      case 'GOLD': return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400";
+      case 'SILVER': return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300";
+      default: return "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400";
+    }
+  };
 
   return (
-    <AnimatedPage className="w-full max-w-[1600px] mx-auto space-y-6">
-      <div className="flex justify-between items-end">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Member Database</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage loyalty members, points, and tiers.</p>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Customers & Loyalty</h1>
+          <p className="text-slate-500 dark:text-slate-400">Manage your members, points, and tiers.</p>
         </div>
         
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger render={<Button className="bg-blue-600 hover:bg-blue-700" />}>
-            <UserPlus className="w-4 h-4 mr-2" /> Register Member
+        <Dialog>
+          <DialogTrigger>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
+              <UserPlus className="w-4 h-4 mr-2" />
+              New Member
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Register New Member</DialogTitle>
+              <DialogTitle>Register Customer</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreateCustomer} className="space-y-4 pt-4">
+            <form onSubmit={handleCreate} className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="John Doe" />
+                <Label>Name</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. John Doe" />
               </div>
               <div className="space-y-2">
                 <Label>Phone Number</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} required placeholder="0812345678" />
+                <Input value={phone} onChange={e => setPhone(e.target.value)} required placeholder="e.g. 0812345678" />
               </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Registering..." : "Register"}
-              </Button>
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">Register</Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Phone</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Points Balance</TableHead>
-              <TableHead>Tier</TableHead>
-              <TableHead>Registered</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell className="font-mono">{c.phone}</TableCell>
-                <TableCell className="font-semibold">{c.name}</TableCell>
-                <TableCell className="text-amber-600 dark:text-amber-500 font-bold">{c.points.toLocaleString()} pts</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={cn(
-                    "text-[10px] uppercase font-bold tracking-wider py-0.5 px-2",
-                    c.tier === 'PLATINUM' ? 'bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900' :
-                    c.tier === 'GOLD' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-500 border-yellow-300 dark:border-yellow-800' :
-                    c.tier === 'SILVER' ? 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-700' : ''
-                  )}>
-                    {c.tier}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-slate-500 dark:text-slate-400">{new Date(c.createdAt).toLocaleDateString()}</TableCell>
+      <Card className="glass-card">
+        <CardHeader className="pb-2">
+          <form onSubmit={handleSearch} className="flex gap-2 w-full max-w-sm">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+              <Input
+                type="search"
+                placeholder="Search by name or phone..."
+                className="pl-9 bg-white/50 dark:bg-slate-900/50"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Button type="submit" variant="secondary">Search</Button>
+          </form>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Tier</TableHead>
+                <TableHead>Points</TableHead>
+                <TableHead>Joined</TableHead>
               </TableRow>
-            ))}
-            {customers.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-slate-400 dark:text-slate-500">No members found</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </AnimatedPage>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-10">Loading...</TableCell></TableRow>
+              ) : customers.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-10 text-slate-500">No customers found.</TableCell></TableRow>
+              ) : (
+                customers.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-semibold text-slate-800 dark:text-slate-200">
+                      {c.name}
+                    </TableCell>
+                    <TableCell className="text-slate-500 font-mono">{c.phone}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`flex w-fit items-center gap-1.5 px-2 py-0.5 text-xs font-bold uppercase tracking-wider ${getTierBadge(c.tier)}`}>
+                        {getTierIcon(c.tier)}
+                        {c.tier}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-bold text-lg text-emerald-600 dark:text-emerald-400">
+                      {c.points} <span className="text-xs font-medium text-slate-400">pts</span>
+                    </TableCell>
+                    <TableCell className="text-slate-500 text-sm">
+                      {new Date(c.createdAt).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

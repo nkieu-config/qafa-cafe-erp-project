@@ -5,6 +5,7 @@ import { BadRequestException } from '@nestjs/common';
 import { MockPrismaService, PrismaServiceMockProvider } from '../prisma/prisma.service.mock';
 import { EventsGateway } from '../events/events.gateway';
 import { ProcurementService } from '../procurement/procurement.service';
+import { CustomersService } from '../customers/customers.service';
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -23,6 +24,10 @@ describe('OrdersService', () => {
       checkAndAutoReorder: jest.fn().mockResolvedValue(undefined),
     };
 
+    const mockCustomersService = {
+      checkAndUpdateTier: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrdersService,
@@ -34,6 +39,10 @@ describe('OrdersService', () => {
         {
           provide: ProcurementService,
           useValue: mockProcurementService,
+        },
+        {
+          provide: CustomersService,
+          useValue: mockCustomersService,
         },
       ],
     }).compile();
