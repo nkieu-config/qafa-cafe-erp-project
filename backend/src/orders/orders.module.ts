@@ -4,8 +4,10 @@ import { OrdersService } from './orders.service';
 import { ProcurementModule } from '../procurement/procurement.module';
 import { CustomersModule } from '../customers/customers.module';
 
+import { AccountingModule } from '../accounting/accounting.module';
+
 @Module({
-  imports: [ProcurementModule, CustomersModule],
+  imports: [ProcurementModule, CustomersModule, AccountingModule],
   controllers: [OrdersController],
   providers: [OrdersService]
 })

@@ -20,6 +20,8 @@ import { EquipmentModule } from './equipment/equipment.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReportsModule } from './reports/reports.module';
 import { AuditModule } from './audit/audit.module';
+import { AccountingModule } from './accounting/accounting.module';
+import { ProductionModule } from './production/production.module';
 
 @Module({
   imports: [
@@ -27,7 +29,7 @@ import { AuditModule } from './audit/audit.module';
       ttl: 60000,
       limit: 60,
     }]),
-    PrismaModule, ProductsModule, IngredientsModule, OrdersModule, AuthModule, BranchesModule, ProcurementModule, CustomersModule, PromotionsModule, HrModule, FinanceModule, EventsModule, EquipmentModule, ScheduleModule.forRoot(), ReportsModule, AuditModule
+    PrismaModule, ProductsModule, IngredientsModule, OrdersModule, AuthModule, BranchesModule, ProcurementModule, CustomersModule, PromotionsModule, HrModule, FinanceModule, EventsModule, EquipmentModule, ScheduleModule.forRoot(), ReportsModule, AuditModule, AccountingModule, ProductionModule
   ],
   controllers: [AppController],
   providers: [

@@ -1,5 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -7,29 +7,29 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  password  String
-  role      Role     @default(STAFF)
-  employmentType EmploymentType @default(PART_TIME)
-  branchId  Int?
-  branch    Branch?  @relation(fields: [branchId], references: [id])
-  hourlyRate Float   @default(0)
-  baseSalary Float   @default(0)
-  orders    Order[]
-  transfersRequested StockTransfer[] @relation("TransferRequestedBy")
-  transfersApproved  StockTransfer[] @relation("TransferApprovedBy")
-  auditLogs AuditLog[]
-  shifts    Shift[]
-  attendanceRecords AttendanceRecord[]
-  leaveRequests     LeaveRequest[]
-  wasteLogs         WasteLog[]
-  expenses          Expense[]
-  shiftSettlements  ShiftSettlement[]
-  payslips          Payslip[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 Int                @id @default(autoincrement())
+  email              String             @unique
+  name               String?
+  password           String
+  role               Role               @default(STAFF)
+  employmentType     EmploymentType     @default(PART_TIME)
+  branchId           Int?
+  branch             Branch?            @relation(fields: [branchId], references: [id])
+  hourlyRate         Float              @default(0)
+  baseSalary         Float              @default(0)
+  orders             Order[]
+  transfersRequested StockTransfer[]    @relation("TransferRequestedBy")
+  transfersApproved  StockTransfer[]    @relation("TransferApprovedBy")
+  auditLogs          AuditLog[]
+  shifts             Shift[]
+  attendanceRecords  AttendanceRecord[]
+  leaveRequests      LeaveRequest[]
+  wasteLogs          WasteLog[]
+  expenses           Expense[]
+  shiftSettlements   ShiftSettlement[]
+  payslips           Payslip[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 }
 
 enum Role {
@@ -44,25 +44,27 @@ enum EmploymentType {
 }
 
 model Branch {
-  id             Int               @id @default(autoincrement())
-  name           String
-  location       String?
-  users          User[]
-  orders         Order[]
-  inventories    BranchInventory[]
-  purchaseOrders PurchaseOrder[]
-  inventoryBatches InventoryBatch[]
-  transfersOut   StockTransfer[]   @relation("TransferFrom")
-  transfersIn    StockTransfer[]   @relation("TransferTo")
-  shifts         Shift[]
+  id                Int                @id @default(autoincrement())
+  name              String
+  location          String?
+  isCentralKitchen  Boolean            @default(false)
+  users             User[]
+  orders            Order[]
+  inventories       BranchInventory[]
+  purchaseOrders    PurchaseOrder[]
+  inventoryBatches  InventoryBatch[]
+  transfersOut      StockTransfer[]    @relation("TransferFrom")
+  transfersIn       StockTransfer[]    @relation("TransferTo")
+  productionOrders  ProductionOrder[]
+  shifts            Shift[]
   attendanceRecords AttendanceRecord[]
   wasteLogs         WasteLog[]
   expenses          Expense[]
   shiftSettlements  ShiftSettlement[]
   payrollRuns       PayrollRun[]
   equipment         Equipment[]
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 }
 
 model Ingredient {
@@ -73,6 +75,9 @@ model Ingredient {
   primarySupplierId  Int?
   primarySupplier    Supplier?           @relation(fields: [primarySupplierId], references: [id])
   recipeItems        RecipeItem[]
+  targetBOMs         ProductionBOM[]     @relation("BOMTarget")
+  rawBOMs            ProductionBOM[]     @relation("BOMRaw")
+  productionOrders   ProductionOrder[]
   branchInventories  BranchInventory[]
   purchaseOrderItems PurchaseOrderItem[]
   inventoryBatches   InventoryBatch[]
@@ -97,18 +102,18 @@ model BranchInventory {
 }
 
 model InventoryBatch {
-  id           Int        @id @default(autoincrement())
-  branchId     Int
-  branch       Branch     @relation(fields: [branchId], references: [id])
-  ingredientId Int
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
-  quantity     Float
-  expiryDate   DateTime?
-  poId         Int?
+  id            Int            @id @default(autoincrement())
+  branchId      Int
+  branch        Branch         @relation(fields: [branchId], references: [id])
+  ingredientId  Int
+  ingredient    Ingredient     @relation(fields: [ingredientId], references: [id])
+  quantity      Float
+  expiryDate    DateTime?
+  poId          Int?
   purchaseOrder PurchaseOrder? @relation(fields: [poId], references: [id])
-  status       BatchStatus @default(ACTIVE)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  status        BatchStatus    @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([branchId, ingredientId, status])
   @@index([expiryDate])
@@ -121,21 +126,21 @@ enum BatchStatus {
 }
 
 model StockTransfer {
-  id              Int        @id @default(autoincrement())
-  fromBranchId    Int
-  fromBranch      Branch     @relation("TransferFrom", fields: [fromBranchId], references: [id])
-  toBranchId      Int
-  toBranch        Branch     @relation("TransferTo", fields: [toBranchId], references: [id])
-  ingredientId    Int
-  ingredient      Ingredient @relation(fields: [ingredientId], references: [id])
-  quantity        Float
-  status          TransferStatus @default(PENDING)
-  requestedById   Int
-  requestedBy     User       @relation("TransferRequestedBy", fields: [requestedById], references: [id])
-  approvedById    Int?
-  approvedBy      User?      @relation("TransferApprovedBy", fields: [approvedById], references: [id])
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id            Int            @id @default(autoincrement())
+  fromBranchId  Int
+  fromBranch    Branch         @relation("TransferFrom", fields: [fromBranchId], references: [id])
+  toBranchId    Int
+  toBranch      Branch         @relation("TransferTo", fields: [toBranchId], references: [id])
+  ingredientId  Int
+  ingredient    Ingredient     @relation(fields: [ingredientId], references: [id])
+  quantity      Float
+  status        TransferStatus @default(PENDING)
+  requestedById Int
+  requestedBy   User           @relation("TransferRequestedBy", fields: [requestedById], references: [id])
+  approvedById  Int?
+  approvedBy    User?          @relation("TransferApprovedBy", fields: [approvedById], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([fromBranchId])
   @@index([toBranchId])
@@ -150,14 +155,14 @@ enum TransferStatus {
 }
 
 model AuditLog {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  user        User     @relation(fields: [userId], references: [id])
-  action      String
-  targetType  String   // e.g. "InventoryBatch", "Order", "StockTransfer"
-  targetId    Int?
-  details     String?  // JSON string or text details
-  createdAt   DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  targetType String // e.g. "InventoryBatch", "Order", "StockTransfer"
+  targetId   Int?
+  details    String? // JSON string or text details
+  createdAt  DateTime @default(now())
 }
 
 model Product {
@@ -232,30 +237,30 @@ enum OrderStatus {
 }
 
 model Order {
-  id             Int         @id @default(autoincrement())
-  totalAmount    Float
-  discountAmount Float       @default(0)
-  netAmount      Float       @default(0)
-  taxAmount      Float       @default(0)
-  totalCogs      Float       @default(0)
-  pointsEarned   Int         @default(0)
-  pointsRedeemed Int         @default(0)
-  status         OrderStatus @default(PENDING)
-  paymentMethod  PaymentMethod @default(CASH)
-  isTaxInvoiceRequested Boolean @default(false)
-  taxInvoiceName String?
-  taxInvoiceTaxId String?
-  taxInvoiceAddress String?
-  userId         Int
-  user           User        @relation(fields: [userId], references: [id])
-  branchId       Int
-  branch         Branch      @relation(fields: [branchId], references: [id])
-  customerId     Int?
-  customer       Customer?   @relation(fields: [customerId], references: [id])
-  promotionId    Int?
-  promotion      Promotion?  @relation(fields: [promotionId], references: [id])
-  items          OrderItem[]
-  createdAt      DateTime    @default(now())
+  id                    Int           @id @default(autoincrement())
+  totalAmount           Float
+  discountAmount        Float         @default(0)
+  netAmount             Float         @default(0)
+  taxAmount             Float         @default(0)
+  totalCogs             Float         @default(0)
+  pointsEarned          Int           @default(0)
+  pointsRedeemed        Int           @default(0)
+  status                OrderStatus   @default(PENDING)
+  paymentMethod         PaymentMethod @default(CASH)
+  isTaxInvoiceRequested Boolean       @default(false)
+  taxInvoiceName        String?
+  taxInvoiceTaxId       String?
+  taxInvoiceAddress     String?
+  userId                Int
+  user                  User          @relation(fields: [userId], references: [id])
+  branchId              Int
+  branch                Branch        @relation(fields: [branchId], references: [id])
+  customerId            Int?
+  customer              Customer?     @relation(fields: [customerId], references: [id])
+  promotionId           Int?
+  promotion             Promotion?    @relation(fields: [promotionId], references: [id])
+  items                 OrderItem[]
+  createdAt             DateTime      @default(now())
 
   @@index([branchId])
   @@index([userId])
@@ -287,18 +292,18 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id         Int                 @id @default(autoincrement())
-  poNumber   String              @unique
-  branchId   Int
-  branch     Branch              @relation(fields: [branchId], references: [id])
-  supplierId Int
-  supplier   Supplier            @relation(fields: [supplierId], references: [id])
-  status     POStatus            @default(PENDING)
-  isAutoGenerated Boolean        @default(false)
-  items      PurchaseOrderItem[]
+  id               Int                 @id @default(autoincrement())
+  poNumber         String              @unique
+  branchId         Int
+  branch           Branch              @relation(fields: [branchId], references: [id])
+  supplierId       Int
+  supplier         Supplier            @relation(fields: [supplierId], references: [id])
+  status           POStatus            @default(PENDING)
+  isAutoGenerated  Boolean             @default(false)
+  items            PurchaseOrderItem[]
   inventoryBatches InventoryBatch[]
-  createdAt  DateTime            @default(now())
-  updatedAt  DateTime            @updatedAt
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 }
 
 enum POStatus {
@@ -319,16 +324,16 @@ model PurchaseOrderItem {
 }
 
 model Shift {
-  id        Int      @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
   branchId  Int
-  branch    Branch   @relation(fields: [branchId], references: [id])
+  branch    Branch      @relation(fields: [branchId], references: [id])
   startTime DateTime
   endTime   DateTime
   status    ShiftStatus @default(SCHEDULED)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@index([branchId])
   @@index([userId])
@@ -342,16 +347,16 @@ enum ShiftStatus {
 }
 
 model LeaveRequest {
-  id        Int      @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
   type      LeaveType
-  startDate DateTime @db.Date
-  endDate   DateTime @db.Date
+  startDate DateTime    @db.Date
+  endDate   DateTime    @db.Date
   reason    String?
   status    LeaveStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@index([userId])
 }
@@ -369,16 +374,16 @@ enum LeaveStatus {
 }
 
 model AttendanceRecord {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   userId     Int
-  user       User     @relation(fields: [userId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
   branchId   Int
-  branch     Branch   @relation(fields: [branchId], references: [id])
-  clockIn    DateTime @default(now())
+  branch     Branch    @relation(fields: [branchId], references: [id])
+  clockIn    DateTime  @default(now())
   clockOut   DateTime?
-  totalHours Float?   // Calculated on clock out
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  totalHours Float? // Calculated on clock out
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model WasteLog {
@@ -413,22 +418,22 @@ model Expense {
 }
 
 model ShiftSettlement {
-  id            Int      @id @default(autoincrement())
-  branchId      Int
-  branch        Branch   @relation(fields: [branchId], references: [id])
-  date          DateTime @default(now()) @db.Date
-  expectedCash  Float    @default(0)
-  actualCash    Float    @default(0)
-  expectedCreditCard Float @default(0)
-  actualCreditCard Float @default(0)
-  expectedQR    Float    @default(0)
-  actualQR      Float    @default(0)
-  difference    Float    @default(0)
-  status        SettlementStatus @default(PENDING)
-  submittedById Int
-  submittedBy   User     @relation(fields: [submittedById], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                 Int              @id @default(autoincrement())
+  branchId           Int
+  branch             Branch           @relation(fields: [branchId], references: [id])
+  date               DateTime         @default(now()) @db.Date
+  expectedCash       Float            @default(0)
+  actualCash         Float            @default(0)
+  expectedCreditCard Float            @default(0)
+  actualCreditCard   Float            @default(0)
+  expectedQR         Float            @default(0)
+  actualQR           Float            @default(0)
+  difference         Float            @default(0)
+  status             SettlementStatus @default(PENDING)
+  submittedById      Int
+  submittedBy        User             @relation(fields: [submittedById], references: [id])
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 }
 
 enum SettlementStatus {
@@ -438,15 +443,15 @@ enum SettlementStatus {
 }
 
 model PayrollRun {
-  id          Int      @id @default(autoincrement())
-  month       Int
-  year        Int
-  status      PayrollStatus @default(DRAFT)
-  branchId    Int?
-  branch      Branch?  @relation(fields: [branchId], references: [id])
-  payslips    Payslip[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int           @id @default(autoincrement())
+  month     Int
+  year      Int
+  status    PayrollStatus @default(DRAFT)
+  branchId  Int?
+  branch    Branch?       @relation(fields: [branchId], references: [id])
+  payslips  Payslip[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 enum PayrollStatus {
@@ -456,39 +461,39 @@ enum PayrollStatus {
 }
 
 model Payslip {
-  id             Int        @id @default(autoincrement())
-  payrollRunId   Int
-  payrollRun     PayrollRun @relation(fields: [payrollRunId], references: [id])
-  userId         Int
-  user           User       @relation(fields: [userId], references: [id])
-  standardHours  Float      @default(0)
-  otHours        Float      @default(0)
-  basePay        Float      @default(0)
-  otPay          Float      @default(0)
-  bonuses        Float      @default(0)
-  grossPay       Float      @default(0)
-  taxDeduction   Float      @default(0)
-  socialSecurity Float      @default(0)
-  otherDeductions Float     @default(0)
-  netPay         Float      @default(0)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id              Int        @id @default(autoincrement())
+  payrollRunId    Int
+  payrollRun      PayrollRun @relation(fields: [payrollRunId], references: [id])
+  userId          Int
+  user            User       @relation(fields: [userId], references: [id])
+  standardHours   Float      @default(0)
+  otHours         Float      @default(0)
+  basePay         Float      @default(0)
+  otPay           Float      @default(0)
+  bonuses         Float      @default(0)
+  grossPay        Float      @default(0)
+  taxDeduction    Float      @default(0)
+  socialSecurity  Float      @default(0)
+  otherDeductions Float      @default(0)
+  netPay          Float      @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 }
 
 model Equipment {
-  id                  Int               @id @default(autoincrement())
+  id                  Int              @id @default(autoincrement())
   branchId            Int
-  branch              Branch            @relation(fields: [branchId], references: [id])
+  branch              Branch           @relation(fields: [branchId], references: [id])
   name                String
   type                EquipmentType
   serialNumber        String?
-  status              EquipmentStatus   @default(ACTIVE)
+  status              EquipmentStatus  @default(ACTIVE)
   purchaseDate        DateTime?
   warrantyExpiry      DateTime?
   nextMaintenanceDate DateTime?
   maintenanceLogs     MaintenanceLog[]
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 }
 
 enum EquipmentType {
@@ -508,13 +513,116 @@ enum EquipmentStatus {
 }
 
 model MaintenanceLog {
-  id              Int       @id @default(autoincrement())
-  equipmentId     Int
-  equipment       Equipment @relation(fields: [equipmentId], references: [id])
-  description     String
-  cost            Float     @default(0)
-  performedBy     String?   // External technician or internal staff name
-  date            DateTime  @default(now())
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id          Int       @id @default(autoincrement())
+  equipmentId Int
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  description String
+  cost        Float     @default(0)
+  performedBy String? // External technician or internal staff name
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ==========================================
+// ACCOUNTING (GENERAL LEDGER)
+// ==========================================
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+model Account {
+  id          Int                @id @default(autoincrement())
+  code        String             @unique // e.g. "1010"
+  name        String // e.g. "Cash"
+  type        AccountType
+  description String?
+  isActive    Boolean            @default(true)
+  lines       JournalEntryLine[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model JournalEntry {
+  id          Int                @id @default(autoincrement())
+  date        DateTime           @default(now()) @db.Date
+  reference   String? // e.g. "PO-1234", "ORD-999"
+  description String // e.g. "Sales Revenue for order 999"
+  status      JournalStatus      @default(POSTED)
+  lines       JournalEntryLine[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([date])
+  @@index([reference])
+}
+
+enum JournalStatus {
+  DRAFT
+  POSTED
+  VOIDED
+}
+
+model JournalEntryLine {
+  id             Int          @id @default(autoincrement())
+  journalEntryId Int
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id])
+  accountId      Int
+  account        Account      @relation(fields: [accountId], references: [id])
+  debit          Float        @default(0)
+  credit         Float        @default(0)
+  description    String?
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+// ==========================================
+// CENTRAL KITCHEN (PRODUCTION)
+// ==========================================
+
+model ProductionBOM {
+  id                 Int        @id @default(autoincrement())
+  targetIngredientId Int
+  targetIngredient   Ingredient @relation("BOMTarget", fields: [targetIngredientId], references: [id])
+  rawIngredientId    Int
+  rawIngredient      Ingredient @relation("BOMRaw", fields: [rawIngredientId], references: [id])
+  quantityNeeded     Float      // Amount of raw ingredient needed to produce 1 unit of target
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@unique([targetIngredientId, rawIngredientId])
+}
+
+enum ProductionStatus {
+  DRAFT
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ProductionOrder {
+  id                 Int        @id @default(autoincrement())
+  orderNumber        String     @unique
+  branchId           Int
+  branch             Branch     @relation(fields: [branchId], references: [id])
+  targetIngredientId Int
+  targetIngredient   Ingredient @relation(fields: [targetIngredientId], references: [id])
+  quantityToProduce  Float
+  status             ProductionStatus @default(DRAFT)
+  actualCost         Float      @default(0)
+  plannedStartDate   DateTime?
+  completedAt        DateTime?
+  createdByUserId    Int?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@index([branchId])
+  @@index([status])
 }

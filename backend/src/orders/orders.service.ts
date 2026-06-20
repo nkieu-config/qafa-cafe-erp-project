@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { ProcurementService } from '../procurement/procurement.service';
 import { CustomersService } from '../customers/customers.service';
+import { AccountingService } from '../accounting/accounting.service';
 
 @Injectable()
 export class OrdersService {
@@ -10,7 +11,8 @@ export class OrdersService {
     private prisma: PrismaService, 
     private eventsGateway: EventsGateway, 
     private procurementService: ProcurementService,
-    private customersService: CustomersService
+    private customersService: CustomersService,
+    private accountingService: AccountingService
   ) {}
 
   async createOrder(data: { 
@@ -195,6 +197,23 @@ export class OrdersService {
         if (customerId) {
           this.customersService.checkAndUpdateTier(customerId).catch(err => console.error(err));
         }
+        
+        // Post Accounting Journal Entry
+        if (netAmount > 0 || totalCogs > 0) {
+          this.accountingService.createJournalEntry({
+            reference: `ORD-${order.id}`,
+            description: `Sales Revenue and COGS for Order ${order.id}`,
+            lines: [
+              { accountCode: '1010', debit: netAmount, credit: 0, description: 'Cash received' },
+              { accountCode: '4010', debit: 0, credit: netAmount, description: 'Sales Revenue' },
+              ...(totalCogs > 0 ? [
+                { accountCode: '5010', debit: totalCogs, credit: 0, description: 'Cost of Goods Sold' },
+                { accountCode: '1030', debit: 0, credit: totalCogs, description: 'Inventory reduction' }
+              ] : [])
+            ]
+          }).catch(err => console.error('[Accounting] Failed to post auto-journal entry for order:', err));
+        }
+
       }, 0);
 
       return order;

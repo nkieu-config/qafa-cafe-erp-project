@@ -133,6 +133,51 @@ export async function reportWaste(branchId: number, data: { batchId?: number, in
   });
 }
 
+// Accounting API
+export const getAccounts = async () => {
+  return fetchAPI('/accounting/accounts');
+};
+
+export const getJournalEntries = async () => {
+  return fetchAPI('/accounting/journal-entries');
+};
+
+// =======================
+// Production (Central Kitchen)
+// =======================
+
+export const getProductionOrders = async () => {
+  return fetchAPI('/production/orders');
+};
+
+export const createProductionOrder = async (data: { branchId: number; targetIngredientId: number; quantityToProduce: number; plannedStartDate?: string }) => {
+  return fetchAPI('/production/orders', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const completeProductionOrder = async (orderId: number) => {
+  return fetchAPI(`/production/orders/${orderId}/complete`, {
+    method: 'PATCH',
+  });
+};
+
+export const getProductionBOMs = async () => {
+  return fetchAPI('/production/boms');
+};
+
+export const createProductionBOM = async (data: { targetIngredientId: number; rawIngredientId: number; quantityNeeded: number }) => {
+  return fetchAPI('/production/boms', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const seedAccounts = async () => {
+  return fetchAPI('/accounting/seed', { method: 'POST' });
+};
+
 export const exportSales = async (token: string, branchId?: number, startDate?: Date, endDate?: Date) => {
   const params = new URLSearchParams()
   if (branchId) params.append('branchId', branchId.toString())
