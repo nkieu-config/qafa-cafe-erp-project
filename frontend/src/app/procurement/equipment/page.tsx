@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getEquipment, createEquipment, logMaintenance } from "@/lib/api";
+import { useState } from "react";
+import { useEquipment, useCreateEquipment, useLogMaintenance } from "@/hooks/useQueries";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Wrench, AlertTriangle } from "lucide-react";
+import { Plus, Wrench, AlertTriangle, Coffee } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "@/components/shared/page-header";
+import { DataTable } from "@/components/shared/data-table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +18,11 @@ import { cn } from "@/lib/utils";
 
 export default function EquipmentPage() {
   const { activeBranchId } = useAuth();
-  const [equipmentList, setEquipmentList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: equipmentData, isLoading: loading } = useEquipment(activeBranchId ?? undefined);
+  const equipmentList = equipmentData || [];
+
+  const createMutation = useCreateEquipment();
+  const maintMutation = useLogMaintenance();
 
   // Form states
   const [name, setName] = useState("");
@@ -29,26 +34,13 @@ export default function EquipmentPage() {
   const [maintNextDate, setMaintNextDate] = useState("");
   const [selectedEqId, setSelectedEqId] = useState<number | null>(null);
 
-  useEffect(() => {
-    loadEquipment();
-  }, [activeBranchId]);
-
-  const loadEquipment = async () => {
-    try {
-      const data = await getEquipment(activeBranchId || undefined);
-      setEquipmentList(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Removed manual loadEquipment
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeBranchId) return toast.error("Please select a branch first");
     try {
-      await createEquipment({
+      await createMutation.mutateAsync({
         branchId: activeBranchId,
         name,
         type,
@@ -56,9 +48,8 @@ export default function EquipmentPage() {
       });
       toast.success("Equipment registered successfully!");
       setName(""); setSerial("");
-      loadEquipment();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
@@ -66,18 +57,20 @@ export default function EquipmentPage() {
     e.preventDefault();
     if (!selectedEqId) return;
     try {
-      await logMaintenance(selectedEqId, {
-        description: maintDesc,
-        cost: Number(maintCost),
-        performedBy: "Admin",
-        date: new Date().toISOString()
+      await maintMutation.mutateAsync({
+        id: selectedEqId,
+        data: {
+          description: maintDesc,
+          cost: Number(maintCost),
+          performedBy: "Admin",
+          date: new Date().toISOString()
+        }
       });
       toast.success("Maintenance logged successfully!");
       setMaintDesc(""); setMaintCost(""); setMaintNextDate("");
       setSelectedEqId(null);
-      loadEquipment();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
@@ -85,16 +78,16 @@ export default function EquipmentPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Equipment Maintenance</h1>
-          <p className="text-slate-500 dark:text-slate-400">Track machines, appliances, and schedule preventative maintenance.</p>
-        </div>
-        <Dialog>
-          <DialogTrigger render={<Button className="bg-blue-600 hover:bg-blue-700" />}>
+      <PageHeader 
+        title="Equipment Maintenance"
+        icon={Coffee}
+        description="Track machines, appliances, and schedule preventative maintenance."
+        actions={
+          <Dialog>
+          <DialogTrigger render={<Button className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
             Register Equipment
-          </DialogTrigger>
+          </Button>} />
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Register New Equipment</DialogTitle>
@@ -123,95 +116,69 @@ export default function EquipmentPage() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+      }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Equipment Directory</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Branch</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Next Maintenance</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {equipmentList.map((eq) => {
-                const nextDate = eq.nextMaintenanceDate ? new Date(eq.nextMaintenanceDate) : null;
-                const isOverdue = nextDate && nextDate.getTime() < Date.now();
-                
-                return (
-                  <TableRow key={eq.id}>
-                    <TableCell className="font-medium">
-                      <div>{eq.name}</div>
-                      <div className="text-xs text-slate-400">SN: {eq.serialNumber || 'N/A'}</div>
-                    </TableCell>
-                    <TableCell>{eq.type.replace('_', ' ')}</TableCell>
-                    <TableCell>{eq.branch?.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn(
-                        eq.status === 'ACTIVE' ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
-                        eq.status === 'MAINTENANCE' ? "bg-amber-50 text-amber-600 border-amber-200" : "bg-red-50 text-red-600 border-red-200"
-                      )}>
-                        {eq.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {nextDate ? (
-                        <div className="flex items-center gap-2">
-                          <span className={isOverdue ? "text-red-600 font-bold" : ""}>
-                            {nextDate.toLocaleDateString()}
-                          </span>
-                          {isOverdue && <AlertTriangle className="w-4 h-4 text-red-600" />}
-                        </div>
-                      ) : <span className="text-slate-400">Not scheduled</span>}
-                    </TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger render={<Button size="sm" variant="outline" onClick={() => setSelectedEqId(eq.id)} />}>
-                          <Wrench className="w-4 h-4 mr-2" />
-                          Log Maint.
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Log Maintenance for {eq.name}</DialogTitle>
-                          </DialogHeader>
-                          <form onSubmit={handleLogMaintenance} className="space-y-4 pt-4">
-                            <div className="space-y-2">
-                              <Label>Description</Label>
-                              <Input value={maintDesc} onChange={e => setMaintDesc(e.target.value)} required placeholder="e.g. Replaced gaskets and backflushed" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Cost (THB)</Label>
-                              <Input type="number" value={maintCost} onChange={e => setMaintCost(e.target.value)} required />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Schedule Next Maintenance (Optional)</Label>
-                              <Input type="date" value={maintNextDate} onChange={e => setMaintNextDate(e.target.value)} />
-                            </div>
-                            <Button type="submit" className="w-full">Save Log</Button>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-              {equipmentList.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">No equipment registered.</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <DataTable 
+        columns={[
+          { title: "Name", dataIndex: "name", key: "name", render: (text: string) => <span className="font-medium">{text}</span> },
+          { title: "Type", dataIndex: "type", key: "type", render: (type: string) => type.replace('_', ' ') },
+          { title: "Branch", dataIndex: "branch", key: "branch", render: (branch: any) => branch?.name },
+          { 
+            title: "Status", 
+            dataIndex: "status", 
+            key: "status",
+            render: (status: string) => (
+              <Badge className={cn(
+                status === "OPERATIONAL" && "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30",
+                status === "NEEDS_MAINTENANCE" && "bg-amber-100 text-amber-800 dark:bg-amber-900/30",
+                status === "OUT_OF_ORDER" && "bg-rose-100 text-rose-800 dark:bg-rose-900/30",
+              )}>
+                {status.replace('_', ' ')}
+              </Badge>
+            )
+          },
+          { 
+            title: "Next Maintenance", 
+            dataIndex: "nextMaintenanceDate", 
+            key: "nextMaintenanceDate",
+            render: (date: string) => date ? new Date(date).toLocaleDateString() : "-"
+          },
+          { 
+            title: "Action", 
+            key: "action",
+            render: (_, record: any) => (
+              <Dialog>
+                <DialogTrigger render={<Button variant="outline" size="sm" onClick={() => setSelectedEqId(record.id)}>
+                  <Wrench className="w-4 h-4 mr-2" /> Log Maintenance
+                </Button>} />
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Log Maintenance for {record.name}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleLogMaintenance} className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label>Description</Label>
+                      <Input value={maintDesc} onChange={e => setMaintDesc(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cost (THB)</Label>
+                      <Input type="number" value={maintCost} onChange={e => setMaintCost(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Next Maintenance Date</Label>
+                      <Input type="date" value={maintNextDate} onChange={e => setMaintNextDate(e.target.value)} />
+                    </div>
+                    <Button type="submit" className="w-full">Save Record</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )
+          }
+        ]}
+        dataSource={equipmentList}
+        rowKey="id"
+      />
     </div>
   );
 }

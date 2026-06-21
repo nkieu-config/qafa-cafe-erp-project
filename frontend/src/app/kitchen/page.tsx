@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { useKitchenOrders, useIngredients, useCompleteKitchenOrder, useUpdateOrderStatus, useCreateProductionOrder } from "@/hooks/useQueries"
 import { getProductionOrders, completeProductionOrder, getIngredients, createProductionOrder, updateProductionOrderStatus } from "@/lib/api"
-import { Button, Modal, Form, Select, InputNumber, DatePicker, Spin } from "antd"
+import { Button, Form, Select, InputNumber, DatePicker, Spin } from "antd"
+import { FormModal } from "@/components/shared/form-modal"
 import { ChefHat, PackageOpen, Plus, Clock, PlayCircle, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { AnimatedPage } from "@/components/animated-page"
@@ -172,7 +173,7 @@ export default function CentralKitchenPage() {
         <div className="ml-auto">
           <Button 
             type="primary" 
-            className="bg-orange-500 hover:bg-orange-600 h-10 px-4 rounded-xl shadow-sm font-bold flex items-center"
+            className="bg-orange-500 hover:bg-orange-600 shadow-sm font-bold flex items-center"
             onClick={() => setIsModalVisible(true)}
             icon={<Plus className="w-4 h-4" />}
           >
@@ -204,12 +205,11 @@ export default function CentralKitchenPage() {
         </DndContext>
       )}
 
-      <Modal
-        title={<div className="font-black text-lg">Create Production Order</div>}
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={null}
-        className="rounded-2xl"
+      <FormModal
+        title="Create Production Order"
+        isOpen={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        width={500}
       >
         <Form form={form} layout="vertical" onFinish={handleCreate} className="mt-4">
           <Form.Item
@@ -243,13 +243,13 @@ export default function CentralKitchenPage() {
           </Form.Item>
 
           <div className="flex justify-end gap-2 mt-6">
-            <Button onClick={() => setIsModalVisible(false)} className="h-11 font-bold rounded-xl">Cancel</Button>
-            <Button type="primary" htmlType="submit" className="bg-orange-500 hover:bg-orange-600 border-none h-11 font-bold rounded-xl px-6">
+            <Button onClick={() => setIsModalVisible(false)} className="font-bold">Cancel</Button>
+            <Button type="primary" htmlType="submit" className="bg-orange-500 hover:bg-orange-600 border-none font-bold px-6">
               Create Order
             </Button>
           </div>
         </Form>
-      </Modal>
+      </FormModal>
     </AnimatedPage>
   )
 }

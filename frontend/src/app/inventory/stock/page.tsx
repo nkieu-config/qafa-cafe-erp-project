@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getBranch, getTransfers, acceptTransfer, createTransfer, getBranches, addInventoryBatch, reportWaste } from "@/lib/api";
+import { useState } from "react";
+import { useBranchDetails, useTransfers, useCreateTransfer, useAcceptTransfer, useAddInventoryBatch, useBranches, useReportWaste } from "@/hooks/useQueries";
 import { useAuth } from "@/context/AuthContext";
 import { Table, Tag, Button as AntButton, Popconfirm, Calendar, Popover, Badge } from "antd";
 import { PackageOpen, ArrowRightLeft, CheckCircle2, PackagePlus, Trash2, CalendarDays, AlertCircle } from "lucide-react";
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { AnimatedPage } from "@/components/animated-page";
+import { PageHeader } from "@/components/shared/page-header";
+import { DataTable } from "@/components/shared/data-table";
 import { format, differenceInDays } from "date-fns";
 import type { Dayjs } from "dayjs";
 import type { Ingredient, InventoryBatch, PurchaseOrder, Supplier, BranchInventory } from "@prisma/client";
@@ -21,11 +23,22 @@ type BatchWithSupplier = InventoryBatch & { purchaseOrder?: PurchaseOrder & { su
 
 export default function InventoryPage() {
   const { activeBranchId } = useAuth();
-  const [inventories, setInventories] = useState<InventoryWithIngredient[]>([]);
-  const [batches, setBatches] = useState<BatchWithSupplier[]>([]);
-  const [transfers, setTransfers] = useState<any[]>([]);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: branchesData } = useBranches();
+  const branches = branchesData || [];
+
+  const { data: branchDetails, isLoading: loadingBranch } = useBranchDetails(activeBranchId ?? undefined);
+  const inventories: InventoryWithIngredient[] = branchDetails?.inventories || [];
+  const batches: BatchWithSupplier[] = branchDetails?.inventoryBatches || [];
+
+  const { data: transfersData, isLoading: loadingTransfers } = useTransfers(activeBranchId ?? undefined);
+  const transfers = transfersData || [];
+
+  const loading = loadingBranch || loadingTransfers;
+
+  const createTransferMutation = useCreateTransfer();
+  const acceptTransferMutation = useAcceptTransfer();
+  const addBatchMutation = useAddInventoryBatch();
+  const reportWasteMutation = useReportWaste();
 
   // Transfer Form State
   const [transferTarget, setTransferTarget] = useState("");
@@ -39,55 +52,37 @@ export default function InventoryPage() {
   const [batchExpiry, setBatchExpiry] = useState("");
   const [isAddingBatch, setIsAddingBatch] = useState(false);
 
-  useEffect(() => {
-    if (activeBranchId) {
-      fetchInventory();
-      getBranches().then(setBranches);
-    } else {
-      setInventories([]);
-      setLoading(false);
-    }
-  }, [activeBranchId]);
-
-  const fetchInventory = () => {
-    setLoading(true);
-    Promise.all([getBranch(activeBranchId!), getTransfers(activeBranchId!)])
-      .then(([branch, transfersData]) => {
-        setInventories(branch.inventories || []);
-        setBatches(branch.inventoryBatches || []);
-        setTransfers(transfersData);
-      })
-      .catch((err) => toast.error("Failed to load inventory: " + err.message))
-      .finally(() => setLoading(false));
-  };
-
+  // Removed useEffect and fetchInventory, handled by React Query
   const handleCreateTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeBranchId || !transferTarget || !transferIngredient || !transferQty) return;
     setIsTransferring(true);
     try {
-      await createTransfer({
+      await createTransferMutation.mutateAsync({
         fromBranchId: activeBranchId,
         toBranchId: Number(transferTarget),
         ingredientId: Number(transferIngredient),
         quantity: Number(transferQty)
       });
-      toast.success("Transfer requested successfully");
-      fetchInventory();
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
+      toast.success("Transfer initiated successfully");
+      setIsTransferring(false);
+      setTransferTarget("");
+      setTransferIngredient("");
+      setTransferQty("");
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
       setIsTransferring(false);
     }
   };
 
   const handleAcceptTransfer = async (id: number) => {
     try {
-      await acceptTransfer(id);
-      toast.success("Transfer accepted and stock updated!");
-      fetchInventory();
-    } catch (err: any) {
-      toast.error(err.message);
+      if (activeBranchId) {
+        await acceptTransferMutation.mutateAsync({ transferId: id, branchId: activeBranchId });
+        toast.success("Transfer accepted");
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
@@ -96,19 +91,23 @@ export default function InventoryPage() {
     if (!batchIngredient || !batchQty) return;
     setIsAddingBatch(true);
     try {
-      await addInventoryBatch(activeBranchId!, {
-        ingredientId: Number(batchIngredient),
-        quantity: Number(batchQty),
-        expiryDate: batchExpiry || undefined,
-      });
-      toast.success("Stock received successfully!");
-      setBatchIngredient("");
-      setBatchQty("");
-      setBatchExpiry("");
-      fetchInventory();
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
+      if (activeBranchId) {
+        await addBatchMutation.mutateAsync({
+          branchId: activeBranchId,
+          data: {
+            ingredientId: Number(batchIngredient),
+            quantity: Number(batchQty),
+            expiryDate: batchExpiry
+          }
+        });
+        toast.success("Inventory batch added successfully");
+        setIsAddingBatch(false);
+        setBatchIngredient("");
+        setBatchQty("");
+        setBatchExpiry("");
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
       setIsAddingBatch(false);
     }
   };
@@ -123,16 +122,18 @@ export default function InventoryPage() {
     }
     const reason = prompt("Reason for waste (e.g. Expired, Spilled):") || "Expired";
     try {
-      await reportWaste(activeBranchId!, {
-        batchId,
-        ingredientId,
-        quantity: qty,
-        reason
+      await reportWasteMutation.mutateAsync({
+        branchId: activeBranchId!,
+        data: {
+          batchId,
+          ingredientId,
+          quantity: qty,
+          reason
+        }
       });
       toast.success("Waste reported successfully.");
-      fetchInventory();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   };
 
@@ -233,7 +234,7 @@ export default function InventoryPage() {
   // AntD Expanded Row Renderer
   const expandedRowRender = (record: InventoryWithIngredient) => {
     const ingredientId = record.ingredient.id;
-    const ingredientBatches = batches.filter(b => b.ingredientId === ingredientId);
+    const ingredientBatches = batches.filter((b: any) => b.ingredientId === ingredientId);
 
     const batchColumns = [
       { title: 'Batch ID', dataIndex: 'id', key: 'id' },
@@ -291,13 +292,13 @@ export default function InventoryPage() {
     ];
 
     return (
-      <Table 
+      <DataTable 
         columns={batchColumns} 
         dataSource={ingredientBatches} 
         rowKey="id"
         pagination={false} 
         size="small"
-        className="m-2 shadow-inner border border-slate-100 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/50 dark:bg-slate-900/50"
+        hideBorders
       />
     );
   };
@@ -373,19 +374,16 @@ export default function InventoryPage() {
 
   return (
     <AnimatedPage className="w-full space-y-6">
-      <div className="flex justify-between items-end mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <PackageOpen className="w-6 h-6 text-emerald-600" />
-            Inventory & Stock
-          </h1>
-          <p className="text-slate-500 font-medium">Manage stock levels, transfers, and expiring batches.</p>
-        </div>
-        <div className="flex gap-2 ml-auto">
-          <Dialog>
-            <DialogTrigger render={<Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold" />}>
-              <PackagePlus className="w-4 h-4 mr-2" /> Receive Stock
-            </DialogTrigger>
+      <PageHeader 
+        title="Inventory & Stock"
+        icon={PackageOpen}
+        description="Manage stock levels, transfers, and expiring batches."
+        actions={
+          <div className="flex gap-2">
+            <Dialog>
+              <DialogTrigger render={<Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold">
+                <PackagePlus className="w-4 h-4 mr-2" /> Receive Stock
+              </Button>} />
             <DialogContent className="rounded-2xl">
               <DialogHeader>
                 <DialogTitle className="font-black text-xl">Receive New Batch</DialogTitle>
@@ -452,7 +450,7 @@ export default function InventoryPage() {
                     required
                   >
                     <option value="">Select Branch</option>
-                    {branches.filter(b => b.id !== activeBranchId).map(b => (
+                    {branches.filter((b: any) => b.id !== activeBranchId).map((b: any) => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
@@ -464,11 +462,12 @@ export default function InventoryPage() {
                 <Button type="submit" className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl text-white" disabled={isTransferring}>
                   {isTransferring ? "Processing…" : "Initiate Transfer"}
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          }
+        />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Heatmap Section */}
@@ -499,32 +498,28 @@ export default function InventoryPage() {
 
         {/* Tables Section */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-1">
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-t-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <PackageOpen className="w-5 h-5 text-emerald-500" />
-              Aggregated Stock & Batches
-            </div>
-            <Table 
+          <div className="pt-2">
+            <h2 className="font-semibold text-lg text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <PackageOpen className="w-5 h-5 text-emerald-500" /> Aggregated Stock & Batches
+            </h2>
+            <DataTable 
               columns={inventoryColumns} 
               dataSource={inventories} 
               rowKey="id"
               expandable={{ expandedRowRender }}
               pagination={{ pageSize: 5 }}
-              className="w-full overflow-x-auto [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:dark:bg-slate-900"
             />
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-1">
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-t-xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <ArrowRightLeft className="w-5 h-5 text-blue-500" />
-              Pending Transfers
-            </div>
-            <Table 
+          <div className="pt-2">
+            <h2 className="font-semibold text-lg text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+              <ArrowRightLeft className="w-5 h-5 text-blue-500" /> Pending Transfers
+            </h2>
+            <DataTable 
               columns={transferColumns} 
               dataSource={transfers} 
               rowKey="id"
               pagination={{ pageSize: 5 }}
-              className="w-full overflow-x-auto [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:dark:bg-slate-900"
             />
           </div>
         </div>

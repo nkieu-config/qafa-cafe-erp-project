@@ -1,85 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchAPI, getCustomer360 } from "@/lib/api";
+import { useState } from "react";
+import { useCustomers, useCustomer360, useCreateCustomer } from "@/hooks/useQueries";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, UserPlus, Star, Award, Crown, Activity, AlertTriangle, CheckCircle2, History, Heart, ShoppingBag } from "lucide-react";
+import { Search, UserPlus, Star, Award, Crown, Activity, AlertTriangle, CheckCircle2, History, Heart, ShoppingBag, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, Progress, Spin, Divider } from "antd";
+import { PageHeader } from "@/components/shared/page-header";
+import { DataTable } from "@/components/shared/data-table";
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
   // Customer 360 State
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
-  const [customer360, setCustomer360] = useState<any>(null);
-  const [loading360, setLoading360] = useState(false);
-
-  useEffect(() => {
-    loadCustomers();
-  }, []);
-
-  useEffect(() => {
-    if (drawerOpen && selectedCustomerId) {
-      loadCustomer360(selectedCustomerId);
-    }
-  }, [drawerOpen, selectedCustomerId]);
-
-  const loadCustomers = async (q?: string) => {
-    setLoading(true);
-    try {
-      const query = q ? `?search=${encodeURIComponent(q)}` : '';
-      const data = await fetchAPI(`/customers${query}`);
-      setCustomers(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCustomer360 = async (id: number) => {
-    setLoading360(true);
-    try {
-      const data = await getCustomer360(id);
-      setCustomer360(data);
-    } catch (error) {
-      toast.error("Failed to load customer insights");
-      setDrawerOpen(false);
-    } finally {
-      setLoading360(false);
-    }
-  };
+  
+  const { data: customersData, isLoading: loading } = useCustomers(search);
+  const customers = customersData || [];
+  
+  const { data: customer360, isLoading: loading360 } = useCustomer360(drawerOpen ? selectedCustomerId : null);
+  const createMutation = useCreateCustomer();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadCustomers(search);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name || !phone) return;
     try {
-      await fetchAPI('/customers', {
-        method: 'POST',
-        body: JSON.stringify({ name, phone }),
-      });
-      toast.success("Customer registered successfully!");
+      await createMutation.mutateAsync({ name, phone });
+      toast.success("Customer created!");
       setName(""); setPhone("");
-      loadCustomers();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) toast.error(error.message || "Failed to create customer");
     }
   };
 
@@ -114,97 +77,94 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end items-center">
-        <Dialog>
-          <DialogTrigger render={<Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md rounded-xl">
-              <UserPlus className="w-4 h-4 mr-2" />
-              New Member
-            </Button>}>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold">Register Customer</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label className="font-bold">Full Name</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. John Doe" className="rounded-xl" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-bold">Phone Number</Label>
-                <Input value={phone} onChange={e => setPhone(e.target.value)} required placeholder="e.g. 0812345678" className="rounded-xl" />
-              </div>
-              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 text-md font-bold">Register</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+      <PageHeader 
+        title="Customer Directory"
+        icon={Users}
+        description="Manage members, tiers, and loyalty points."
+        actions={
+          <Dialog>
+            <DialogTrigger render={
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md rounded-xl">
+                <UserPlus className="w-4 h-4 mr-2" />
+                New Member
+              </Button>
+            } />
+            <DialogContent className="sm:max-w-md rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold">Register Customer</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreate} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label className="font-bold">Full Name</Label>
+                  <Input value={name} onChange={e => setName(e.target.value)} required placeholder="e.g. John Doe" className="rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold">Phone Number</Label>
+                  <Input value={phone} onChange={e => setPhone(e.target.value)} required placeholder="e.g. 0812345678" className="rounded-xl" />
+                </div>
+                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-md font-bold">Register</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       <Card className="glass-card shadow-sm border-slate-200/60 dark:border-slate-800/60">
         <CardHeader className="pb-4">
           <form onSubmit={handleSearch} className="flex gap-3 w-full max-w-lg">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <Input
-                type="search"
-                placeholder="Search by name or phone..."
-                className="pl-10 h-12 rounded-xl bg-white dark:bg-slate-900 shadow-sm border-slate-200 dark:border-slate-800 font-medium"
+            <div className="relative w-64">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+              <Input 
+                placeholder="Search by phone..." 
+                className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Button type="submit" variant="secondary" className="h-12 rounded-xl px-6 font-bold shadow-sm">Search</Button>
+            <Button type="submit" variant="secondary" className="h-10 rounded-lg px-6 font-bold shadow-sm">Search</Button>
           </form>
         </CardHeader>
         <CardContent>
-          <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
-            <Table>
-              <TableHeader className="bg-slate-50 dark:bg-slate-800/50">
-                <TableRow>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300">Customer</TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300">Phone</TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300">Tier</TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300">Points</TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300">Joined</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-10 font-medium text-slate-500">Loading customers...</TableCell></TableRow>
-                ) : customers.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center py-10 text-slate-500 font-medium">No customers found.</TableCell></TableRow>
-                ) : (
-                  customers.map((c) => (
-                    <TableRow 
-                      key={c.id} 
-                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      onClick={() => {
-                        setSelectedCustomerId(c.id);
-                        setDrawerOpen(true);
-                      }}
-                    >
-                      <TableCell className="font-bold text-slate-800 dark:text-slate-200 text-md">
-                        {c.name}
-                      </TableCell>
-                      <TableCell className="text-slate-500 font-mono font-medium">{c.phone}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`flex w-fit items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-lg ${getTierBadge(c.tier)}`}>
-                          {getTierIcon(c.tier)}
-                          {c.tier}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-black text-lg text-emerald-600 dark:text-emerald-400">
-                        {c.points} <span className="text-xs font-bold text-emerald-400/70">pts</span>
-                      </TableCell>
-                      <TableCell className="text-slate-500 font-medium text-sm">
-                        {new Date(c.createdAt).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable 
+            columns={[
+              { title: "Customer", dataIndex: "name", key: "name", render: (name: string) => <span className="font-bold text-slate-800 dark:text-slate-200 text-md">{name}</span> },
+              { title: "Phone", dataIndex: "phone", key: "phone", render: (phone: string) => <span className="text-slate-500 font-mono font-medium">{phone}</span> },
+              { 
+                title: "Tier", 
+                dataIndex: "tier", 
+                key: "tier",
+                render: (tier: string) => (
+                  <Badge variant="outline" className={`flex w-fit items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-lg ${getTierBadge(tier)}`}>
+                    {getTierIcon(tier)}
+                    {tier}
+                  </Badge>
+                )
+              },
+              { 
+                title: "Points", 
+                dataIndex: "points", 
+                key: "points",
+                render: (points: number) => (
+                  <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">
+                    {points} <span className="text-xs font-bold text-emerald-400/70">pts</span>
+                  </span>
+                )
+              },
+              { title: "Joined", dataIndex: "createdAt", key: "joined", render: (date: string) => <span className="text-slate-500 font-medium text-sm">{new Date(date).toLocaleDateString()}</span> }
+            ]}
+            dataSource={customers}
+            rowKey="id"
+            loading={loading}
+            onRow={(record: any) => ({
+              onClick: () => {
+                setSelectedCustomerId(record.id);
+                setDrawerOpen(true);
+              },
+              className: "cursor-pointer"
+            })}
+            pagination={{ pageSize: 10 }}
+            hideBorders
+          />
         </CardContent>
       </Card>
 

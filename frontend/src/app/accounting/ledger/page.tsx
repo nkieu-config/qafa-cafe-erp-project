@@ -6,6 +6,8 @@ import { Table, Tag, Button, Select } from "antd"
 import { FileText, Database, TrendingUp, Filter, Building2, Download } from "lucide-react"
 import { toast } from "sonner"
 import { AnimatedPage } from "@/components/animated-page"
+import { PageHeader } from "@/components/shared/page-header"
+import { DataTable } from "@/components/shared/data-table"
 import {
   LineChart,
   Line,
@@ -88,13 +90,13 @@ export default function GeneralLedgerPage() {
     ]
 
     return (
-      <Table 
+      <DataTable 
         columns={lineColumns} 
         dataSource={record.lines} 
         pagination={false} 
         rowKey="id" 
         size="small" 
-        className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2 border border-slate-200 dark:border-slate-800 m-2 shadow-inner"
+        hideBorders
         summary={(pageData: readonly any[]) => {
           let totalDebit = 0;
           let totalCredit = 0;
@@ -122,23 +124,19 @@ export default function GeneralLedgerPage() {
 
   return (
     <AnimatedPage className="space-y-6 w-full">
-      <div className="flex justify-between items-end mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-indigo-500" />
-            Financial Dashboard & Ledger
-          </h1>
-          <p className="text-slate-500 font-medium">Track profit and loss trends and drill down into the general ledger.</p>
-        </div>
-        <div className="flex gap-3 ml-auto">
-          <div className="flex flex-col gap-1">
+      <PageHeader 
+        title="Financial Dashboard & Ledger"
+        icon={TrendingUp}
+        description="Track profit and loss trends and drill down into the general ledger."
+        actions={
+          <div className="flex flex-col gap-1 text-left min-w-[250px]">
             <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
               <Building2 className="w-3 h-3" /> Cost Center Filter
             </label>
             <Select
               allowClear
-              placeholder="All Branches (Consolidated)"
-              className="w-64 h-10 [&_.ant-select-selector]:rounded-xl"
+              placeholder="Select Branch"
+              className="w-full"
               value={selectedBranch || undefined}
               onChange={(val) => setSelectedBranch(val || "")}
               options={[
@@ -146,8 +144,8 @@ export default function GeneralLedgerPage() {
               ]}
             />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Financial Chart Section */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-6">
@@ -199,21 +197,17 @@ export default function GeneralLedgerPage() {
       </div>
 
       {/* General Ledger Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-1">
-        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-t-xl font-black text-slate-800 dark:text-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-500" />
-            General Ledger (Journal Entries)
-          </div>
-        </div>
-        <Table 
+      <div className="pt-2">
+        <h2 className="font-semibold text-lg text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-indigo-500" /> General Ledger (Journal Entries)
+        </h2>
+        <DataTable 
           columns={columns} 
           dataSource={entries} 
           rowKey="id"
           loading={loading}
           expandable={{ expandedRowRender }}
           pagination={{ pageSize: 20 }}
-          className="w-full overflow-x-auto [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:dark:bg-slate-900"
         />
       </div>
 

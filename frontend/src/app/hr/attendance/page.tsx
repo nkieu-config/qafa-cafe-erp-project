@@ -1,42 +1,24 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { fetchAPI } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
+import { useAttendance, useShifts } from "@/hooks/useQueries"
 import { Table, Tag, Typography, Tooltip } from "antd"
 import { Clock, AlertCircle } from "lucide-react"
 import { AnimatedPage } from "@/components/animated-page"
+import { PageHeader } from "@/components/shared/page-header"
+import { DataTable } from "@/components/shared/data-table"
 import { format, isSameDay, differenceInMinutes } from "date-fns"
 
 const { Text } = Typography;
 
 export default function AttendancePage() {
   const { activeBranchId } = useAuth()
-  const [attendance, setAttendance] = useState<any[]>([])
-  const [shifts, setShifts] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { data: attendanceData, isLoading: loadingAtt } = useAttendance()
+  const { data: shiftsData, isLoading: loadingShifts } = useShifts(activeBranchId ? 'EMPLOYEE' : undefined, activeBranchId ?? undefined)
 
-  useEffect(() => {
-    if (activeBranchId) {
-      fetchData()
-    }
-  }, [activeBranchId])
-
-  const fetchData = async () => {
-    setIsLoading(true)
-    try {
-      const [attendanceData, shiftsData] = await Promise.all([
-        fetchAPI('/hr/attendance/me'),
-        fetchAPI('/hr/shifts/me')
-      ])
-      setAttendance(attendanceData || [])
-      setShifts(shiftsData || [])
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const attendance = attendanceData || []
+  const shifts = shiftsData || []
+  const isLoading = loadingAtt || loadingShifts
 
   const columns = [
     {
@@ -51,8 +33,7 @@ export default function AttendancePage() {
       key: 'in',
       render: (val: string, record: any) => {
         const clockInDate = new Date(val);
-        // Find the corresponding shift for this day
-        const dayShift = shifts.find(s => isSameDay(new Date(s.startTime), clockInDate));
+        const dayShift = shifts.find((s: any) => isSameDay(new Date(s.startTime), clockInDate));
         
         let isLate = false;
         let lateMinutes = 0;
@@ -106,29 +87,26 @@ export default function AttendancePage() {
 
   return (
     <AnimatedPage className="space-y-6 w-full">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-1">
-        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-t-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-          <Clock className="w-5 h-5 text-violet-500" />
-          My Attendance Records
-        </div>
-        <Table 
-          columns={columns} 
-          dataSource={attendance} 
-          rowKey="id"
-          loading={isLoading}
-          pagination={{ pageSize: 10 }}
-          className="w-full overflow-x-auto [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:dark:bg-slate-900"
-          rowClassName={(record) => {
-            const clockInDate = new Date(record.clockIn);
-            const dayShift = shifts.find(s => isSameDay(new Date(s.startTime), clockInDate));
-            if (dayShift) {
-              const lateMinutes = differenceInMinutes(clockInDate, new Date(dayShift.startTime));
-              if (lateMinutes > 15) return "bg-rose-50/50 dark:bg-rose-900/10";
-            }
-            return "";
-          }}
-        />
-      </div>
+      <PageHeader 
+        title="My Attendance Records"
+        icon={Clock}
+      />
+      <DataTable 
+        columns={columns} 
+        dataSource={attendance} 
+        rowKey="id"
+        loading={isLoading}
+        pagination={{ pageSize: 10 }}
+        rowClassName={(record: any) => {
+          const clockInDate = new Date(record.clockIn);
+          const dayShift = shifts.find((s: any) => isSameDay(new Date(s.startTime), clockInDate));
+          if (dayShift) {
+            const lateMinutes = differenceInMinutes(clockInDate, new Date(dayShift.startTime));
+            if (lateMinutes > 15) return "bg-rose-50/50 dark:bg-rose-900/10";
+          }
+          return "";
+        }}
+      />
     </AnimatedPage>
   )
 }

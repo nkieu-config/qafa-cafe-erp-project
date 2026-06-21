@@ -1,57 +1,44 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { getAccounts } from "@/lib/api"
-import { Table, Tag, Typography } from "antd"
+import { useState, useMemo } from "react"
+import { useAccounts } from "@/hooks/useQueries"
+import { Tag, Typography } from "antd"
 import { Landmark } from "lucide-react"
 import { toast } from "sonner"
+import { PageHeader } from "@/components/shared/page-header"
+import { DataTable } from "@/components/shared/data-table"
 
 const { Text } = Typography;
 
 export default function ChartOfAccountsPage() {
-  const [accountsTree, setAccountsTree] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: accountsData = [], isLoading: loading } = useAccounts()
 
-  const fetchAccounts = async () => {
-    try {
-      setLoading(true)
-      const data = await getAccounts()
-      
-      // Group by type to create Tree structure
-      const grouped = data.reduce((acc: any, account: any) => {
-        const type = account.type;
-        if (!acc[type]) {
-          acc[type] = {
-            id: `GROUP_${type}`,
-            code: '',
-            name: type.charAt(0) + type.slice(1).toLowerCase() + 's', // "Assets"
-            type: type,
-            isGroup: true,
-            children: []
-          };
-        }
-        acc[type].children.push(account);
-        return acc;
-      }, {});
+  const accountsTree = useMemo(() => {
+    // Group by type to create Tree structure
+    const grouped = accountsData.reduce((acc: any, account: any) => {
+      const type = account.type;
+      if (!acc[type]) {
+        acc[type] = {
+          id: `GROUP_${type}`,
+          code: '',
+          name: type.charAt(0) + type.slice(1).toLowerCase() + 's', // "Assets"
+          type: type,
+          isGroup: true,
+          children: []
+        };
+      }
+      acc[type].children.push(account);
+      return acc;
+    }, {});
 
-      // Convert object to array and sort children by code
-      const treeData = Object.values(grouped).map((group: any) => {
-        group.children.sort((a: any, b: any) => a.code.localeCompare(b.code));
-        return group;
-      });
+    // Convert object to array and sort children by code
+    const treeData = Object.values(grouped).map((group: any) => {
+      group.children.sort((a: any, b: any) => a.code.localeCompare(b.code));
+      return group;
+    });
 
-      setAccountsTree(treeData)
-    } catch (error) {
-      console.error(error)
-      toast.error("Failed to load accounts")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchAccounts()
-  }, [])
+    return treeData;
+  }, [accountsData]);
 
   const columns = [
     {
@@ -105,24 +92,19 @@ export default function ChartOfAccountsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2 text-slate-900 dark:text-slate-100">
-          <Landmark className="w-5 h-5 text-emerald-500" />
-          Chart of Accounts
-        </h2>
-      </div>
+      <PageHeader 
+        title="Chart of Accounts"
+        icon={Landmark}
+      />
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-1">
-        <Table 
-          columns={columns} 
-          dataSource={accountsTree} 
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          defaultExpandAllRows={true}
-          className="w-full overflow-x-auto [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:dark:bg-slate-800"
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        dataSource={accountsTree} 
+        rowKey="id"
+        loading={loading}
+        pagination={false}
+        defaultExpandAllRows={true}
+      />
     </div>
   )
 }

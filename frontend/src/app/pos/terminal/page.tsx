@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getProducts, createOrder, getCustomerByPhone, validatePromotion } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { useProducts, useCreateOrder, useCustomerByPhone, useValidatePromotion } from "@/hooks/useQueries";
 import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,9 @@ import { OnScreenNumpad } from "@/components/pos/OnScreenNumpad";
 
 export default function POSPage() {
   const { user, activeBranchId } = useAuth();
-  const [products, setProducts] = useState<any[]>([]);
+  const { data: productsData, isLoading: loading } = useProducts();
+  const products = productsData || [];
   const [cart, setCart] = useState<{ id: string; product: any; quantity: number; notes?: string }[]>([]);
-  const [loading, setLoading] = useState(true);
 
   // Modifiers State
   const [showModifiers, setShowModifiers] = useState(false);
@@ -57,12 +57,9 @@ export default function POSPage() {
     documentTitle: `Receipt-${completedOrder?.id || 'new'}`,
   });
 
-  useEffect(() => {
-    getProducts()
-      .then(setProducts)
-      .catch((err) => toast.error("Failed to load products: " + err.message))
-      .finally(() => setLoading(false));
-  }, []);
+  const createOrderMutation = useCreateOrder();
+  const getCustomerMutation = useCustomerByPhone();
+  const validatePromoMutation = useValidatePromotion();
 
   const handleProductClick = (product: any) => {
     if (product.category.toLowerCase().includes('coffee') || product.category.toLowerCase().includes('beverage')) {
@@ -117,10 +114,10 @@ export default function POSPage() {
   const handleFindCustomer = async () => {
     if (!customerPhone) return;
     try {
-      const data = await getCustomerByPhone(customerPhone);
+      const data = await getCustomerMutation.mutateAsync(customerPhone);
       setCustomer(data);
       toast.success(`Found member: ${data.name}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error("Customer not found");
       setCustomer(null);
       setPointsToRedeem(0);
@@ -130,11 +127,11 @@ export default function POSPage() {
   const handleApplyPromo = async () => {
     if (!promoCode) return;
     try {
-      const data = await validatePromotion(promoCode, subtotal);
+      const data = await validatePromoMutation.mutateAsync({ code: promoCode, subtotal });
       setAppliedPromo(data);
       toast.success("Promotion applied!");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
       setAppliedPromo(null);
     }
   };
@@ -155,7 +152,7 @@ export default function POSPage() {
     
     try {
       const items = cart.map(item => ({ productId: item.product.id, quantity: item.quantity, notes: item.notes }));
-      const orderData = await createOrder({ 
+      const orderData = await createOrderMutation.mutateAsync({ 
         userId: user?.id as number, 
         branchId: activeBranchId, 
         items,
@@ -193,8 +190,8 @@ export default function POSPage() {
       setTaxInvoiceName("");
       setTaxInvoiceTaxId("");
       setTaxInvoiceAddress("");
-    } catch (err: any) {
-      toast.error("Checkout failed: " + err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error("Checkout failed: " + err.message);
     }
   };
 
@@ -205,7 +202,7 @@ export default function POSPage() {
       {/* Products Grid */}
       <div className="flex-1 overflow-y-auto pr-2 pb-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {products.map((product) => (
+          {products.map((product: any) => (
             <Card 
               key={product.id} 
               className="cursor-pointer hover:border-amber-400 hover:shadow-md transition-colors active:scale-95 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"

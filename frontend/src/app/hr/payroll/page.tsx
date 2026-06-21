@@ -4,9 +4,11 @@ import { useState, useEffect } from "react"
 import { fetchAPI, generatePayrollRun, approvePayrollRun } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
 import { Table, Tag, Button as AntButton, Popconfirm, Typography } from "antd"
-import { Users, FileText, CheckCircle } from "lucide-react"
+import { Users, FileText, CheckCircle, Receipt } from "lucide-react"
 import { toast } from "sonner"
 import { AnimatedPage } from "@/components/animated-page"
+import { PageHeader } from "@/components/shared/page-header"
+import { DataTable } from "@/components/shared/data-table"
 
 const { Text } = Typography;
 
@@ -148,14 +150,14 @@ export default function PayrollPage() {
 
     return (
       <div className="p-4 bg-slate-50 dark:bg-slate-900/30 rounded-lg m-2 border border-slate-200 dark:border-slate-800">
-        <Table
+        <DataTable
           columns={payslipColumns}
           dataSource={record.payslips}
           rowKey="id"
           pagination={false}
           size="small"
           scroll={{ x: 1200 }}
-          className="shadow-sm"
+          hideBorders
           summary={(pageData: readonly any[]) => {
             let totalGross = 0;
             let totalSso = 0;
@@ -186,34 +188,30 @@ export default function PayrollPage() {
 
   return (
     <AnimatedPage className="space-y-6 w-full">
-      <div className="flex justify-between items-center mb-6">
-        <div className="ml-auto">
+      <PageHeader 
+        title="Payroll History"
+        icon={Receipt}
+        description="View and generate monthly payroll runs."
+        actions={
           <AntButton 
             type="primary" 
-            className="bg-violet-600 hover:bg-violet-700 h-10 px-4 rounded-lg shadow-sm"
+            className="bg-violet-600 hover:bg-violet-700 h-10 px-4 rounded-lg shadow-sm font-bold"
             onClick={handleGenerate}
             loading={isGenerating}
             disabled={!activeBranchId}
           >
             Generate This Month's Payroll
           </AntButton>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-1">
-        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-t-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-          <Users className="w-5 h-5 text-violet-500" />
-          Payroll History
-        </div>
-        <Table 
-          columns={columns} 
-          dataSource={payrollRuns} 
-          rowKey="id"
-          expandable={{ expandedRowRender }}
-          pagination={{ pageSize: 10 }}
-          className="w-full overflow-x-auto [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:dark:bg-slate-900"
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        dataSource={payrollRuns} 
+        rowKey="id"
+        expandable={{ expandedRowRender }}
+        pagination={{ pageSize: 10 }}
+      />
     </AnimatedPage>
   )
 }

@@ -1,40 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useAuth } from "@/context/AuthContext"
-import { fetchAPI } from "@/lib/api"
+import { useShifts } from "@/hooks/useQueries"
 import { Users, CalendarDays, Plus, UserPlus, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AnimatedPage } from "@/components/animated-page"
+import { PageHeader } from "@/components/shared/page-header"
 import { Avatar, Tooltip } from "antd"
 
 export default function EmployeesShiftsPage() {
   const { user, activeBranchId } = useAuth()
-  const [shifts, setShifts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
   const role = user?.role
 
-  useEffect(() => {
-    const fetchShifts = async () => {
-      setLoading(true)
-      try {
-        let data;
-        if (role === 'SUPER_ADMIN' || role === 'MANAGER') {
-          if (!activeBranchId) return;
-          data = await fetchAPI(`/hr/shifts/branch/${activeBranchId}`)
-        } else {
-          data = await fetchAPI('/hr/shifts/me')
-        }
-        setShifts(data || [])
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchShifts()
-  }, [activeBranchId, role])
+  const { data: shiftsData, isLoading: loading } = useShifts(role, activeBranchId ?? undefined)
+  const shifts = shiftsData || []
 
   if (loading) {
     return <div className="text-center py-12 text-slate-500 font-bold">Loading shifts...</div>
@@ -48,12 +27,12 @@ export default function EmployeesShiftsPage() {
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  const todaysShifts = shifts.filter(s => {
+  const todaysShifts = shifts.filter((s: any) => {
     const d = new Date(s.startTime);
     return d >= todayStart && d <= todayEnd;
   });
 
-  const usersWithShifts = Array.from(new Set(todaysShifts.map(s => s.user?.name || 'Unknown')));
+  const usersWithShifts = Array.from(new Set(todaysShifts.map((s: any) => s.user?.name || 'Unknown'))) as string[];
 
   // Time blocks from 06:00 to 22:00 (16 hours)
   const HOURS_START = 6;
@@ -83,25 +62,23 @@ export default function EmployeesShiftsPage() {
 
   return (
     <AnimatedPage className="space-y-6 w-full">
-      <div className="flex justify-between items-end mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-indigo-500" />
-            {(role === 'SUPER_ADMIN' || role === 'MANAGER') ? 'Shift Schedule (Gantt)' : 'My Shifts'}
-          </h1>
-          <p className="text-slate-500 font-medium">Manage and view the time-block shift schedule for today.</p>
-        </div>
-        {(role === 'SUPER_ADMIN' || role === 'MANAGER') && (
-          <div className="flex gap-2">
-            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-10 px-4 rounded-xl shadow-sm">
-              <Plus className="w-4 h-4 mr-2" /> Add Shift
-            </Button>
-            <Button variant="outline" className="border-slate-200 dark:border-slate-700 bg-white font-bold h-10 px-4 rounded-xl shadow-sm">
-              <UserPlus className="w-4 h-4 mr-2" /> Directory
-            </Button>
-          </div>
-        )}
-      </div>
+      <PageHeader 
+        title={(role === 'SUPER_ADMIN' || role === 'MANAGER') ? 'Shift Schedule (Gantt)' : 'My Shifts'}
+        icon={CalendarDays}
+        description="Manage and view the time-block shift schedule for today."
+        actions={
+          (role === 'SUPER_ADMIN' || role === 'MANAGER') && (
+            <div className="flex gap-2">
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-sm">
+                <Plus className="w-4 h-4 mr-2" /> Add Employee
+              </Button>
+              <Button variant="outline" className="border-slate-200 dark:border-slate-700 bg-white font-bold shadow-sm">
+                <UserPlus className="w-4 h-4 mr-2" /> Directory
+              </Button>
+            </div>
+          )
+        }
+      />
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
         <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
@@ -132,8 +109,8 @@ export default function EmployeesShiftsPage() {
                   ))}
                 </div>
 
-                {usersWithShifts.map((userName, idx) => {
-                  const userShifts = todaysShifts.filter(s => s.user?.name === userName);
+                {usersWithShifts.map((userName: string, idx: number) => {
+                  const userShifts = todaysShifts.filter((s: any) => s.user?.name === userName);
                   return (
                     <div key={idx} className="flex items-center h-12 relative group">
                       {/* User Column */}
@@ -144,7 +121,7 @@ export default function EmployeesShiftsPage() {
 
                       {/* Shifts Track */}
                       <div className="flex-1 h-full relative group-hover:bg-slate-50/50 transition-colors rounded-r-xl">
-                        {userShifts.map((shift, i) => {
+                        {userShifts.map((shift: any, i: number) => {
                           const left = calculateLeftPercent(shift.startTime);
                           const width = calculateWidthPercent(shift.startTime, shift.endTime);
                           

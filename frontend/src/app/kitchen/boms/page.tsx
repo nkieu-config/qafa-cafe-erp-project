@@ -1,82 +1,69 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { getProductionBOMs, getIngredients, createProductionBOM } from "@/lib/api"
-import { Table, Button, Modal, Form, Select, InputNumber, Space, Progress, Tag } from "antd"
+import { useState, useMemo } from "react"
+import { useProductionBOMs, useIngredients, useCreateProductionBOM } from "@/hooks/useQueries"
+import { Button, Form, Select, InputNumber, Space, Progress, Tag } from "antd"
+import { FormModal } from "@/components/shared/form-modal"
 import { ListTree, Plus, MinusCircle, Save, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { AnimatedPage } from "@/components/animated-page"
+import { PageHeader } from "@/components/shared/page-header"
+import { DataTable } from "@/components/shared/data-table"
 
 export default function BOMPage() {
-  const [bomsGrouped, setBomsGrouped] = useState<any[]>([])
-  const [ingredients, setIngredients] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [form] = Form.useForm()
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
+  const { data: bomsData = [], isLoading: loadingBoms } = useProductionBOMs();
+  const { data: ingredientsData = [], isLoading: loadingIng } = useIngredients();
 
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const [bomsData, ingredientsData] = await Promise.all([
-        getProductionBOMs(),
-        getIngredients()
-      ])
-      
-      setIngredients(ingredientsData)
+  const loading = loadingBoms || loadingIng;
+  const ingredients = ingredientsData;
 
-      // Group BOMs by targetIngredientId
-      const grouped = (bomsData || []).reduce((acc: any, bom: any) => {
-        const targetId = bom.targetIngredientId;
-        if (!acc[targetId]) {
-          acc[targetId] = {
-            id: `TARGET_${targetId}`,
-            targetName: bom.targetIngredient.name,
-            targetUnit: bom.targetIngredient.unit,
-            isGroup: true,
-            children: []
-          };
-        }
-        acc[targetId].children.push({
-          id: bom.id,
-          rawIngredientId: bom.rawIngredientId,
-          rawName: bom.rawIngredient.name,
-          rawUnit: bom.rawIngredient.unit,
-          quantityNeeded: bom.quantityNeeded,
-          costPerUnit: bom.rawIngredient.costPerUnit,
-          totalCost: bom.quantityNeeded * bom.rawIngredient.costPerUnit
-        });
-        return acc;
-      }, {});
+  const bomsGrouped = useMemo(() => {
+    // Group BOMs by targetIngredientId
+    const grouped = bomsData.reduce((acc: any, bom: any) => {
+      const targetId = bom.targetIngredientId;
+      if (!acc[targetId]) {
+        acc[targetId] = {
+          id: `TARGET_${targetId}`,
+          targetName: bom.targetIngredient.name,
+          targetUnit: bom.targetIngredient.unit,
+          isGroup: true,
+          children: []
+        };
+      }
+      acc[targetId].children.push({
+        id: bom.id,
+        rawIngredientId: bom.rawIngredientId,
+        rawName: bom.rawIngredient.name,
+        rawUnit: bom.rawIngredient.unit,
+        quantityNeeded: bom.quantityNeeded,
+        costPerUnit: bom.rawIngredient.costPerUnit,
+        totalCost: bom.quantityNeeded * bom.rawIngredient.costPerUnit
+      });
+      return acc;
+    }, {});
 
-      setBomsGrouped(Object.values(grouped))
-    } catch (error) {
-      console.error(error)
-      toast.error("Failed to load BOMs")
-    } finally {
-      setLoading(false)
-    }
-  }
+    return Object.values(grouped);
+  }, [bomsData]);
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+  const createMutation = useCreateProductionBOM();
 
   const handleCreate = async (values: any) => {
     try {
       const promises = values.rawIngredients.map((item: any) => 
-        createProductionBOM({
+        createMutation.mutateAsync({
           targetIngredientId: values.targetIngredientId,
           rawIngredientId: item.rawIngredientId,
           quantityNeeded: item.quantityNeeded
         })
       );
       await Promise.all(promises);
-      toast.success("BOM updated successfully");
+      toast.success("BOM created successfully");
       setIsModalVisible(false);
       form.resetFields();
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to create BOM");
+    } catch (error: unknown) {
+      if (error instanceof Error) toast.error("Failed to create BOM");
     }
   }
 
@@ -151,45 +138,36 @@ export default function BOMPage() {
 
   return (
     <AnimatedPage className="space-y-6 w-full">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-2">
-            <ListTree className="w-6 h-6 text-orange-500" />
-            Bill of Materials (Recipes)
-          </h1>
-          <p className="text-slate-500 font-medium">Manage recipes and monitor food cost efficiency.</p>
-        </div>
-        <div className="ml-auto">
+      <PageHeader 
+        title="Bill of Materials (Recipes)"
+        icon={ListTree}
+        description="Manage recipes and monitor food cost efficiency."
+        actions={
           <Button 
             type="primary" 
-            className="bg-orange-500 hover:bg-orange-600 h-10 px-4 rounded-xl shadow-sm font-bold flex items-center gap-2"
+            className="bg-orange-500 hover:bg-orange-600 shadow-sm font-bold flex items-center gap-2"
             onClick={() => setIsModalVisible(true)}
             icon={<Plus className="w-4 h-4" />}
           >
             Create / Update BOM
           </Button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-1">
-        <Table 
-          columns={columns} 
-          dataSource={bomsGrouped} 
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          defaultExpandAllRows={true}
-          className="w-full overflow-x-auto [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:dark:bg-slate-800"
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        dataSource={bomsGrouped} 
+        rowKey="id"
+        loading={loading}
+        pagination={false}
+        defaultExpandAllRows={true}
+      />
 
-      <Modal
-        title={<div className="font-black text-lg">Create / Update BOM</div>}
-        open={isModalVisible}
-        onCancel={() => setIsModalVisible(false)}
-        footer={null}
+      <FormModal
+        title="Create / Update BOM"
+        isOpen={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
         width={700}
-        className="rounded-2xl"
       >
         <Form form={form} layout="vertical" onFinish={handleCreate} className="mt-4">
           <Form.Item
@@ -202,7 +180,7 @@ export default function BOMPage() {
               placeholder="Select Target Product"
               optionFilterProp="children"
               className="h-11"
-              options={ingredients.map(i => ({ label: i.name, value: i.id }))}
+              options={ingredients.map((i: any) => ({ label: i.name, value: i.id }))}
             />
           </Form.Item>
 
@@ -224,7 +202,7 @@ export default function BOMPage() {
                         placeholder="Select Raw Ingredient"
                         optionFilterProp="children"
                         className="h-11"
-                        options={ingredients.map(i => ({ label: `${i.name} (${i.unit})`, value: i.id }))}
+                        options={ingredients.map((i: any) => ({ label: `${i.name} (${i.unit})`, value: i.id }))}
                       />
                     </Form.Item>
                     <Form.Item
@@ -239,7 +217,7 @@ export default function BOMPage() {
                   </Space>
                 ))}
                 <Form.Item className="mt-4">
-                  <Button type="dashed" onClick={() => add()} block icon={<Plus className="w-4 h-4" />} className="h-11 font-bold rounded-xl border-slate-300">
+                  <Button type="dashed" onClick={() => add()} block icon={<Plus className="w-4 h-4" />} className="font-bold border-slate-300">
                     Add Raw Ingredient
                   </Button>
                 </Form.Item>
@@ -248,13 +226,13 @@ export default function BOMPage() {
           </Form.List>
 
           <div className="flex justify-end gap-2 mt-6">
-            <Button onClick={() => setIsModalVisible(false)} className="h-11 font-bold rounded-xl">Cancel</Button>
-            <Button type="primary" htmlType="submit" className="bg-orange-500 hover:bg-orange-600 border-none h-11 font-bold rounded-xl px-6" icon={<Save className="w-4 h-4" />}>
+            <Button onClick={() => setIsModalVisible(false)} className="font-bold">Cancel</Button>
+            <Button type="primary" htmlType="submit" className="bg-orange-500 hover:bg-orange-600 border-none font-bold px-6" icon={<Save className="w-4 h-4" />}>
               Save Recipe
             </Button>
           </div>
         </Form>
-      </Modal>
+      </FormModal>
     </AnimatedPage>
   )
 }

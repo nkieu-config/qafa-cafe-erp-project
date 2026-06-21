@@ -1,84 +1,71 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getPurchaseOrders, createPurchaseOrder, approvePurchaseOrder, rejectPurchaseOrder, receivePurchaseOrder, getSuppliers, getIngredients } from "@/lib/api";
+import { useState } from "react";
+import { usePurchaseOrders, useSuppliers, useIngredients, useCreatePurchaseOrder, useApprovePurchaseOrder, useRejectPurchaseOrder, useReceivePurchaseOrder } from "@/hooks/useQueries";
 import { useAuth } from "@/context/AuthContext";
-import { Table, Tag, Button as AntButton, Modal, Form, Select, InputNumber, Space, Steps, Popconfirm } from "antd";
+import { Table, Tag, Button as AntButton, Form, Select, InputNumber, Space, Steps, Popconfirm } from "antd";
+import { FormModal } from "@/components/shared/form-modal";
 import { Plus, CheckCircle2, XCircle, CheckSquare, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatedPage } from "@/components/animated-page";
+import { PageHeader } from "@/components/shared/page-header";
+import { DataTable } from "@/components/shared/data-table";
 import { format } from "date-fns";
 
 export default function ProcurementPage() {
   const { user, activeBranchId } = useAuth();
-  const [pos, setPos] = useState<any[]>([]);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [ingredients, setIngredients] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: posData, isLoading: loadingPos } = usePurchaseOrders();
+  const { data: suppliersData, isLoading: loadingSup } = useSuppliers();
+  const { data: ingredientsData, isLoading: loadingIng } = useIngredients();
+
+  const suppliers = suppliersData || [];
+  const ingredients = ingredientsData || [];
+  
+  let pos = posData || [];
+  if (user?.role !== 'SUPER_ADMIN' || activeBranchId) {
+    if (activeBranchId) {
+      pos = pos.filter((po: any) => po.branchId === activeBranchId);
+    }
+  }
+
+  const loading = loadingPos || loadingSup || loadingIng;
+
+  const approveMutation = useApprovePurchaseOrder();
+  const rejectMutation = useRejectPurchaseOrder();
+  const receiveMutation = useReceivePurchaseOrder();
+  const createMutation = useCreatePurchaseOrder();
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    loadData();
-  }, [activeBranchId, user]);
-
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [posData, supData, ingData] = await Promise.all([
-        getPurchaseOrders(),
-        getSuppliers(),
-        getIngredients()
-      ]);
-      
-      if (user?.role === 'SUPER_ADMIN' && !activeBranchId) {
-        setPos(posData);
-      } else if (activeBranchId) {
-        setPos(posData.filter((po: any) => po.branchId === activeBranchId));
-      } else {
-        setPos(posData);
-      }
-
-      setSuppliers(supData);
-      setIngredients(ingData);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Removed manual loadData with useEffect
 
   const handleApprove = async (poId: number) => {
     try {
-      await approvePurchaseOrder(poId);
+      await approveMutation.mutateAsync(poId);
       toast.success("Purchase Order approved successfully!");
-      loadData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to approve PO");
+    } catch (error: unknown) {
+      if (error instanceof Error) toast.error(error.message || "Failed to approve PO");
     }
   };
 
   const handleReject = async (poId: number) => {
     try {
-      await rejectPurchaseOrder(poId);
+      await rejectMutation.mutateAsync(poId);
       toast.success("Purchase Order rejected.");
-      loadData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to reject PO");
+    } catch (error: unknown) {
+      if (error instanceof Error) toast.error(error.message || "Failed to reject PO");
     }
   };
 
   const handleReceive = async (poId: number) => {
     try {
-      await receivePurchaseOrder(poId);
+      await receiveMutation.mutateAsync(poId);
       toast.success("Purchase Order received! Inventory updated.");
-      loadData();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to receive PO");
+    } catch (error: unknown) {
+      if (error instanceof Error) toast.error(error.message || "Failed to receive PO");
     }
   };
 
@@ -94,7 +81,7 @@ export default function ProcurementPage() {
 
     setSubmitting(true);
     try {
-      await createPurchaseOrder({
+      await createMutation.mutateAsync({
         branchId: activeBranchId,
         supplierId: values.supplierId,
         items: values.items.map((i: any) => ({
@@ -106,9 +93,8 @@ export default function ProcurementPage() {
       toast.success("Purchase Order created successfully");
       setIsModalOpen(false);
       form.resetFields();
-      loadData();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create PO");
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message || "Failed to create PO");
     } finally {
       setSubmitting(false);
     }
@@ -238,8 +224,11 @@ export default function ProcurementPage() {
 
   return (
     <AnimatedPage className="space-y-6 w-full">
-      <div className="flex justify-between items-center mb-6">
-        <div className="ml-auto">
+      <PageHeader 
+        title="Purchase Orders"
+        icon={Truck}
+        description="Manage procurement orders and track deliveries."
+        actions={
           <AntButton 
             type="primary" 
             className="bg-blue-600 hover:bg-blue-700 h-10 px-4 rounded-lg shadow-sm"
@@ -249,33 +238,25 @@ export default function ProcurementPage() {
           >
             Create PO
           </AntButton>
-        </div>
-      </div>
+        }
+      />
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-1">
-        <div className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-t-xl font-bold text-slate-800 dark:text-slate-100">
-          Purchase Orders
-        </div>
-        <Table 
-          columns={columns} 
-          dataSource={pos} 
-          rowKey="id"
-          loading={loading}
-          expandable={{ expandedRowRender }}
-          pagination={{ pageSize: 10 }}
-          className="w-full overflow-x-auto [&_.ant-table-thead>tr>th]:bg-slate-50 [&_.ant-table-thead>tr>th]:dark:bg-slate-900"
-        />
-      </div>
+      <DataTable 
+        columns={columns} 
+        dataSource={pos} 
+        rowKey="id"
+        loading={loading}
+        expandable={{ expandedRowRender }}
+        pagination={{ pageSize: 10 }}
+      />
 
       {/* Create PO Modal */}
-      <Modal
-        title={<div className="text-lg font-bold flex items-center gap-2"><Truck className="w-5 h-5 text-blue-500" /> Create Purchase Order</div>}
-        open={isModalOpen}
-        onCancel={() => { setIsModalOpen(false); form.resetFields(); }}
-        footer={null}
+      <FormModal
+        title="Create Purchase Order"
+        icon={Truck}
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); form.resetFields(); }}
         width={800}
-        destroyOnHidden
-        className="dark:[&_.ant-modal-content]:bg-slate-900"
       >
         <Form
           form={form}
@@ -293,7 +274,7 @@ export default function ProcurementPage() {
               placeholder="Search and select supplier"
               optionFilterProp="children"
               className="h-10"
-              options={suppliers.map(s => ({ value: s.id, label: s.name }))}
+              options={suppliers.map((s: any) => ({ value: s.id, label: s.name }))}
             />
           </Form.Item>
 
@@ -313,10 +294,10 @@ export default function ProcurementPage() {
                         <Select 
                           showSearch
                           placeholder="Ingredient"
-                          options={ingredients.map(i => ({ value: i.id, label: `${i.name} (${i.unit})` }))}
+                          options={ingredients.map((i: any) => ({ value: i.id, label: `${i.name} (${i.unit})` }))}
                           onChange={(val) => {
                             // Auto-fill price if available
-                            const ing = ingredients.find(i => i.id === val);
+                            const ing = ingredients.find((i: any) => i.id === val);
                             if (ing && ing.costPerUnit) {
                               const currentItems = form.getFieldValue('items');
                               currentItems[name].price = ing.costPerUnit;
@@ -364,7 +345,7 @@ export default function ProcurementPage() {
             </AntButton>
           </div>
         </Form>
-      </Modal>
+      </FormModal>
     </AnimatedPage>
   );
 }
