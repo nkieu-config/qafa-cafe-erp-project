@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: { name: string; price: number; category: string; recipeItems?: { ingredientId: number, quantity: number }[] }) {
+  async create(data: { name: string; price: number; category: string; isActive?: boolean; recipeItems?: { ingredientId: number, quantity: number }[] }) {
     const { recipeItems, ...productData } = data;
     return this.prisma.product.create({
       data: {
@@ -32,8 +32,11 @@ export class ProductsService {
   }
 
   async remove(id: number) {
-    // Need to delete recipe items first because of foreign key constraints
-    await this.prisma.recipeItem.deleteMany({ where: { productId: id } });
-    return this.prisma.product.delete({ where: { id } });
+    // Use a transaction so if product deletion fails (e.g. due to being used in OrderItems),
+    // the recipe items are not accidentally deleted (rolled back).
+    return this.prisma.$transaction(async (prisma) => {
+      await prisma.recipeItem.deleteMany({ where: { productId: id } });
+      return prisma.product.delete({ where: { id } });
+    });
   }
 }
