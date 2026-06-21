@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class FinanceService {
@@ -10,7 +11,7 @@ export class FinanceService {
   }
 
   async getExpenses(branchId: number, date?: Date) {
-    const where: any = { branchId };
+    const where: Prisma.ExpenseWhereInput = { branchId };
     if (date) {
       const start = new Date(date);
       start.setHours(0, 0, 0, 0);
@@ -131,7 +132,7 @@ export class FinanceService {
   async exportSales(branchId?: number, startDate?: Date, endDate?: Date): Promise<string> {
     const { Parser } = require('json2csv');
     
-    const where: any = {};
+    const where: Prisma.OrderWhereInput = {};
     if (branchId) where.branchId = branchId;
     if (startDate && endDate) {
       const start = new Date(startDate);

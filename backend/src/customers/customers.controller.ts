@@ -23,7 +23,7 @@ export class CustomersController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateCustomerDto: any) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateCustomerDto: Partial<{ name: string; email: string; phone: string }>) {
     return this.customersService.update(id, updateCustomerDto);
   }
 

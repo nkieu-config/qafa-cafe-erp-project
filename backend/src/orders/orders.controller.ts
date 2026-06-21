@@ -2,6 +2,8 @@ import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Request, Q
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
+import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
+import { OrderStatus } from '@prisma/client';
 
 @UseGuards(JwtAuthGuard)
 @Controller('orders')
@@ -9,14 +11,12 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto, @Request() req: any) {
-    // Inject userId and branchId from JWT token payload (req.user is set by Passport)
-    const data = {
+  create(@Body() createOrderDto: CreateOrderDto, @Request() req: RequestWithUser) {
+    return this.ordersService.createOrder({
       ...createOrderDto,
       userId: req.user.userId,
-      branchId: req.user.branchId || createOrderDto.branchId,
-    };
-    return this.ordersService.createOrder(data);
+      branchId: req.user.branchId || createOrderDto.branchId || 1,
+    });
   }
 
   @Get()
@@ -30,7 +30,7 @@ export class OrdersController {
   }
 
   @Patch(':id/status')
-  updateOrderStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: string) {
+  updateOrderStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: OrderStatus) {
     return this.ordersService.updateOrderStatus(id, status);
   }
 

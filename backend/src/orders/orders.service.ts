@@ -5,6 +5,7 @@ import { EventsGateway } from '../events/events.gateway';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderCreatedEvent } from './events/order-created.event';
+import { PaymentMethod, OrderStatus, Customer } from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
@@ -21,7 +22,7 @@ export class OrdersService {
     customerPhone?: string;
     promotionCode?: string;
     pointsToRedeem?: number;
-    paymentMethod?: any;
+    paymentMethod?: PaymentMethod;
     isTaxInvoiceRequested?: boolean;
     taxInvoiceName?: string;
     taxInvoiceTaxId?: string;
@@ -103,7 +104,7 @@ export class OrdersService {
       let customerId: number | null = null;
       let promotionId: number | null = null;
       
-      let customer: any = null;
+      let customer: Customer | null = null;
       if (data.customerPhone) {
         customer = await tx.customer.findUnique({ where: { phone: data.customerPhone } });
         if (!customer) throw new BadRequestException('Customer not found');
@@ -228,7 +229,7 @@ export class OrdersService {
     });
   }
 
-  async updateOrderStatus(orderId: number, status: any) {
+  async updateOrderStatus(orderId: number, status: OrderStatus) {
     const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { status }

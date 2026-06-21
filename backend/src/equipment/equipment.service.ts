@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { EquipmentType, EquipmentStatus } from '@prisma/client';
+import { EquipmentType, EquipmentStatus, Prisma } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
@@ -99,7 +99,7 @@ export class EquipmentService {
         }
       });
 
-      const updateData: any = {};
+      const updateData: Prisma.EquipmentUpdateInput = {};
       if (data.nextMaintenanceDate) updateData.nextMaintenanceDate = data.nextMaintenanceDate;
       if (data.newStatus) updateData.status = data.newStatus;
 

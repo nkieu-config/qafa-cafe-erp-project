@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Req
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FinanceService } from './finance.service';
+import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 
 @UseGuards(JwtAuthGuard)
 @Controller('finance')
@@ -9,25 +10,25 @@ export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 
   @Post('expenses')
-  createExpense(@Body() body: { branchId?: number; amount: number; category: string; description?: string }, @Request() req: any) {
+  createExpense(@Body() body: { branchId?: number; amount: number; category: string; description?: string }, @Request() req: RequestWithUser) {
     const branchId = body.branchId || req.user.branchId || 1;
     return this.financeService.createExpense({ ...body, branchId, recordedById: req.user.userId });
   }
 
   @Get('expenses')
-  getExpenses(@Request() req: any, @Query('date') date?: string, @Query('branchId') branchIdQuery?: string) {
+  getExpenses(@Request() req: RequestWithUser, @Query('date') date?: string, @Query('branchId') branchIdQuery?: string) {
     const branchId = branchIdQuery ? parseInt(branchIdQuery) : (req.user.branchId || 1);
     return this.financeService.getExpenses(branchId, date ? new Date(date) : undefined);
   }
 
   @Get('settlements/expected')
-  getExpectedCash(@Request() req: any, @Query('branchId') branchIdQuery?: string) {
+  getExpectedCash(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
     const branchId = branchIdQuery ? parseInt(branchIdQuery) : (req.user.branchId || 1);
     return this.financeService.calculateExpectedCash(branchId, new Date());
   }
 
   @Post('settlements')
-  submitSettlement(@Body() body: { branchId?: number; actualCash: number; actualCreditCard?: number; actualQR?: number }, @Request() req: any) {
+  submitSettlement(@Body() body: { branchId?: number; actualCash: number; actualCreditCard?: number; actualQR?: number }, @Request() req: RequestWithUser) {
     const branchId = body.branchId || req.user.branchId || 1;
     return this.financeService.submitSettlement({ 
       branchId, 
@@ -39,7 +40,7 @@ export class FinanceController {
   }
 
   @Get('settlements')
-  getSettlements(@Request() req: any, @Query('branchId') branchIdQuery?: string) {
+  getSettlements(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
     let branchId = branchIdQuery ? parseInt(branchIdQuery) : undefined;
     if (req.user.role !== 'SUPER_ADMIN' && !branchId) {
       branchId = req.user.branchId || 1;
@@ -54,7 +55,7 @@ export class FinanceController {
 
   @Get('export/sales')
   async exportSales(
-    @Request() req: any,
+    @Request() req: RequestWithUser,
     @Res() res: Response,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,

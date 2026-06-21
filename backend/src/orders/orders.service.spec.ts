@@ -51,7 +51,7 @@ describe('OrdersService', () => {
     prisma = module.get(PrismaService) as MockPrismaService;
 
     // Mock $transaction to simply yield the mocked prisma client
-    prisma.$transaction.mockImplementation(async (cb: any) => cb(prisma));
+    prisma.$transaction.mockImplementation(async (cb: Function) => cb(prisma));
   });
 
   it('should be defined', () => {

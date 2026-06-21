@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { LeaveType, LeaveStatus } from '@prisma/client';
 
 @Injectable()
 export class HrService {
@@ -84,7 +85,7 @@ export class HrService {
   }
 
   // ==================== LEAVE MANAGEMENT ====================
-  async requestLeave(userId: number, data: { type: any, startDate: string, endDate: string, reason?: string }) {
+  async requestLeave(userId: number, data: { type: LeaveType, startDate: string, endDate: string, reason?: string }) {
     return this.prisma.leaveRequest.create({
       data: {
         userId,
@@ -111,7 +112,7 @@ export class HrService {
     });
   }
 
-  async processLeaveRequest(id: number, status: any) {
+  async processLeaveRequest(id: number, status: LeaveStatus) {
     return this.prisma.leaveRequest.update({
       where: { id },
       data: { status }

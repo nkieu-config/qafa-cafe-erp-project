@@ -11,7 +11,7 @@ export class ProductsController {
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Post()
-  create(@Body() createProductDto: any) {
+  create(@Body() createProductDto: { name: string; description?: string; price: number; category: string; isActive?: boolean; branchId?: number; recipeItems?: { ingredientId: number; quantity: number }[] }) {
     return this.productsService.create(createProductDto);
   }
 
@@ -27,7 +27,7 @@ export class ProductsController {
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateProductDto: any) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateProductDto: Partial<{ name: string; description?: string; price: number; category: string; isActive?: boolean; branchId?: number; recipeItems?: { ingredientId: number; quantity: number }[] }>) {
     return this.productsService.update(id, updateProductDto);
   }
 

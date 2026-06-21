@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Body, Param, ParseIntPipe, Patch, UseGuards, Request, Query } from '@nestjs/common';
 import { HrService } from './hr.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { LeaveType, LeaveStatus } from '@prisma/client';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('hr')
@@ -10,22 +12,22 @@ export class HrController {
   constructor(private readonly hrService: HrService) {}
 
   @Post('clock-in')
-  clockIn(@Request() req: any, @Body('branchId', ParseIntPipe) branchId: number) {
+  clockIn(@Request() req: RequestWithUser, @Body('branchId', ParseIntPipe) branchId: number) {
     return this.hrService.clockIn(req.user.userId, branchId);
   }
 
   @Post('clock-out')
-  clockOut(@Request() req: any) {
+  clockOut(@Request() req: RequestWithUser) {
     return this.hrService.clockOut(req.user.userId);
   }
 
   @Get('attendance/me')
-  getMyAttendance(@Request() req: any) {
+  getMyAttendance(@Request() req: RequestWithUser) {
     return this.hrService.getMyAttendance(req.user.userId);
   }
 
   @Get('attendance/status')
-  getActiveClockIn(@Request() req: any) {
+  getActiveClockIn(@Request() req: RequestWithUser) {
     return this.hrService.getActiveClockIn(req.user.userId);
   }
 
@@ -41,13 +43,13 @@ export class HrController {
   }
 
   @Get('shifts/me')
-  getMyShifts(@Request() req: any) {
+  getMyShifts(@Request() req: RequestWithUser) {
     return this.hrService.getMyShifts(req.user.userId);
   }
 
   // ==================== LEAVE ====================
   @Post('leave')
-  requestLeave(@Request() req: any, @Body() data: { type: any, startDate: string, endDate: string, reason?: string }) {
+  requestLeave(@Request() req: RequestWithUser, @Body() data: { type: LeaveType, startDate: string, endDate: string, reason?: string }) {
     return this.hrService.requestLeave(req.user.userId, data);
   }
 
@@ -58,13 +60,13 @@ export class HrController {
   }
 
   @Get('leave/me')
-  getMyLeaveRequests(@Request() req: any) {
+  getMyLeaveRequests(@Request() req: RequestWithUser) {
     return this.hrService.getMyLeaveRequests(req.user.userId);
   }
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Patch('leave/:id/status')
-  processLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body('status') status: string) {
+  processLeaveRequest(@Param('id', ParseIntPipe) id: number, @Body('status') status: LeaveStatus) {
     return this.hrService.processLeaveRequest(id, status);
   }
 

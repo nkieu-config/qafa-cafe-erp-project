@@ -26,8 +26,9 @@ export class ProductsService {
     return this.prisma.product.findUnique({ where: { id }, include: { recipeItems: true } });
   }
 
-  async update(id: number, data: any) {
-    return this.prisma.product.update({ where: { id }, data });
+  async update(id: number, data: Partial<{ name: string; description?: string; price: number; category: string; isActive?: boolean; branchId?: number; recipeItems?: { ingredientId: number; quantity: number }[] }>) {
+    const { recipeItems, ...updateData } = data;
+    return this.prisma.product.update({ where: { id }, data: updateData });
   }
 
   async remove(id: number) {

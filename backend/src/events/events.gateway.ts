@@ -1,5 +1,6 @@
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Order } from '@prisma/client';
 import { Injectable, Logger } from '@nestjs/common';
 
 @WebSocketGateway({
@@ -22,7 +23,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  emitOrderCreated(order: any) {
+  emitOrderCreated(order: Order) {
     this.server.emit('orderCreated', order);
   }
 
