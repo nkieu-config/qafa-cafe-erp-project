@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit, Coffee } from "lucide-react";
 import { ProductFormModal } from "@/components/products/ProductFormModal";
 import { Badge } from "@/components/ui/badge";
-import { Table, Tag, Button as AntButton } from "antd";
+import { Tag, Button as AntButton } from "antd";
+import { DataTable } from "@/components/shared/data-table";
 
 export default function ProductsPage() {
   const { data: products, isLoading } = useProducts();
@@ -26,7 +27,7 @@ export default function ProductsPage() {
 
 
 
-  if (isLoading) return <div className="p-10">Loading...</div>;
+
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
@@ -43,8 +44,9 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      <div className="overflow-hidden">
-        <Table 
+      <div className="mt-6">
+        <DataTable 
+          loading={isLoading}
           columns={[
             {
               title: "ID",

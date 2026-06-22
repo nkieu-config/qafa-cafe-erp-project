@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCustomers, useCustomer360, useCreateCustomer } from '@/hooks/domains/useCrmQueries';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table } from "antd";
+import { DataTable } from "@/components/shared/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,13 +126,9 @@ export default function CustomersPage() {
           </form>
         </CardHeader>
         <CardContent>
-          {loading ? (
-             <div className="flex justify-center p-8">
-               <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
-             </div>
-          ) : (
-            <div className="overflow-hidden">
-              <Table 
+          <div className="mt-2">
+            <DataTable 
+              loading={loading}
                 columns={[
                   {
                     title: "Customer",
@@ -184,9 +180,8 @@ export default function CustomersPage() {
                   className: "cursor-pointer"
                 })}
                 className="custom-antd-table border border-slate-200 dark:border-slate-800 rounded-lg"
-              />
-            </div>
-          )}
+            />
+          </div>
         </CardContent>
       </Card>
 

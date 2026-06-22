@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit } from "lucide-react";
 import { IngredientFormModal } from "@/components/products/IngredientFormModal";
 import { Badge } from "@/components/ui/badge";
-import { Table, Tag, Button as AntButton } from "antd";
+import { Tag, Button as AntButton } from "antd";
+import { DataTable } from "@/components/shared/data-table";
 
 export default function IngredientsPage() {
   const { data: ingredients, isLoading } = useIngredients();
@@ -26,7 +27,7 @@ export default function IngredientsPage() {
 
 
 
-  if (isLoading) return <div className="p-10">Loading...</div>;
+
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
@@ -40,8 +41,9 @@ export default function IngredientsPage() {
         </Button>
       </div>
 
-      <div className="overflow-hidden">
-        <Table 
+      <div className="mt-6">
+        <DataTable 
+          loading={isLoading}
           columns={[
             {
               title: "ID",

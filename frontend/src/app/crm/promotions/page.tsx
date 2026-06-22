@@ -66,7 +66,7 @@ export default function PromotionsPage() {
     }
   };
 
-  if (loading) return <div className="p-10 text-center">Loading Promotions…</div>;
+
 
   return (
     <AnimatedPage className="w-full space-y-6">

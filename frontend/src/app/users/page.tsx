@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Table, Tag, Button as AntButton } from "antd";
+import { Tag, Button as AntButton } from "antd";
+import { DataTable } from "@/components/shared/data-table";
 
 export default function UsersPage() {
   const { data: users, isLoading: usersLoading } = useHrUsers();
@@ -82,7 +83,6 @@ export default function UsersPage() {
     }
   };
 
-  if (usersLoading || branchesLoading) return <div className="p-8 text-center text-slate-500">Loading users...</div>;
 
   return (
     <AnimatedPage className="space-y-6 max-w-6xl mx-auto w-full">
@@ -101,8 +101,8 @@ export default function UsersPage() {
         }
       />
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <Table 
+      <DataTable 
+        loading={usersLoading || branchesLoading}
           columns={[
             {
               title: "User",
@@ -175,8 +175,7 @@ export default function UsersPage() {
           rowKey="id"
           pagination={{ pageSize: 10 }}
           className="custom-antd-table"
-        />
-      </div>
+      />
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
