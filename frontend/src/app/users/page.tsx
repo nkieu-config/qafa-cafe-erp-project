@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, Tag, Button as AntButton } from "antd";
 
 export default function UsersPage() {
   const { data: users, isLoading: usersLoading } = useHrUsers();
@@ -100,67 +101,81 @@ export default function UsersPage() {
         }
       />
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-medium border-b border-slate-200 dark:border-slate-800">
-            <tr>
-              <th className="px-4 py-3 rounded-tl-lg">User</th>
-              <th className="px-4 py-3">Role</th>
-              <th className="px-4 py-3">Branch</th>
-              <th className="px-4 py-3">Employment</th>
-              <th className="px-4 py-3 text-right rounded-tr-lg">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {(users || []).map((user: any) => {
-              const branchName = branches?.find((b: any) => b.id === user.branchId)?.name || "All Branches (HQ)";
-              
-              return (
-                <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-                        <User className="w-4 h-4 text-slate-500" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-slate-800 dark:text-slate-200">{user.name || 'Unnamed User'}</div>
-                        <div className="text-xs text-slate-500 flex items-center gap-1">
-                          <Mail className="w-3 h-3" /> {user.email}
-                        </div>
-                      </div>
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <Table 
+          columns={[
+            {
+              title: "User",
+              key: "user",
+              render: (_, record: any) => (
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-slate-500" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-slate-800 dark:text-slate-200">{record.name || 'Unnamed User'}</div>
+                    <div className="text-xs text-slate-500 flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> {record.email}
                     </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline" className={
-                      user.role === 'SUPER_ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' : 
-                      user.role === 'MANAGER' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
-                      'bg-slate-50 text-slate-700 border-slate-200'
-                    }>
-                      <Shield className="w-3 h-3 mr-1" />
-                      {user.role}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                      <Building className="w-4 h-4 text-slate-400" />
-                      {branchName}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-slate-600 dark:text-slate-300">
-                      {user.employmentType ? user.employmentType.replace('_', ' ') : 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(user)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20">
-                      Edit Profile
-                    </Button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               )
-            })}
-          </tbody>
-        </table>
+            },
+            {
+              title: "Role",
+              dataIndex: "role",
+              key: "role",
+              render: (role) => (
+                <Tag color={
+                  role === 'SUPER_ADMIN' ? 'purple' : 
+                  role === 'MANAGER' ? 'blue' : 
+                  'default'
+                }>
+                  <div className="flex items-center">
+                    <Shield className="w-3 h-3 mr-1" />
+                    {role}
+                  </div>
+                </Tag>
+              )
+            },
+            {
+              title: "Branch",
+              key: "branch",
+              render: (_, record: any) => {
+                const branchName = branches?.find((b: any) => b.id === record.branchId)?.name || "All Branches (HQ)";
+                return (
+                  <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                    <Building className="w-4 h-4 text-slate-400" />
+                    {branchName}
+                  </div>
+                );
+              }
+            },
+            {
+              title: "Employment",
+              key: "employment",
+              render: (_, record: any) => (
+                <div className="text-slate-600 dark:text-slate-300">
+                  {record.employmentType ? record.employmentType.replace('_', ' ') : 'N/A'}
+                </div>
+              )
+            },
+            {
+              title: "Actions",
+              key: "actions",
+              align: "right",
+              render: (_, record: any) => (
+                <AntButton type="link" onClick={() => handleEdit(record)} className="text-blue-600 hover:text-blue-700 font-medium">
+                  Edit Profile
+                </AntButton>
+              )
+            }
+          ]}
+          dataSource={users || []}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          className="custom-antd-table"
+        />
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

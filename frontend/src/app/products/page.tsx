@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit, Coffee } from "lucide-react";
 import { ProductFormModal } from "@/components/products/ProductFormModal";
 import { Badge } from "@/components/ui/badge";
+import { Table, Tag, Button as AntButton } from "antd";
 
 export default function ProductsPage() {
   const { data: products, isLoading } = useProducts();
@@ -42,60 +43,69 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-medium">
-            <tr>
-              <th className="px-4 py-3 rounded-tl-lg">ID</th>
-              <th className="px-4 py-3">Menu Name</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Price (฿)</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Recipe Setup</th>
-              <th className="px-4 py-3 text-right rounded-tr-lg">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {(products || []).map((item: any) => (
-              <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                <td className="px-4 py-3 text-slate-400">#{item.id}</td>
-                <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{item.name}</td>
-                <td className="px-4 py-3 text-slate-500">
-                  <Badge variant="outline" className="bg-white dark:bg-slate-900">{item.category}</Badge>
-                </td>
-                <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-300 tabular-nums">฿{item.price?.toFixed(2)}</td>
-                <td className="px-4 py-3">
-                  {item.isActive !== false ? (
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400">Active</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400">Inactive</Badge>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  {item.recipeItems && item.recipeItems.length > 0 ? (
-                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      {item.recipeItems.length} ingredients
-                    </Badge>
-                  ) : (
-                    <Badge variant="secondary" className="bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                      No Recipe
-                    </Badge>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} className="text-blue-500">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            {(!products || products.length === 0) && (
-              <tr>
-                <td colSpan={7} className="text-center py-10 text-slate-400">No menu items found. Create one to show in POS.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="overflow-hidden">
+        <Table 
+          columns={[
+            {
+              title: "ID",
+              dataIndex: "id",
+              key: "id",
+              render: (id) => <span className="text-slate-400">#{id}</span>
+            },
+            {
+              title: "Menu Name",
+              dataIndex: "name",
+              key: "name",
+              render: (name) => <span className="font-medium text-slate-800 dark:text-slate-200">{name}</span>
+            },
+            {
+              title: "Category",
+              dataIndex: "category",
+              key: "category",
+              render: (category) => <Tag>{category}</Tag>
+            },
+            {
+              title: "Price (฿)",
+              dataIndex: "price",
+              key: "price",
+              render: (price) => <span className="font-bold text-slate-700 dark:text-slate-300">฿{price?.toFixed(2)}</span>
+            },
+            {
+              title: "Status",
+              key: "isActive",
+              render: (_, record: any) => (
+                record.isActive !== false ? (
+                  <Tag color="success">Active</Tag>
+                ) : (
+                  <Tag color="default">Inactive</Tag>
+                )
+              )
+            },
+            {
+              title: "Recipe Setup",
+              key: "recipe",
+              render: (_, record: any) => (
+                record.recipeItems && record.recipeItems.length > 0 ? (
+                  <Tag color="processing">{record.recipeItems.length} ingredients</Tag>
+                ) : (
+                  <Tag color="default">No Recipe</Tag>
+                )
+              )
+            },
+            {
+              title: "Actions",
+              key: "actions",
+              align: "right",
+              render: (_, record: any) => (
+                <AntButton type="link" onClick={() => handleEdit(record)} icon={<Edit className="w-4 h-4" />} className="text-blue-500" />
+              )
+            }
+          ]}
+          dataSource={products || []}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          className="custom-antd-table border border-slate-200 dark:border-slate-800 rounded-lg"
+        />
       </div>
 
       <ProductFormModal 

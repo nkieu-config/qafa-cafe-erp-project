@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { usePromotions, useCreatePromotion, useTogglePromotion } from '@/hooks/domains/useCrmQueries';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TicketPercent, Plus } from "lucide-react";
 import { toast } from "sonner";

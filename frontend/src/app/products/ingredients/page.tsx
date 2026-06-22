@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Edit } from "lucide-react";
 import { IngredientFormModal } from "@/components/products/IngredientFormModal";
 import { Badge } from "@/components/ui/badge";
+import { Table, Tag, Button as AntButton } from "antd";
 
 export default function IngredientsPage() {
   const { data: ingredients, isLoading } = useIngredients();
@@ -39,46 +40,58 @@ export default function IngredientsPage() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-medium">
-            <tr>
-              <th className="px-4 py-3 rounded-tl-lg">ID</th>
-              <th className="px-4 py-3">Ingredient Name</th>
-              <th className="px-4 py-3">Unit</th>
-              <th className="px-4 py-3">Cost / Unit (฿)</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right rounded-tr-lg">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {(ingredients || []).map((item: any) => (
-              <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20">
-                <td className="px-4 py-3 text-slate-400">#{item.id}</td>
-                <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{item.name}</td>
-                <td className="px-4 py-3 text-slate-500">{item.unit}</td>
-                <td className="px-4 py-3 text-slate-500 tabular-nums">฿{item.costPerUnit?.toFixed(2)}</td>
-                <td className="px-4 py-3">
-                  {item.isActive !== false ? (
-                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400">Active</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400">Inactive</Badge>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(item)} className="text-blue-500">
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </td>
-              </tr>
-            ))}
-            {(!ingredients || ingredients.length === 0) && (
-              <tr>
-                <td colSpan={6} className="text-center py-10 text-slate-400">No ingredients found. Create one to start building recipes.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="overflow-hidden">
+        <Table 
+          columns={[
+            {
+              title: "ID",
+              dataIndex: "id",
+              key: "id",
+              render: (id) => <span className="text-slate-400">#{id}</span>
+            },
+            {
+              title: "Ingredient Name",
+              dataIndex: "name",
+              key: "name",
+              render: (name) => <span className="font-medium text-slate-800 dark:text-slate-200">{name}</span>
+            },
+            {
+              title: "Unit",
+              dataIndex: "unit",
+              key: "unit",
+              render: (unit) => <span className="text-slate-500">{unit}</span>
+            },
+            {
+              title: "Cost / Unit (฿)",
+              dataIndex: "costPerUnit",
+              key: "costPerUnit",
+              render: (costPerUnit) => <span className="text-slate-500 tabular-nums">฿{costPerUnit?.toFixed(2)}</span>
+            },
+            {
+              title: "Status",
+              key: "isActive",
+              render: (_, record: any) => (
+                record.isActive !== false ? (
+                  <Tag color="success">Active</Tag>
+                ) : (
+                  <Tag color="default">Inactive</Tag>
+                )
+              )
+            },
+            {
+              title: "Actions",
+              key: "actions",
+              align: "right",
+              render: (_, record: any) => (
+                <AntButton type="link" onClick={() => handleEdit(record)} icon={<Edit className="w-4 h-4" />} className="text-blue-500" />
+              )
+            }
+          ]}
+          dataSource={ingredients || []}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          className="custom-antd-table border border-slate-200 dark:border-slate-800 rounded-lg"
+        />
       </div>
 
       <IngredientFormModal 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useCustomers, useCustomer360, useCreateCustomer } from '@/hooks/domains/useCrmQueries';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table } from "antd";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,52 +131,60 @@ export default function CustomersPage() {
                <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
              </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Tier</TableHead>
-                    <TableHead>Points</TableHead>
-                    <TableHead>Joined</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers.map((customer: Customer) => (
-                    <TableRow 
-                      key={customer.id}
-                      className="cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-                      onClick={() => {
-                        setSelectedCustomerId(customer.id);
-                        setDrawerOpen(true);
-                      }}
-                    >
-                      <TableCell className="font-bold text-slate-800 dark:text-slate-200 text-md">{customer.name}</TableCell>
-                      <TableCell className="text-slate-500 font-mono font-medium">{customer.phone}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={`flex w-fit items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-lg ${getTierBadge(customer.tier)}`}>
-                          {getTierIcon(customer.tier)}
-                          {customer.tier}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">
-                          {customer.points} <span className="text-xs font-bold text-emerald-400/70">pts</span>
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-slate-500 font-medium text-sm">
-                        {new Date(customer.createdAt).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {customers.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center p-8 text-slate-500">No customers found.</TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+            <div className="overflow-hidden">
+              <Table 
+                columns={[
+                  {
+                    title: "Customer",
+                    dataIndex: "name",
+                    key: "name",
+                    render: (name) => <span className="font-bold text-slate-800 dark:text-slate-200 text-md">{name}</span>
+                  },
+                  {
+                    title: "Phone",
+                    dataIndex: "phone",
+                    key: "phone",
+                    render: (phone) => <span className="text-slate-500 font-mono font-medium">{phone}</span>
+                  },
+                  {
+                    title: "Tier",
+                    key: "tier",
+                    render: (_, record: Customer) => (
+                      <Badge variant="outline" className={`flex w-fit items-center gap-1.5 px-2.5 py-1 text-xs font-bold uppercase tracking-wider rounded-lg ${getTierBadge(record.tier)}`}>
+                        {getTierIcon(record.tier)}
+                        {record.tier}
+                      </Badge>
+                    )
+                  },
+                  {
+                    title: "Points",
+                    dataIndex: "points",
+                    key: "points",
+                    render: (points) => (
+                      <span className="font-black text-lg text-emerald-600 dark:text-emerald-400">
+                        {points} <span className="text-xs font-bold text-emerald-400/70">pts</span>
+                      </span>
+                    )
+                  },
+                  {
+                    title: "Joined",
+                    dataIndex: "createdAt",
+                    key: "createdAt",
+                    render: (createdAt) => <span className="text-slate-500 font-medium text-sm">{new Date(createdAt).toLocaleDateString()}</span>
+                  }
+                ]}
+                dataSource={customers}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+                onRow={(record) => ({
+                  onClick: () => {
+                    setSelectedCustomerId(record.id);
+                    setDrawerOpen(true);
+                  },
+                  className: "cursor-pointer"
+                })}
+                className="custom-antd-table border border-slate-200 dark:border-slate-800 rounded-lg"
+              />
             </div>
           )}
         </CardContent>
