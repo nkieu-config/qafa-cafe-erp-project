@@ -362,7 +362,6 @@ export default function InventoryPage() {
     }
   ];
 
-  if (loading) return <div className="p-10 text-center font-bold text-slate-400">Loading Inventory…</div>;
 
   if (!activeBranchId) {
     return (
@@ -505,6 +504,7 @@ export default function InventoryPage() {
               <PackageOpen className="w-5 h-5 text-emerald-500" /> Aggregated Stock & Batches
             </h2>
             <DataTable 
+              loading={loading}
               columns={inventoryColumns} 
               dataSource={inventories} 
               rowKey="id"
@@ -518,6 +518,7 @@ export default function InventoryPage() {
               <ArrowRightLeft className="w-5 h-5 text-blue-500" /> Pending Transfers
             </h2>
             <DataTable 
+              loading={loading}
               columns={transferColumns} 
               dataSource={transfers} 
               rowKey="id"

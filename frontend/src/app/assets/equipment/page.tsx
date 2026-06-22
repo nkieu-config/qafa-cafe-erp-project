@@ -76,7 +76,7 @@ export default function EquipmentPage() {
     }
   };
 
-  if (loading) return <div className="p-10 text-center">Loading Equipment...</div>;
+
 
   return (
     <div className="space-y-6">
@@ -122,6 +122,7 @@ export default function EquipmentPage() {
       />
 
       <DataTable 
+        loading={loading}
         columns={[
           { title: "Name", dataIndex: "name", key: "name", render: (text: string) => <span className="font-medium">{text}</span> },
           { title: "Type", dataIndex: "type", key: "type", render: (type: string) => type.replace('_', ' ') },

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Product } from "@prisma/client";
-import { Coffee, ShoppingBag, User, Ticket, Award, Search, X, Printer, Plus, Settings2 } from "lucide-react";
+import { Coffee, ShoppingBag, User, Ticket, Award, Search, X, Printer, Plus, Settings2, Loader2 } from "lucide-react";
 import { AnimatedPage } from "@/components/animated-page";
 import { Receipt } from "@/components/pos/Receipt";
 import { useReactToPrint } from "react-to-print";
@@ -196,14 +196,19 @@ export default function POSPage() {
     }
   };
 
-  if (loading) return <div className="p-10 text-center">Loading POS…</div>;
+
 
   return (
     <div className="flex h-full gap-6 w-full">
       {/* Products Grid */}
       <div className="flex-1 overflow-y-auto pr-2 pb-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {products.map((product: Product) => (
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {products.map((product: Product) => (
             <Card 
               key={product.id} 
               className="cursor-pointer hover:border-amber-400 hover:shadow-md transition-colors active:scale-95 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
@@ -224,7 +229,8 @@ export default function POSPage() {
               No products found. Please add them via database first.
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Cart Sidebar */}
