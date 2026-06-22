@@ -14,10 +14,8 @@ export default function ProcurementLayout({ children }: { children: React.ReactN
   const role = user?.role;
 
   const tabs = [
-    { name: "Vendors", path: "/procurement/vendors", icon: Store, roles: ["SUPER_ADMIN", "MANAGER"] },
-    { name: "Purchase Requests (PR)", path: "/procurement/pr", icon: FileText, roles: ["SUPER_ADMIN", "MANAGER", "STAFF"] },
-    { name: "Purchase Orders (PO)", path: "/procurement/po", icon: FileCheck, roles: ["SUPER_ADMIN", "MANAGER"] },
-    { name: "Goods Receipt (GRN)", path: "/procurement/grn", icon: PackageCheck, roles: ["SUPER_ADMIN", "MANAGER", "STAFF"] },
+    { name: "Purchase Orders", path: "/procurement/orders", icon: FileCheck, roles: ["SUPER_ADMIN", "MANAGER", "STAFF"] },
+    { name: "Stock Transfers", path: "/procurement/transfers", icon: Truck, roles: ["SUPER_ADMIN", "MANAGER", "STAFF"] },
   ]
 
   return (

@@ -50,6 +50,29 @@ export const useReceivePurchaseOrder = () => {
   });
 };
 
+export const useTransfers = (branchId?: number) => {
+  return useQuery({
+    queryKey: ['transfers', branchId],
+    queryFn: () => branchId ? fetchAPI(`/branches/${branchId}/transfers`) : fetchAPI(`/branches/transfers/all`),
+  });
+};
+
+export const useCreateTransfer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => fetchAPI('/branches/transfers', { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transfers'] }),
+  });
+};
+
+export const useAcceptTransfer = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => fetchAPI(`/branches/transfers/${id}/accept`, { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transfers'] }),
+  });
+};
+
 export const useEquipment = (branchId?: number) => {
   return useQuery({
     queryKey: ['equipment', branchId],

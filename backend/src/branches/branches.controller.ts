@@ -18,6 +18,11 @@ export class BranchesController {
     return this.branchesService.findOne(id);
   }
 
+  @Get('transfers/all')
+  getAllTransfers() {
+    return this.branchesService.getAllTransfers();
+  }
+
   @Post('transfers')
   createTransfer(@Body() data: { fromBranchId: number, toBranchId: number, ingredientId: number, quantity: number }, @Request() req: RequestWithUser) {
     return this.branchesService.createTransfer({

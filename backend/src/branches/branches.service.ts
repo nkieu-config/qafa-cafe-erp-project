@@ -53,6 +53,18 @@ export class BranchesService {
     });
   }
 
+  async getAllTransfers() {
+    return this.prisma.stockTransfer.findMany({
+      include: {
+        fromBranch: true,
+        toBranch: true,
+        ingredient: true,
+        requestedBy: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
   async getTransfers(branchId: number) {
     return this.prisma.stockTransfer.findMany({
       where: {
