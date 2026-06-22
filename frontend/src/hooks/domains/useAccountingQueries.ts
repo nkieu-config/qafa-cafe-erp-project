@@ -14,7 +14,7 @@ export const useLedger = (branchId?: string) => {
 export const useJournalEntries = (branchId?: string) => {
   return useQuery({
     queryKey: ['journalEntries', branchId],
-    queryFn: () => fetchAPI(branchId && branchId !== "ALL" ? `/accounting/journal?branchId=${branchId}` : '/accounting/journal'),
+    queryFn: () => fetchAPI(branchId && branchId !== "ALL" ? `/accounting/journal-entries?branchId=${branchId}` : '/accounting/journal-entries'),
   });
 };
 
