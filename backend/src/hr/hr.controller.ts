@@ -102,4 +102,16 @@ export class HrController {
   getAllUsers(@Query('branchId') branchId?: string) {
     return this.hrService.getAllUsers(branchId ? parseInt(branchId) : undefined);
   }
+
+  @Roles('SUPER_ADMIN')
+  @Post('users')
+  createUser(@Body() data: any) {
+    return this.hrService.createUser(data);
+  }
+
+  @Roles('SUPER_ADMIN')
+  @Patch('users/:id')
+  updateUser(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
+    return this.hrService.updateUser(id, data);
+  }
 }

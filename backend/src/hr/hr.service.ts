@@ -234,7 +234,31 @@ export class HrService {
   async getAllUsers(branchId?: number) {
     return this.prisma.user.findMany({
       where: branchId ? { branchId } : {},
-      select: { id: true, name: true, email: true, role: true, hourlyRate: true, branchId: true }
+      select: { id: true, name: true, email: true, role: true, hourlyRate: true, branchId: true, employmentType: true, baseSalary: true }
+    });
+  }
+
+  async createUser(data: any) {
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    return this.prisma.user.create({
+      data: {
+        ...data,
+        password: hashedPassword,
+      },
+      select: { id: true, name: true, email: true, role: true, branchId: true }
+    });
+  }
+
+  async updateUser(id: number, data: any) {
+    if (data.password) {
+      const bcrypt = require('bcrypt');
+      data.password = await bcrypt.hash(data.password, 10);
+    }
+    return this.prisma.user.update({
+      where: { id },
+      data,
+      select: { id: true, name: true, email: true, role: true, branchId: true }
     });
   }
 }

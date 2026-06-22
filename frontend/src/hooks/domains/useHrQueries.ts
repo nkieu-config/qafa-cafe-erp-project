@@ -64,6 +64,22 @@ export const useUpdateHourlyRate = () => {
   });
 };
 
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => fetchAPI('/hr/users', { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hrUsers'] }),
+  });
+};
+
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: any) => fetchAPI(`/hr/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['hrUsers'] }),
+  });
+};
+
 // ==========================================
 // 👥 HR (LEAVE & PAYROLL) HOOKS
 // ==========================================
