@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { AnimatedPage } from "@/components/animated-page";
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
-import { PurchaseOrder, Supplier, Ingredient, PurchaseOrderItem } from "@prisma/client";
+import { PurchaseOrder, Supplier, Ingredient, PurchaseOrderItem } from "@/types/api";
 import { format } from "date-fns";
 
 export default function ProcurementPage() {

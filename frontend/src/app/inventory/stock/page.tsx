@@ -15,10 +15,10 @@ import { cn } from "@/lib/utils";
 import { AnimatedPage } from "@/components/animated-page"
 import { PageHeader } from "@/components/shared/page-header"
 import { DataTable } from "@/components/shared/data-table"
-import { Branch } from "@prisma/client";
+import { Branch } from "@/types/api";
 import { format, differenceInDays } from "date-fns";
 import type { Dayjs } from "dayjs";
-import type { Ingredient, InventoryBatch, PurchaseOrder, Supplier, BranchInventory } from "@prisma/client";
+import type { Ingredient, InventoryBatch, PurchaseOrder, Supplier, BranchInventory } from "@/types/api";
 
 type InventoryWithIngredient = BranchInventory & { ingredient: Ingredient };
 type BatchWithSupplier = InventoryBatch & { purchaseOrder?: PurchaseOrder & { supplier?: Supplier } };

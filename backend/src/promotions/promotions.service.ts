@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { DiscountType } from '@prisma/client';
+import { toNum } from '../common/decimal.util';
 
 @Injectable()
 export class PromotionsService {
@@ -34,15 +35,15 @@ export class PromotionsService {
     if (promo.startDate && now < promo.startDate) throw new BadRequestException('This promotion has not started yet');
     if (promo.endDate && now > promo.endDate) throw new BadRequestException('This promotion has expired');
     
-    if (promo.minPurchase && subtotal < promo.minPurchase) {
+    if (promo.minPurchase && subtotal < toNum(promo.minPurchase)) {
       throw new BadRequestException(`Minimum purchase of ${promo.minPurchase} required`);
     }
 
     let discountAmount = 0;
     if (promo.discountType === 'PERCENTAGE') {
-      discountAmount = subtotal * (promo.discountValue / 100);
+      discountAmount = subtotal * (toNum(promo.discountValue) / 100);
     } else if (promo.discountType === 'FIXED_AMOUNT') {
-      discountAmount = promo.discountValue;
+      discountAmount = toNum(promo.discountValue);
     }
 
     // Ensure discount doesn't exceed subtotal

@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { AnimatedPage } from "@/components/animated-page"
 import { PageHeader } from "@/components/shared/page-header"
 import { DataTable } from "@/components/shared/data-table"
-import { PayrollRun, Payslip } from "@prisma/client";
+import { PayrollRun, Payslip } from "@/types/api";
 import { usePayrollRuns, useGeneratePayrollRun, useApprovePayrollRun } from '@/hooks/domains/useHrQueries';
 
 const { Text } = Typography;

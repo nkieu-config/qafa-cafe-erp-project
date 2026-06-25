@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { OnEvent } from '@nestjs/event-emitter';
 import { OrderCreatedEvent } from '../orders/events/order-created.event';
+import { toNum } from '../common/decimal.util';
 
 @Injectable()
 export class AccountingService {
@@ -15,8 +16,8 @@ export class AccountingService {
     this.logger.log(`Handling order.created event for Accounting (Order ${event.order.id})`);
     
     const { order } = event;
-    const netAmount = order.netAmount;
-    const totalCogs = order.totalCogs;
+    const netAmount = toNum(order.netAmount);
+    const totalCogs = toNum(order.totalCogs);
 
     // Post Accounting Journal Entry
     if (netAmount > 0 || totalCogs > 0) {

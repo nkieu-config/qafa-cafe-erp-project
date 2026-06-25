@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
 import { AnimatedPage } from "@/components/animated-page";
-import { Equipment, Branch } from "@prisma/client";
+import { Equipment, Branch } from "@/types/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

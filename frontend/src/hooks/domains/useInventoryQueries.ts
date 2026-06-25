@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
 
 // ==========================================
@@ -63,7 +64,7 @@ export const useWasteLogs = (branchId?: number) => {
 export const useReportWaste = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ branchId, data }: { branchId: number, data: unknown }) => fetchAPI(`/branches/${branchId}/waste`, { method: 'POST', body: JSON.stringify(data) }),
+    mutationFn: ({ branchId, data }: { branchId: number, data: unknown }) => fetchAPI(API_ENDPOINTS.branches.reportWaste(branchId), { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: (_, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ['wasteLogs', variables.branchId] });
       queryClient.invalidateQueries({ queryKey: ['branch', variables.branchId] });

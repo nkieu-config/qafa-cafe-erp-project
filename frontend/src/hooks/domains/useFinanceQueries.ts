@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
 
 // ==========================================
@@ -29,7 +30,7 @@ export const useApproveSettlement = () => {
 export const useExpectedCash = (branchId?: number) => {
   return useQuery({
     queryKey: ['expectedCash', branchId],
-    queryFn: () => fetchAPI(`/finance/settlements/expected?branchId=${branchId}`),
+    queryFn: () => fetchAPI(API_ENDPOINTS.finance.expectedCash(branchId!)),
     enabled: !!branchId,
   });
 };

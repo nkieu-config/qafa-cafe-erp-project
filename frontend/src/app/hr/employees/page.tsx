@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { AnimatedPage } from "@/components/animated-page";
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
-import { User, Branch } from "@prisma/client";
+import { User, Branch } from "@/types/api";
 
 const { Text } = Typography;
 

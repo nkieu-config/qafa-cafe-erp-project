@@ -6,7 +6,7 @@ import { TrendingUp, DollarSign, Activity, BarChart3 } from "lucide-react"
 import { PageHeader } from "@/components/shared/page-header"
 import { StatCard } from "@/components/shared/stat-card"
 import { DataTable } from "@/components/shared/data-table"
-import { Order } from "@prisma/client"
+import { Order } from "@/types/api"
 
 export default function CostingReportPage() {
   const { data: ordersData = [], isLoading } = useOrders()

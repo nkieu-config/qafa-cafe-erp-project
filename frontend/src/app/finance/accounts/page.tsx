@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { PageHeader } from "@/components/shared/page-header"
 import { DataTable } from "@/components/shared/data-table"
 import { AnimatedPage } from "@/components/animated-page"
-import { Account } from "@prisma/client"
+import { Account } from "@/types/api"
 
 const { Text } = Typography;
 

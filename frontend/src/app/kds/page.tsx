@@ -8,7 +8,7 @@ import { useAuth } from "@/context/AuthContext"
 import { useSocket } from "@/context/SocketContext"
 import { Button } from "@/components/ui/button"
 import { CheckCircle2, Clock, Play } from "lucide-react"
-import { ProductionOrder, OrderItem } from "@prisma/client"
+import { ProductionOrder, OrderItem } from "@/types/api"
 
 export default function KdsPage() {
   const { activeBranchId } = useAuth()

@@ -7,7 +7,7 @@ import { FileText, TrendingUp, Building2, Play } from "lucide-react"
 import { toast } from "sonner"
 import { AnimatedPage } from "@/components/animated-page"
 import { PageHeader } from "@/components/shared/page-header"
-import { Branch } from "@prisma/client"
+import { Branch } from "@/types/api"
 import {
   LineChart,
   Line,

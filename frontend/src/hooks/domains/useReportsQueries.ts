@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
 
 // ==========================================
@@ -28,7 +29,7 @@ export const useOrders = () => {
 export const useAuditLogs = (limit: number = 100, offset: number = 0) => {
   return useQuery({
     queryKey: ['auditLogs', limit, offset],
-    queryFn: () => fetchAPI(`/audit?limit=${limit}&offset=${offset}`),
+    queryFn: () => fetchAPI(API_ENDPOINTS.audit.logs(limit, offset)),
   });
 };
 

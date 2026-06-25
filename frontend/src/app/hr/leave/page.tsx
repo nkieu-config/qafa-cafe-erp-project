@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Plus, CheckCircle, XCircle, CalendarOff } from "lucide-react"
 import { PageHeader } from "@/components/shared/page-header"
 import { DataTable } from "@/components/shared/data-table"
-import { LeaveRequest } from "@prisma/client"
+import { LeaveRequest } from "@/types/api"
 import { AnimatedPage } from "@/components/animated-page"
 import { useLeaveRequests, useUpdateLeaveStatus, useCreateLeave } from '@/hooks/domains/useHrQueries';
 import { toast } from "sonner"

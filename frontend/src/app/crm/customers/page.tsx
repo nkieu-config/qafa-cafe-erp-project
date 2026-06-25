@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { PageHeader } from "@/components/shared/page-header";
-import { Customer } from "@prisma/client";
+import { Customer } from "@/types/api";
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");

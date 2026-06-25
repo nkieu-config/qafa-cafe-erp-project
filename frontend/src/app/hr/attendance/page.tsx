@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { AnimatedPage } from "@/components/animated-page"
 import { PageHeader } from "@/components/shared/page-header"
 import { DataTable } from "@/components/shared/data-table"
-import { User, Shift } from "@prisma/client"
+import { User, Shift } from "@/types/api"
 import { format, isSameDay, differenceInMinutes } from "date-fns"
 
 const { Text } = Typography;

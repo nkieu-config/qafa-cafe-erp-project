@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { AnimatedPage } from "@/components/animated-page";
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
-import { StockTransfer, Branch, Ingredient, User } from "@prisma/client";
+import { StockTransfer, Branch, Ingredient, User } from "@/types/api";
 import { format } from "date-fns";
 
 export default function TransfersPage() {

@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccountingService } from '../accounting/accounting.service';
+import { toNum } from '../common/decimal.util';
 
 @Injectable()
 export class ProductionService {
@@ -99,7 +100,7 @@ export class ProductionService {
           data: { stock: inventory.stock - requiredQuantity }
         });
 
-        totalRawCost += requiredQuantity * bom.rawIngredient.costPerUnit;
+        totalRawCost += requiredQuantity * toNum(bom.rawIngredient.costPerUnit);
       }
 
       // Add Finished Good to Inventory

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useKitchenOrders, useIngredients, useCompleteKitchenOrder, useUpdateOrderStatus, useCreateProductionOrder } from '@/hooks/domains/useProductionQueries';
 import { getProductionOrders, completeProductionOrder, getIngredients, createProductionOrder, updateProductionOrderStatus } from "@/lib/api"
 import { Button, Form, Select, InputNumber, DatePicker, Spin } from "antd"
-import { Ingredient } from "@prisma/client"
+import { Ingredient } from "@/types/api"
 import { FormModal } from "@/components/shared/form-modal"
 import { ChefHat, PackageOpen, Plus, Clock, PlayCircle, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent } from "@dnd-kit/core"
 import { useDroppable, useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import type { ProductionOrder } from "@prisma/client"
+import type { ProductionOrder } from "@/types/api"
 
 type ProductionOrderWithTarget = ProductionOrder & { targetIngredient: Ingredient }
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { toNum } from '../common/decimal.util';
 
 @Injectable()
 export class ReportsService {
@@ -99,10 +100,10 @@ export class ReportsService {
       _sum: { netPay: true },
     });
 
-    const revenue = orders._sum.netAmount || 0;
-    const cogs = orders._sum.totalCogs || 0;
-    const expenseTotal = expenses._sum.amount || 0;
-    const payrollTotal = payrolls._sum.netPay || 0;
+    const revenue = toNum(orders._sum.netAmount);
+    const cogs = toNum(orders._sum.totalCogs);
+    const expenseTotal = toNum(expenses._sum.amount);
+    const payrollTotal = toNum(payrolls._sum.netPay);
 
     const grossProfit = revenue - cogs;
     const netProfit = grossProfit - expenseTotal - payrollTotal;
@@ -136,8 +137,8 @@ export class ReportsService {
       _sum: { netAmount: true },
     });
 
-    const salesToday = salesTodayAgg._sum.netAmount || 0;
-    const salesYesterday = salesYesterdayAgg._sum.netAmount || 0;
+    const salesToday = toNum(salesTodayAgg._sum.netAmount);
+    const salesYesterday = toNum(salesYesterdayAgg._sum.netAmount);
     let salesGrowth = 0;
     if (salesYesterday > 0) {
       salesGrowth = ((salesToday - salesYesterday) / salesYesterday) * 100;

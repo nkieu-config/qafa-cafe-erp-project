@@ -7,6 +7,7 @@ import { MockPrismaService, PrismaServiceMockProvider } from '../prisma/prisma.s
 import { EventsGateway } from '../events/events.gateway';
 import { ProcurementService } from '../procurement/procurement.service';
 import { CustomersService } from '../customers/customers.service';
+import { OutboxService } from '../outbox/outbox.service';
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -48,6 +49,10 @@ describe('OrdersService', () => {
         {
           provide: CustomersService,
           useValue: mockCustomersService,
+        },
+        {
+          provide: OutboxService,
+          useValue: { enqueue: jest.fn().mockResolvedValue({ id: 1 }) },
         },
       ],
     }).compile();

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Tier } from '@prisma/client';
 import { OnEvent } from '@nestjs/event-emitter';
 import { OrderCreatedEvent } from '../orders/events/order-created.event';
+import { toNum } from '../common/decimal.util';
 
 @Injectable()
 export class CustomersService {
@@ -87,7 +88,7 @@ export class CustomersService {
       _sum: { netAmount: true },
     });
 
-    const lifetimeSpend = agg._sum.netAmount || 0;
+    const lifetimeSpend = toNum(agg._sum.netAmount);
     
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
@@ -129,7 +130,7 @@ export class CustomersService {
       _sum: { netAmount: true },
     });
 
-    const lifetimeSpend = agg._sum.netAmount || 0;
+    const lifetimeSpend = toNum(agg._sum.netAmount);
 
     // Calculate Next Tier
     let nextTier: string | null = null;

@@ -15,8 +15,8 @@ model User {
   employmentType     EmploymentType     @default(PART_TIME)
   branchId           Int?
   branch             Branch?            @relation(fields: [branchId], references: [id])
-  hourlyRate         Float              @default(0)
-  baseSalary         Float              @default(0)
+  hourlyRate Decimal @db.Decimal(19, 4)              @default(0)
+  baseSalary Decimal @db.Decimal(19, 4)              @default(0)
   orders             Order[]
   transfersRequested StockTransfer[]    @relation("TransferRequestedBy")
   transfersApproved  StockTransfer[]    @relation("TransferApprovedBy")
@@ -72,7 +72,7 @@ model Ingredient {
   id                 Int                 @id @default(autoincrement())
   name               String
   unit               String
-  costPerUnit        Float               @default(0)
+  costPerUnit Decimal @db.Decimal(19, 4)               @default(0)
   primarySupplierId  Int?
   primarySupplier    Supplier?           @relation(fields: [primarySupplierId], references: [id])
   recipeItems        RecipeItem[]
@@ -170,7 +170,7 @@ model AuditLog {
 model Product {
   id          Int          @id @default(autoincrement())
   name        String
-  price       Float
+  price Decimal @db.Decimal(19, 4)
   category    String
   isActive    Boolean      @default(true)
   recipeItems RecipeItem[]
@@ -211,8 +211,8 @@ model Promotion {
   code          String       @unique
   description   String
   discountType  DiscountType
-  discountValue Float
-  minPurchase   Float?
+  discountValue Decimal @db.Decimal(19, 4)
+  minPurchase   Decimal? @db.Decimal(19, 4)
   isActive      Boolean      @default(true)
   startDate     DateTime?
   endDate       DateTime?
@@ -241,11 +241,11 @@ enum OrderStatus {
 
 model Order {
   id                    Int           @id @default(autoincrement())
-  totalAmount           Float
-  discountAmount        Float         @default(0)
-  netAmount             Float         @default(0)
-  taxAmount             Float         @default(0)
-  totalCogs             Float         @default(0)
+  totalAmount Decimal @db.Decimal(19, 4)
+  discountAmount Decimal @db.Decimal(19, 4)         @default(0)
+  netAmount Decimal @db.Decimal(19, 4)         @default(0)
+  taxAmount Decimal @db.Decimal(19, 4)         @default(0)
+  totalCogs Decimal @db.Decimal(19, 4)         @default(0)
   pointsEarned          Int           @default(0)
   pointsRedeemed        Int           @default(0)
   status                OrderStatus   @default(PENDING)
@@ -277,7 +277,7 @@ model OrderItem {
   productId Int
   product   Product @relation(fields: [productId], references: [id])
   quantity  Int
-  price     Float
+  price Decimal @db.Decimal(19, 4)
   notes     String?
 
   @@index([orderId])
@@ -324,7 +324,7 @@ model PurchaseOrderItem {
   ingredientId      Int
   ingredient        Ingredient    @relation(fields: [ingredientId], references: [id])
   quantityRequested Float
-  unitPrice         Float
+  unitPrice Decimal @db.Decimal(19, 4)
 }
 
 model Shift {
@@ -410,7 +410,7 @@ model Expense {
   id           Int      @id @default(autoincrement())
   branchId     Int
   branch       Branch   @relation(fields: [branchId], references: [id])
-  amount       Float
+  amount Decimal @db.Decimal(19, 4)
   category     String
   description  String?
   recordedById Int
@@ -426,13 +426,13 @@ model ShiftSettlement {
   branchId           Int
   branch             Branch           @relation(fields: [branchId], references: [id])
   date               DateTime         @default(now()) @db.Date
-  expectedCash       Float            @default(0)
-  actualCash         Float            @default(0)
-  expectedCreditCard Float            @default(0)
-  actualCreditCard   Float            @default(0)
-  expectedQR         Float            @default(0)
-  actualQR           Float            @default(0)
-  difference         Float            @default(0)
+  expectedCash Decimal @db.Decimal(19, 4)            @default(0)
+  actualCash Decimal @db.Decimal(19, 4)            @default(0)
+  expectedCreditCard Decimal @db.Decimal(19, 4)            @default(0)
+  actualCreditCard Decimal @db.Decimal(19, 4)            @default(0)
+  expectedQR Decimal @db.Decimal(19, 4)            @default(0)
+  actualQR Decimal @db.Decimal(19, 4)            @default(0)
+  difference Decimal @db.Decimal(19, 4)            @default(0)
   status             SettlementStatus @default(PENDING)
   submittedById      Int
   submittedBy        User             @relation(fields: [submittedById], references: [id])
@@ -472,14 +472,14 @@ model Payslip {
   user            User       @relation(fields: [userId], references: [id])
   standardHours   Float      @default(0)
   otHours         Float      @default(0)
-  basePay         Float      @default(0)
-  otPay           Float      @default(0)
-  bonuses         Float      @default(0)
-  grossPay        Float      @default(0)
-  taxDeduction    Float      @default(0)
-  socialSecurity  Float      @default(0)
-  otherDeductions Float      @default(0)
-  netPay          Float      @default(0)
+  basePay Decimal @db.Decimal(19, 4)      @default(0)
+  otPay Decimal @db.Decimal(19, 4)      @default(0)
+  bonuses Decimal @db.Decimal(19, 4)      @default(0)
+  grossPay Decimal @db.Decimal(19, 4)      @default(0)
+  taxDeduction Decimal @db.Decimal(19, 4)      @default(0)
+  socialSecurity Decimal @db.Decimal(19, 4)      @default(0)
+  otherDeductions Decimal @db.Decimal(19, 4)      @default(0)
+  netPay Decimal @db.Decimal(19, 4)      @default(0)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 }
@@ -521,7 +521,7 @@ model MaintenanceLog {
   equipmentId Int
   equipment   Equipment @relation(fields: [equipmentId], references: [id])
   description String
-  cost        Float     @default(0)
+  cost Decimal @db.Decimal(19, 4)     @default(0)
   performedBy String? // External technician or internal staff name
   date        DateTime  @default(now())
   createdAt   DateTime  @default(now())
@@ -580,8 +580,8 @@ model JournalEntryLine {
   journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id])
   accountId      Int
   account        Account      @relation(fields: [accountId], references: [id])
-  debit          Float        @default(0)
-  credit         Float        @default(0)
+  debit Decimal @db.Decimal(19, 4)        @default(0)
+  credit Decimal @db.Decimal(19, 4)        @default(0)
   description    String?
 
   @@index([journalEntryId])
@@ -622,7 +622,7 @@ model ProductionOrder {
   targetIngredient   Ingredient @relation(fields: [targetIngredientId], references: [id])
   quantityToProduce  Float
   status             ProductionStatus @default(DRAFT)
-  actualCost         Float      @default(0)
+  actualCost Decimal @db.Decimal(19, 4)      @default(0)
   plannedStartDate   DateTime?
   completedAt        DateTime?
   createdByUserId    Int?
@@ -639,4 +639,24 @@ model SystemSetting {
   value       String
   description String?
   updatedAt   DateTime @updatedAt
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model OutboxEvent {
+  id          Int          @id @default(autoincrement())
+  eventType   String
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  lastError   String?
+  createdAt   DateTime     @default(now())
+  processedAt DateTime?
+
+  @@index([status, createdAt])
 }

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
 
 // ==========================================
@@ -21,7 +22,7 @@ export const useJournalEntries = (branchId?: string) => {
 export const useAccounts = () => {
   return useQuery({
     queryKey: ['accounts'],
-    queryFn: () => fetchAPI('/accounting/accounts'),
+    queryFn: () => fetchAPI(API_ENDPOINTS.accounting.accounts),
   });
 };
 

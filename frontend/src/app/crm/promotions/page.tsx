@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { AnimatedPage } from "@/components/animated-page";
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
-import { Promotion } from "@prisma/client";
+import { Promotion } from "@/types/api";
 
 export default function PromotionsPage() {
   const { data: promotionsData, isLoading: loading } = usePromotions();

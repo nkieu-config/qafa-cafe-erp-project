@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { AnimatedPage } from "@/components/animated-page"
 import { PageHeader } from "@/components/shared/page-header"
 import { DataTable } from "@/components/shared/data-table"
-import { Shift, User } from "@prisma/client"
+import { Shift, User } from "@/types/api"
 import { Avatar, Tooltip } from "antd"
 
 export default function EmployeesShiftsPage() {

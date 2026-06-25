@@ -2,16 +2,18 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { OrderCreatedEvent } from './events/order-created.event';
 import { OrderStatusUpdatedEvent } from './events/order-status-updated.event';
 import { PaymentMethod, OrderStatus, Customer } from '@prisma/client';
 import { InventoryHelper } from './helpers/inventory.helper';
+import { OutboxService } from '../outbox/outbox.service';
+import { toNum } from '../common/decimal.util';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private prisma: PrismaService, 
-    private eventEmitter: EventEmitter2
+    private eventEmitter: EventEmitter2,
+    private outboxService: OutboxService,
   ) {}
 
   async createOrder(data: { 
@@ -41,14 +43,14 @@ export class OrdersService {
 
         if (!product) throw new BadRequestException(`Product with ID ${item.productId} not found`);
 
-        totalAmount += product.price * item.quantity;
+        totalAmount += toNum(product.price) * item.quantity;
 
         for (const recipe of product.recipeItems) {
           const totalNeeded = recipe.quantity * item.quantity;
           const currentNeeded = ingredientRequirements.get(recipe.ingredientId) || 0;
           ingredientRequirements.set(recipe.ingredientId, currentNeeded + totalNeeded);
           
-          totalCogs += (recipe.ingredient.costPerUnit * totalNeeded);
+          totalCogs += toNum(recipe.ingredient.costPerUnit) * totalNeeded;
         }
       }
 
@@ -86,14 +88,14 @@ export class OrdersService {
         const now = new Date();
         if (promo.startDate && now < promo.startDate) throw new BadRequestException('Promotion not started yet');
         if (promo.endDate && now > promo.endDate) throw new BadRequestException('Promotion expired');
-        if (promo.minPurchase && totalAmount < promo.minPurchase) throw new BadRequestException(`Minimum purchase of ${promo.minPurchase} required`);
+        if (promo.minPurchase && totalAmount < toNum(promo.minPurchase)) throw new BadRequestException(`Minimum purchase of ${promo.minPurchase} required`);
         
         promotionId = promo.id;
         let promoDiscount = 0;
         if (promo.discountType === 'PERCENTAGE') {
-          promoDiscount = totalAmount * (promo.discountValue / 100);
+          promoDiscount = totalAmount * (toNum(promo.discountValue) / 100);
         } else {
-          promoDiscount = promo.discountValue;
+          promoDiscount = toNum(promo.discountValue);
         }
         
         discountAmount += promoDiscount;
@@ -142,13 +144,12 @@ export class OrdersService {
         include: { items: { include: { product: true } }, customer: true, promotion: true },
       });
 
-      // Emit WebSocket event for KDS (Now decoupled via EventsGateway listening to 'order.created')
-
-      // Trigger Domain Events to decouple Procurement, Customers, and Accounting
-      this.eventEmitter.emit(
-        'order.created', 
-        new OrderCreatedEvent(order, ingredientRequirements, data.branchId, customerId)
-      );
+      await this.outboxService.enqueue(tx, 'order.created', {
+        order,
+        ingredientRequirements: Array.from(ingredientRequirements.entries()),
+        branchId: data.branchId,
+        customerId,
+      });
 
       return order;
     });

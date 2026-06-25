@@ -3,7 +3,7 @@ import { FormModal } from "@/components/shared/form-modal"
 import { Plus, MinusCircle, Save } from "lucide-react"
 import { toast } from "sonner"
 import { useCreateProductionBOM } from '@/hooks/domains/useAccountingQueries'
-import { Ingredient } from "@prisma/client"
+import { Ingredient } from "@/types/api"
 
 interface BOMModalFormProps {
   isOpen: boolean;

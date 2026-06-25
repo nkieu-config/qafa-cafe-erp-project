@@ -25,6 +25,7 @@ import { AuditModule } from './audit/audit.module';
 import { AccountingModule } from './accounting/accounting.module';
 import { ProductionModule } from './production/production.module';
 import { SettingsModule } from './settings/settings.module';
+import { OutboxModule } from './outbox/outbox.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Module({
@@ -34,7 +35,7 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
       limit: 60,
     }]),
     EventEmitterModule.forRoot(),
-    PrismaModule, ProductsModule, IngredientsModule, OrdersModule, AuthModule, BranchesModule, ProcurementModule, CustomersModule, PromotionsModule, HrModule, FinanceModule, InventoryModule, EventsModule, EquipmentModule, ScheduleModule.forRoot(), ReportsModule, AuditModule, AccountingModule, ProductionModule, SettingsModule
+    PrismaModule, ProductsModule, IngredientsModule, OrdersModule, AuthModule, BranchesModule, ProcurementModule, CustomersModule, PromotionsModule, HrModule, FinanceModule, InventoryModule, EventsModule, EquipmentModule, ScheduleModule.forRoot(), ReportsModule, AuditModule, AccountingModule, ProductionModule, SettingsModule, OutboxModule
   ],
   controllers: [AppController],
   providers: [

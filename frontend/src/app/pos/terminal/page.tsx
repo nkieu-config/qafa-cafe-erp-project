@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Product } from "@prisma/client";
+import { Product } from "@/types/api";
 import { Coffee, ShoppingBag, User, Ticket, Award, Search, X, Printer, Plus, Settings2, Loader2 } from "lucide-react";
 import { AnimatedPage } from "@/components/animated-page";
 import { Receipt } from "@/components/pos/Receipt";

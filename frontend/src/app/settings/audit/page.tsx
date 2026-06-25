@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ShieldAlert, User, Activity, FileText } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
-import { AuditLog, User as PrismaUser } from "@prisma/client";
+import { AuditLog, User as PrismaUser } from "@/types/api";
 import { AnimatedPage } from "@/components/animated-page";
 import { RoleGuard } from "@/components/RoleGuard";
 

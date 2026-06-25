@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import { Coffee } from 'lucide-react';
-import { Order, OrderItem, Product } from '@prisma/client';
+import { Order, OrderItem, Product } from '@/types/api';
 
 export const Receipt = forwardRef<HTMLDivElement, { order: any; branchName?: string }>(
   ({ order, branchName }, ref) => {

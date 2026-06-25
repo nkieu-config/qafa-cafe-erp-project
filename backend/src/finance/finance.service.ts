@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { toNum } from '../common/decimal.util';
 
 @Injectable()
 export class FinanceService {
@@ -48,13 +49,13 @@ export class FinanceService {
       _sum: { amount: true }
     });
 
-    const expectedCash = (cashOrders._sum.netAmount || 0) - (expenses._sum.amount || 0);
+    const expectedCash = toNum(cashOrders._sum.netAmount) - toNum(expenses._sum.amount);
     return { 
       expectedCash, 
-      expectedCreditCard: creditCardOrders._sum.netAmount || 0,
-      expectedQR: qrOrders._sum.netAmount || 0,
-      sales: cashOrders._sum.netAmount || 0, 
-      expenses: expenses._sum.amount || 0 
+      expectedCreditCard: toNum(creditCardOrders._sum.netAmount),
+      expectedQR: toNum(qrOrders._sum.netAmount),
+      sales: toNum(cashOrders._sum.netAmount), 
+      expenses: toNum(expenses._sum.amount) 
     };
   }
 
