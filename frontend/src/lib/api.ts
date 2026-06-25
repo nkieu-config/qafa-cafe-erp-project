@@ -26,7 +26,14 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     },
   };
 
-  const response = await fetch(url, { ...defaultOptions, ...options });
+  let response: Response;
+  try {
+    response = await fetch(url, { ...defaultOptions, ...options });
+  } catch {
+    throw new Error(
+      `Unable to reach the API at ${API_URL}. Start the backend with: npm run dev:backend`
+    );
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

@@ -98,9 +98,13 @@ export class HrController {
     return this.hrService.updateHourlyRate(userId, Number(hourlyRate));
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Get('users')
-  getAllUsers(@Query('branchId') branchId?: string) {
-    return this.hrService.getAllUsers(branchId ? parseInt(branchId) : undefined);
+  getAllUsers(@Request() req: RequestWithUser, @Query('branchId') branchId?: string) {
+    const resolvedBranchId = req.user.role === 'SUPER_ADMIN' && branchId
+      ? parseInt(branchId, 10)
+      : req.user.branchId ?? undefined;
+    return this.hrService.getAllUsers(resolvedBranchId);
   }
 
   @Roles('SUPER_ADMIN')

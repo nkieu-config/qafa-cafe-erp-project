@@ -7,6 +7,7 @@ import { useAnalyticsSummary, useTopProducts } from '@/hooks/domains/useReportsQ
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, TrendingDown, DollarSign, Award, Store, AlertTriangle, GripHorizontal, CheckCircle2, Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
@@ -67,10 +68,17 @@ export default function AnalyticsDashboard() {
 
   // ✅ REACT QUERY HOOKS
   const { data: branches = [] } = useBranches();
-  const { data: summary, isLoading: isLoadingSummary } = useAnalyticsSummary(selectedBranch);
-  const { data: topProducts = [], isLoading: isLoadingProducts } = useTopProducts(selectedBranch);
+  const { data: summary, isLoading: isLoadingSummary, isError: isSummaryError, error: summaryError, refetch: refetchSummary } = useAnalyticsSummary(selectedBranch);
+  const { data: topProducts = [], isLoading: isLoadingProducts, isError: isProductsError, error: productsError, refetch: refetchProducts } = useTopProducts(selectedBranch);
 
   const loading = isLoadingSummary || isLoadingProducts;
+  const hasError = isSummaryError || isProductsError;
+  const errorMessage = (summaryError ?? productsError)?.message ?? "Failed to load dashboard metrics.";
+
+  const handleRetry = () => {
+    refetchSummary();
+    refetchProducts();
+  };
 
   const formatCurrency = (value: number) => `฿${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -240,6 +248,12 @@ export default function AnalyticsDashboard() {
         <div className="h-64 flex flex-col gap-4 items-center justify-center text-slate-500 font-bold text-xl animate-pulse">
           <Activity className="w-10 h-10 text-emerald-500 animate-spin-slow" />
           Syncing real-time metrics...
+        </div>
+      ) : hasError ? (
+        <div className="h-64 flex flex-col gap-4 items-center justify-center text-center px-4">
+          <AlertTriangle className="w-10 h-10 text-rose-500" />
+          <p className="text-slate-600 dark:text-slate-400 font-medium max-w-md">{errorMessage}</p>
+          <Button variant="outline" onClick={handleRetry}>Try again</Button>
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

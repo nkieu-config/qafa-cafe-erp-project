@@ -79,5 +79,26 @@ describe('InventoryHelper', () => {
         data: { quantity: 5 } // 10 - 5
       });
     });
+
+    it('should throw when batch records do not cover required quantity', async () => {
+      ingredientRequirements.set(100, 15);
+
+      txMock.branchInventory.findUnique.mockResolvedValue({
+        id: 1,
+        branchId,
+        ingredientId: 100,
+        stock: 50,
+        minStock: 5,
+        ingredient: { name: 'Coffee Beans' },
+      } as any);
+
+      txMock.inventoryBatch.findMany.mockResolvedValue([
+        { id: 10, quantity: 5, status: 'ACTIVE' },
+      ] as any);
+
+      await expect(
+        InventoryHelper.deductInventoryFIFO(txMock as unknown as Prisma.TransactionClient, branchId, ingredientRequirements)
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });

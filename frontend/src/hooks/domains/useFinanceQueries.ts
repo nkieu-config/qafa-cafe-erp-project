@@ -29,7 +29,7 @@ export const useApproveSettlement = () => {
 export const useExpectedCash = (branchId?: number) => {
   return useQuery({
     queryKey: ['expectedCash', branchId],
-    queryFn: () => fetchAPI(`/finance/expected-cash?branchId=${branchId}`),
+    queryFn: () => fetchAPI(`/finance/settlements/expected?branchId=${branchId}`),
     enabled: !!branchId,
   });
 };

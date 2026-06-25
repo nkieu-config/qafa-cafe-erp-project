@@ -7,7 +7,7 @@ import { fetchAPI } from '@/lib/api';
 export const useAnalyticsSummary = (branchId?: string) => {
   return useQuery({
     queryKey: ['analyticsSummary', branchId],
-    queryFn: () => fetchAPI(branchId && branchId !== "ALL" ? `/reports/executive?branchId=${branchId}` : '/reports/executive'),
+    queryFn: () => fetchAPI(branchId && branchId !== "ALL" ? `/reports/executive-summary?branchId=${branchId}` : '/reports/executive-summary'),
   });
 };
 
@@ -25,10 +25,10 @@ export const useOrders = () => {
   });
 };
 
-export const useAuditLogs = (limit: number = 100, skip: number = 0) => {
+export const useAuditLogs = (limit: number = 100, offset: number = 0) => {
   return useQuery({
-    queryKey: ['auditLogs', limit, skip],
-    queryFn: () => fetchAPI(`/audit?limit=${limit}&skip=${skip}`),
+    queryKey: ['auditLogs', limit, offset],
+    queryFn: () => fetchAPI(`/audit?limit=${limit}&offset=${offset}`),
   });
 };
 

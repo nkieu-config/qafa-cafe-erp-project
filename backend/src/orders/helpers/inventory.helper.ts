@@ -44,9 +44,10 @@ export class InventoryHelper {
       }
 
       if (remainingToDeduct > 0) {
-        // Fallback: If physical stock is there but batches weren't registered by staff,
-        // we allow the POS sale to continue. The aggregate stock was already deducted.
-        console.warn(`[FIFO Warning] Batches out of sync for ingredient ${ingredientId} at branch ${branchId}. Missing ${remainingToDeduct} units.`);
+        const name = branchInventory.ingredient?.name || `ID ${ingredientId}`;
+        throw new BadRequestException(
+          `Inventory batches are out of sync for ${name}. Missing ${remainingToDeduct} units in batch records.`,
+        );
       }
     }
   }

@@ -13,7 +13,8 @@ RUN npm ci
 # Copy the rest of the application
 COPY . .
 
-# Build the backend application
+# Generate Prisma client and build the backend application
+RUN npx prisma generate --schema=backend/prisma/schema.prisma
 RUN npm run build --workspace=backend
 
 # Production image
@@ -27,6 +28,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/backend/package*.json ./backend/
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/prisma ./backend/prisma
+COPY --from=builder /app/backend/prisma.config.ts ./backend/prisma.config.ts
 
 EXPOSE 3000
 

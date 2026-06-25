@@ -25,6 +25,7 @@ import { AuditModule } from './audit/audit.module';
 import { AccountingModule } from './accounting/accounting.module';
 import { ProductionModule } from './production/production.module';
 import { SettingsModule } from './settings/settings.module';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -41,7 +42,11 @@ import { SettingsModule } from './settings/settings.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
-    }
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule {}

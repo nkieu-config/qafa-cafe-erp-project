@@ -5,9 +5,14 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { OrderCreatedEvent } from '../orders/events/order-created.event';
 import { OrderStatusUpdatedEvent } from '../orders/events/order-status-updated.event';
 
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',')
+  : ['http://localhost:3000', 'http://localhost:3001'];
+
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: corsOrigins,
+    credentials: true,
   },
 })
 @Injectable()
@@ -18,7 +23,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private logger: Logger = new Logger('EventsGateway');
 
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    const branchId = client.handshake.auth?.branchId;
+    if (branchId) {
+      client.join(`branch:${branchId}`);
+    }
+    this.logger.log(`Client connected: ${client.id}${branchId ? ` (branch ${branchId})` : ''}`);
   }
 
   handleDisconnect(client: Socket) {
@@ -28,7 +37,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @OnEvent('order.created', { async: true })
   handleOrderCreated(event: OrderCreatedEvent) {
     this.logger.log(`Broadcasting new order via WS: ${event.order.id}`);
-    this.server.emit('orderCreated', event.order);
+    this.server.to(`branch:${event.branchId}`).emit('orderCreated', event.order);
   }
 
   @OnEvent('order.status.updated', { async: true })

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, UseGuards, Request, Query } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -17,16 +17,6 @@ export class CustomersController {
     return this.customersService.findAll(search);
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.customersService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateCustomerDto: Partial<{ name: string; email: string; phone: string }>) {
-    return this.customersService.update(id, updateCustomerDto);
-  }
-
   @Get('phone/:phone')
   findByPhone(@Param('phone') phone: string) {
     return this.customersService.findByPhone(phone);
@@ -35,5 +25,15 @@ export class CustomersController {
   @Get(':id/360')
   getCustomer360(@Param('id', ParseIntPipe) id: number) {
     return this.customersService.getCustomer360(id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.customersService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateCustomerDto: Partial<{ name: string; email: string; phone: string }>) {
+    return this.customersService.update(id, updateCustomerDto);
   }
 }

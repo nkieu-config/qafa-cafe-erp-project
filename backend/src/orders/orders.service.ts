@@ -161,6 +161,14 @@ export class OrdersService {
     });
   }
 
+  async findByBranch(branchId: number) {
+    return this.prisma.order.findMany({
+      where: { branchId },
+      include: { items: true, branch: true, customer: true, promotion: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async findOne(id: number) {
     return this.prisma.order.findUnique({ 
       where: { id }, 

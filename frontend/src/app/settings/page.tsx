@@ -8,6 +8,7 @@ import { Settings as SettingsIcon, Save, Store, Receipt, Calculator, Banknote, L
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { RoleGuard } from "@/components/RoleGuard";
 
 export default function SettingsPage() {
   const { data: settings, isLoading } = useSettings();
@@ -43,6 +44,7 @@ export default function SettingsPage() {
 
 
   return (
+    <RoleGuard allowedRoles={['SUPER_ADMIN']} fallback={<div className="p-8 text-slate-500">Access denied. Super Admin only.</div>}>
     <AnimatedPage className="space-y-6 max-w-4xl mx-auto w-full">
       <PageHeader 
         title="System Settings"
@@ -52,7 +54,7 @@ export default function SettingsPage() {
           <Button 
             className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-2"
             onClick={handleSave}
-            disabled={updateSettingsMutation.isPending}
+            disabled={isLoading || updateSettingsMutation.isPending}
           >
             <Save className="w-4 h-4" />
             {updateSettingsMutation.isPending ? "Saving..." : "Save Settings"}
@@ -153,5 +155,6 @@ export default function SettingsPage() {
         </div>
       )}
     </AnimatedPage>
+    </RoleGuard>
   );
 }

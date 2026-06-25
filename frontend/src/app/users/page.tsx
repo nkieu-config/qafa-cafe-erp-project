@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tag, Button as AntButton } from "antd";
 import { DataTable } from "@/components/shared/data-table";
+import { RoleGuard } from "@/components/RoleGuard";
 
 export default function UsersPage() {
   const { data: users, isLoading: usersLoading } = useHrUsers();
@@ -85,6 +86,7 @@ export default function UsersPage() {
 
 
   return (
+    <RoleGuard allowedRoles={['SUPER_ADMIN']} fallback={<div className="p-8 text-slate-500">Access denied. Super Admin only.</div>}>
     <AnimatedPage className="space-y-6 max-w-6xl mx-auto w-full">
       <PageHeader 
         title="Users & Roles"
@@ -263,5 +265,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
     </AnimatedPage>
+    </RoleGuard>
   );
 }

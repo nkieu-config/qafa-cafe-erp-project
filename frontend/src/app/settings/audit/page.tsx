@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { DataTable } from "@/components/shared/data-table";
 import { AuditLog, User as PrismaUser } from "@prisma/client";
 import { AnimatedPage } from "@/components/animated-page";
+import { RoleGuard } from "@/components/RoleGuard";
 
 export default function AuditLogsPage() {
   const { data: logsData = [], isLoading: loading } = useAuditLogs(100, 0);
@@ -23,6 +24,7 @@ export default function AuditLogsPage() {
 
 
   return (
+    <RoleGuard allowedRoles={['SUPER_ADMIN']} fallback={<div className="p-8 text-slate-500">Access denied. Super Admin only.</div>}>
     <AnimatedPage className="space-y-6 w-full">
       <PageHeader 
         title="System Audit Trail"
@@ -85,5 +87,6 @@ export default function AuditLogsPage() {
         pagination={{ pageSize: 15 }}
       />
     </AnimatedPage>
+    </RoleGuard>
   );
 }

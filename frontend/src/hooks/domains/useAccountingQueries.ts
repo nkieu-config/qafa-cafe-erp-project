@@ -21,7 +21,7 @@ export const useJournalEntries = (branchId?: string) => {
 export const useAccounts = () => {
   return useQuery({
     queryKey: ['accounts'],
-    queryFn: () => fetchAPI('/accounts'),
+    queryFn: () => fetchAPI('/accounting/accounts'),
   });
 };
 

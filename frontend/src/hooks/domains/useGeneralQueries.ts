@@ -4,11 +4,12 @@ import { fetchAPI } from '@/lib/api';
 // ==========================================
 // 🌍 GENERAL HOOKS
 // ==========================================
-export const useBranches = () => {
+export const useBranches = (enabled = true) => {
   return useQuery({
     queryKey: ['branches'],
     queryFn: () => fetchAPI('/branches'),
     staleTime: Infinity, // Branches rarely change
+    enabled,
   });
 };
 

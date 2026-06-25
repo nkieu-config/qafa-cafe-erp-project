@@ -4,7 +4,9 @@
   "description": "Enterprise ERP Root",
   "private": true,
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:backend": "npm run start:dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend"
   },
   "lint-staged": {
     "frontend/**/*.{ts,tsx}": [
