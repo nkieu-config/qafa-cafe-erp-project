@@ -25,10 +25,11 @@ export class AuditService {
     });
   }
 
-  async getLogs(limit = 100, offset = 0) {
+  async getLogs(limit = 100, offset = 0, branchId?: number) {
     return this.prisma.auditLog.findMany({
       take: limit,
       skip: offset,
+      where: branchId ? { user: { branchId } } : undefined,
       orderBy: { createdAt: 'desc' },
       include: {
         user: {

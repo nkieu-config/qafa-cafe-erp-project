@@ -4,6 +4,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrderCreatedEvent } from '../orders/events/order-created.event';
 import { OrderStatusUpdatedEvent } from '../orders/events/order-status-updated.event';
+import { PurchaseOrderReceivedEvent } from '../procurement/events/purchase-order-received.event';
+import { ProductionCompletedEvent } from '../production/events/production-completed.event';
 import { Order, OrderStatus } from '@prisma/client';
 import { MAX_OUTBOX_ATTEMPTS, OUTBOX_BATCH_SIZE } from './outbox.constants';
 
@@ -90,6 +92,44 @@ export class OutboxProcessor {
       await this.eventEmitter.emitAsync(
         'order.status.updated',
         new OrderStatusUpdatedEvent(data.orderId, data.status, data.branchId),
+      );
+      return;
+    }
+
+    if (eventType === 'purchase-order.received') {
+      const data = payload as {
+        poId: number;
+        poNumber: string;
+        branchId: number;
+        totalAmount: number;
+      };
+      await this.eventEmitter.emitAsync(
+        'purchase-order.received',
+        new PurchaseOrderReceivedEvent(
+          data.poId,
+          data.poNumber,
+          data.branchId,
+          data.totalAmount,
+        ),
+      );
+      return;
+    }
+
+    if (eventType === 'production.completed') {
+      const data = payload as {
+        orderNumber: string;
+        targetIngredientName: string;
+        branchId: number;
+        totalRawCost: number;
+      };
+      await this.eventEmitter.emitAsync(
+        'production.completed',
+        new ProductionCompletedEvent(
+          data.orderNumber,
+          data.targetIngredientName,
+          data.branchId,
+          data.totalRawCost,
+        ),
       );
       return;
     }

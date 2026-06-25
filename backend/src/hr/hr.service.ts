@@ -4,6 +4,7 @@ import { LeaveType, LeaveStatus } from '@prisma/client';
 import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { toNum, roundMoney } from '../common/decimal.util';
 
 @Injectable()
 export class HrService {
@@ -177,21 +178,21 @@ export class HrService {
 
     const payslipsData = Array.from(userMap.values()).map(p => {
       const isFullTime = p.employmentType === 'FULL_TIME';
-      const basePay = isFullTime ? p.baseSalary : (p.standardHours * p.hourlyRate);
+      const hourlyRate = toNum(p.hourlyRate);
+      const baseSalary = toNum(p.baseSalary);
+      const basePay = roundMoney(isFullTime ? baseSalary : (p.standardHours * hourlyRate));
       
-      // Calculate OT rate. For Full Time, we might use (baseSalary / 240) * 1.5 as OT rate, or just standard hourlyRate if defined.
-      // Let's use hourlyRate if available, else fallback
-      const otRate = p.hourlyRate > 0 ? p.hourlyRate * 1.5 : (p.baseSalary / 240) * 1.5;
-      const otPay = p.otHours * otRate;
+      const otRate = hourlyRate > 0 ? hourlyRate * 1.5 : (baseSalary / 240) * 1.5;
+      const otPay = roundMoney(p.otHours * otRate);
       
-      const bonuses = 0; // Default zero for now, can be adjusted by manager later
+      const bonuses = 0;
       const otherDeductions = 0;
 
-      const grossPay = basePay + otPay + bonuses;
+      const grossPay = roundMoney(basePay + otPay + bonuses);
       
-      const socialSecurity = Math.min(basePay * 0.05, 750);
-      const taxDeduction = grossPay * 0.03;
-      const netPay = grossPay - socialSecurity - taxDeduction - otherDeductions;
+      const socialSecurity = roundMoney(Math.min(basePay * 0.05, 750));
+      const taxDeduction = roundMoney(grossPay * 0.03);
+      const netPay = roundMoney(grossPay - socialSecurity - taxDeduction - otherDeductions);
 
       return {
         userId: p.userId,

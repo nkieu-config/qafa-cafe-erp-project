@@ -17,8 +17,12 @@ export class BranchesController {
   constructor(private readonly branchesService: BranchesService) {}
 
   @Get()
-  findAll() {
-    return this.branchesService.findAll();
+  findAll(@Request() req: RequestWithUser) {
+    if (req.user.role === 'SUPER_ADMIN') {
+      return this.branchesService.findAll();
+    }
+    const branchId = resolveBranchId(req.user);
+    return this.branchesService.findAll(branchId);
   }
 
   @Roles('SUPER_ADMIN')

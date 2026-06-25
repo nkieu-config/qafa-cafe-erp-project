@@ -3,7 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { OnEvent } from '@nestjs/event-emitter';
 import { OrderCreatedEvent } from '../orders/events/order-created.event';
-import { toNum } from '../common/decimal.util';
+import { PurchaseOrderReceivedEvent } from '../procurement/events/purchase-order-received.event';
+import { ProductionCompletedEvent } from '../production/events/production-completed.event';
+import { toNum, roundMoney, isBalancedMoney } from '../common/decimal.util';
 import {
   paymentAccountLabel,
   resolvePaymentAccountCode,
@@ -20,8 +22,8 @@ export class AccountingService {
     this.logger.log(`Handling order.created event for Accounting (Order ${event.order.id})`);
 
     const { order } = event;
-    const netAmount = toNum(order.netAmount);
-    const totalCogs = toNum(order.totalCogs);
+    const netAmount = roundMoney(toNum(order.netAmount));
+    const totalCogs = roundMoney(toNum(order.totalCogs));
 
     if (netAmount > 0 || totalCogs > 0) {
       const paymentAccountCode = resolvePaymentAccountCode(order.paymentMethod);
@@ -45,6 +47,38 @@ export class AccountingService {
         ],
       });
     }
+  }
+
+  @OnEvent('purchase-order.received', { async: true })
+  async handlePurchaseOrderReceived(event: PurchaseOrderReceivedEvent) {
+    const totalAmount = roundMoney(event.totalAmount);
+    if (totalAmount <= 0) return;
+
+    await this.createJournalEntry({
+      branchId: event.branchId,
+      reference: event.poNumber,
+      description: `Accounts Payable for PO ${event.poNumber}`,
+      lines: [
+        { accountCode: '1030', debit: totalAmount, credit: 0, description: 'Inventory received' },
+        { accountCode: '2010', debit: 0, credit: totalAmount, description: 'Accounts Payable recognized' },
+      ],
+    });
+  }
+
+  @OnEvent('production.completed', { async: true })
+  async handleProductionCompleted(event: ProductionCompletedEvent) {
+    const totalRawCost = roundMoney(event.totalRawCost);
+    if (totalRawCost <= 0) return;
+
+    await this.createJournalEntry({
+      branchId: event.branchId,
+      reference: event.orderNumber,
+      description: `Production Completion for ${event.targetIngredientName}`,
+      lines: [
+        { accountCode: '1030', debit: totalRawCost, credit: 0, description: 'Finished Goods Inventory Increase' },
+        { accountCode: '1030', debit: 0, credit: totalRawCost, description: 'Raw Materials Inventory Decrease' },
+      ],
+    });
   }
 
   async getChartOfAccounts() {
@@ -76,11 +110,10 @@ export class AccountingService {
     lines: { accountCode: string; debit: number; credit: number; description?: string }[];
   }) {
     // 1. Verify debits equal credits
-    const totalDebits = data.lines.reduce((sum, line) => sum + line.debit, 0);
-    const totalCredits = data.lines.reduce((sum, line) => sum + line.credit, 0);
+    const totalDebits = data.lines.reduce((sum, line) => sum + roundMoney(line.debit), 0);
+    const totalCredits = data.lines.reduce((sum, line) => sum + roundMoney(line.credit), 0);
 
-    // Use a small epsilon to handle floating point issues
-    if (Math.abs(totalDebits - totalCredits) > 0.001) {
+    if (!isBalancedMoney(totalDebits, totalCredits)) {
       throw new BadRequestException(`Journal entry unbalanced. Debits: ${totalDebits}, Credits: ${totalCredits}`);
     }
 
@@ -107,8 +140,8 @@ export class AccountingService {
         lines: {
           create: data.lines.map(line => ({
             accountId: accountMap.get(line.accountCode)!,
-            debit: line.debit,
-            credit: line.credit,
+            debit: roundMoney(line.debit),
+            credit: roundMoney(line.credit),
             description: line.description,
           })),
         },

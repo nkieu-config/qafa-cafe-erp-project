@@ -1,15 +1,15 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AccountingService } from '../accounting/accounting.service';
-import { toNum } from '../common/decimal.util';
+import { toNum, roundMoney } from '../common/decimal.util';
 import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
 import { ProductionStatus } from '@prisma/client';
+import { OutboxService } from '../outbox/outbox.service';
 
 @Injectable()
 export class ProductionService {
   constructor(
     private prisma: PrismaService,
-    private accountingService: AccountingService
+    private outboxService: OutboxService,
   ) {}
 
   // 1. Get all Production Orders
@@ -111,6 +111,8 @@ export class ProductionService {
         totalRawCost += requiredQuantity * toNum(bom.rawIngredient.costPerUnit);
       }
 
+      totalRawCost = roundMoney(totalRawCost);
+
       // Add Finished Good to Inventory
       const targetInventory = await tx.branchInventory.findUnique({
         where: { branchId_ingredientId: { branchId: order.branchId, ingredientId: order.targetIngredientId } }
@@ -143,19 +145,13 @@ export class ProductionService {
         }
       });
 
-      // Post Journal Entry (Accounting)
-      // Debit: Inventory (Finished Good)
-      // Credit: Inventory (Raw Materials)
-      // Basically, transferring value from one asset to another.
       if (totalRawCost > 0) {
-        this.accountingService.createJournalEntry({
-          reference: updatedOrder.orderNumber,
-          description: `Production Completion for ${order.targetIngredient.name}`,
-          lines: [
-            { accountCode: '1030', debit: totalRawCost, credit: 0, description: 'Finished Goods Inventory Increase' },
-            { accountCode: '1030', debit: 0, credit: totalRawCost, description: 'Raw Materials Inventory Decrease' }
-          ]
-        }).catch(err => console.error('[Accounting] Failed to post Production journal entry:', err));
+        await this.outboxService.enqueue(tx, 'production.completed', {
+          orderNumber: updatedOrder.orderNumber,
+          targetIngredientName: order.targetIngredient.name,
+          branchId: order.branchId,
+          totalRawCost,
+        });
       }
 
       return updatedOrder;

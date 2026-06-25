@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PaymentMethod, OrderStatus, Customer } from '@prisma/client';
 import { InventoryHelper } from './helpers/inventory.helper';
 import { OutboxService } from '../outbox/outbox.service';
-import { toNum } from '../common/decimal.util';
+import { toNum, roundMoney } from '../common/decimal.util';
 import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
 import { pointsToDiscountBaht } from '../customers/loyalty.constants';
 import {
@@ -113,9 +113,9 @@ export class OrdersService {
         discountAmount += promoDiscount;
       }
       
-      discountAmount = Math.min(discountAmount, totalAmount);
-      const netAmount = totalAmount - discountAmount;
-      const taxAmount = (netAmount * 7) / 107; // VAT 7% Inclusive
+      discountAmount = Math.min(roundMoney(discountAmount), roundMoney(totalAmount));
+      const netAmount = roundMoney(totalAmount - discountAmount);
+      const taxAmount = roundMoney((netAmount * 7) / 107); // VAT 7% Inclusive
       const pointsEarned = customer ? Math.floor(netAmount / 100) : 0;
       
       if (customer && pointsEarned > 0) {
@@ -130,11 +130,11 @@ export class OrdersService {
           userId: data.userId,
           branchId: data.branchId,
           status: orderStatus,
-          totalAmount,
+          totalAmount: roundMoney(totalAmount),
           discountAmount,
           netAmount,
           taxAmount,
-          totalCogs,
+          totalCogs: roundMoney(totalCogs),
           pointsEarned,
           pointsRedeemed,
           customerId,

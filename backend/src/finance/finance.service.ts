@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
-import { toNum } from '../common/decimal.util';
+import { toNum, roundMoney } from '../common/decimal.util';
 import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
 
 @Injectable()
@@ -50,13 +50,13 @@ export class FinanceService {
       _sum: { amount: true }
     });
 
-    const expectedCash = toNum(cashOrders._sum.netAmount) - toNum(expenses._sum.amount);
+    const expectedCash = roundMoney(toNum(cashOrders._sum.netAmount) - toNum(expenses._sum.amount));
     return { 
       expectedCash, 
-      expectedCreditCard: toNum(creditCardOrders._sum.netAmount),
-      expectedQR: toNum(qrOrders._sum.netAmount),
-      sales: toNum(cashOrders._sum.netAmount), 
-      expenses: toNum(expenses._sum.amount) 
+      expectedCreditCard: roundMoney(toNum(creditCardOrders._sum.netAmount)),
+      expectedQR: roundMoney(toNum(qrOrders._sum.netAmount)),
+      sales: roundMoney(toNum(cashOrders._sum.netAmount)), 
+      expenses: roundMoney(toNum(expenses._sum.amount)) 
     };
   }
 
@@ -74,20 +74,19 @@ export class FinanceService {
     }
 
     const calc = await this.calculateExpectedCash(data.branchId, new Date());
-    const actualCreditCard = data.actualCreditCard || 0;
-    const actualQR = data.actualQR || 0;
+    const actualCreditCard = roundMoney(data.actualCreditCard || 0);
+    const actualQR = roundMoney(data.actualQR || 0);
     
-    // Difference is based on total discrepancy
-    const totalExpected = calc.expectedCash + calc.expectedCreditCard + calc.expectedQR;
-    const totalActual = data.actualCash + actualCreditCard + actualQR;
-    const difference = totalActual - totalExpected;
+    const totalExpected = roundMoney(calc.expectedCash + calc.expectedCreditCard + calc.expectedQR);
+    const totalActual = roundMoney(data.actualCash + actualCreditCard + actualQR);
+    const difference = roundMoney(totalActual - totalExpected);
 
     if (existing) {
       return this.prisma.shiftSettlement.update({
         where: { id: existing.id },
         data: {
           expectedCash: calc.expectedCash,
-          actualCash: data.actualCash,
+          actualCash: roundMoney(data.actualCash),
           expectedCreditCard: calc.expectedCreditCard,
           actualCreditCard,
           expectedQR: calc.expectedQR,
@@ -104,7 +103,7 @@ export class FinanceService {
         branchId: data.branchId,
         date: new Date(),
         expectedCash: calc.expectedCash,
-        actualCash: data.actualCash,
+        actualCash: roundMoney(data.actualCash),
         expectedCreditCard: calc.expectedCreditCard,
         actualCreditCard,
         expectedQR: calc.expectedQR,

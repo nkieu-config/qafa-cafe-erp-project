@@ -1,10 +1,11 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { AccountingService } from '../accounting/accounting.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { OrderCreatedEvent } from '../orders/events/order-created.event';
 import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
+import { OutboxService } from '../outbox/outbox.service';
+import { toNum, roundMoney } from '../common/decimal.util';
 
 @Injectable()
 export class ProcurementService {
@@ -13,7 +14,7 @@ export class ProcurementService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
-    private accountingService: AccountingService
+    private outboxService: OutboxService,
   ) {}
 
   @OnEvent('order.created', { async: true })
@@ -164,19 +165,20 @@ export class ProcurementService {
         await this.auditService.logAction(userId, 'RECEIVE_PO', 'PurchaseOrder', poId, { poNumber: po.poNumber });
       }
 
-      // Calculate Total Amount
-      const totalAmount = po.items.reduce((sum, item) => sum + (item.quantityRequested * item.unitPrice), 0);
+      const totalAmount = roundMoney(
+        po.items.reduce(
+          (sum, item) => sum + item.quantityRequested * toNum(item.unitPrice),
+          0,
+        ),
+      );
 
-      // Post Accounts Payable (AP) Journal Entry
       if (totalAmount > 0) {
-        this.accountingService.createJournalEntry({
-          reference: po.poNumber,
-          description: `Accounts Payable for PO ${po.poNumber}`,
-          lines: [
-            { accountCode: '1030', debit: totalAmount, credit: 0, description: 'Inventory received' },
-            { accountCode: '2010', debit: 0, credit: totalAmount, description: 'Accounts Payable recognized' }
-          ]
-        }).catch(err => console.error('[Accounting] Failed to post AP journal entry:', err));
+        await this.outboxService.enqueue(tx, 'purchase-order.received', {
+          poId: po.id,
+          poNumber: po.poNumber,
+          branchId: po.branchId,
+          totalAmount,
+        });
       }
 
       return updatedPo;

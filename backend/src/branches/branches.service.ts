@@ -6,8 +6,9 @@ import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util'
 export class BranchesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(branchId?: number) {
     return this.prisma.branch.findMany({
+      where: branchId ? { id: branchId } : undefined,
       include: {
         inventories: {
           include: { ingredient: true }
