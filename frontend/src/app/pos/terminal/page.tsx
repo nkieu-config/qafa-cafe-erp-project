@@ -16,6 +16,7 @@ import { useReactToPrint } from "react-to-print";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useRef } from "react";
 import { OnScreenNumpad } from "@/components/pos/OnScreenNumpad";
+import { pointsToDiscountBaht } from "@/lib/loyalty";
 
 export default function POSPage() {
   const { user, activeBranchId } = useAuth();
@@ -106,7 +107,7 @@ export default function POSPage() {
     ? (appliedPromo.type === 'PERCENTAGE' ? subtotal * (appliedPromo.value / 100) : appliedPromo.value)
     : 0;
   
-  const pointsDiscount = pointsToRedeem / 10; // 10 points = 1 THB
+  const pointsDiscount = pointsToDiscountBaht(pointsToRedeem);
   const totalDiscount = Math.min(promoDiscount + pointsDiscount, subtotal);
   const netTotal = subtotal - totalDiscount;
   const pointsEarned = customer ? Math.floor(netTotal / 100) : 0;
@@ -289,7 +290,7 @@ export default function POSPage() {
                 <div className="flex items-center gap-2 font-bold text-blue-800 dark:text-blue-400 mb-1">
                   <User className="w-4 h-4" /> {customer.name} <Badge variant="outline" className="bg-white dark:bg-slate-900 dark:border-slate-700 text-[10px] uppercase font-bold tracking-wider py-0 px-2">{customer.tier}</Badge>
                 </div>
-                <div className="text-sm text-blue-600 dark:text-blue-500 mb-2">Available: {customer.points} pts (฿{customer.points / 10})</div>
+                <div className="text-sm text-blue-600 dark:text-blue-500 mb-2">Available: {customer.points} pts (฿{pointsToDiscountBaht(customer.points)})</div>
                 {customer.points > 0 && (
                   <div className="flex gap-2 items-center">
                     <Input 

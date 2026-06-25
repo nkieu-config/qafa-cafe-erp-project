@@ -54,6 +54,7 @@ describe('OrdersService', () => {
         id: 1,
         name: 'Latte',
         price: 100,
+        category: 'Coffee',
         categoryId: 1,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -88,6 +89,7 @@ describe('OrdersService', () => {
       prisma.product.findUnique.mockResolvedValue({
         id: 1,
         price: 100,
+        category: 'Coffee',
         recipeItems: [
           {
             ingredientId: 1,
@@ -135,6 +137,7 @@ describe('OrdersService', () => {
             totalAmount: 200,
             totalCogs: 40,
             netAmount: 200,
+            status: 'PENDING',
           }),
         }),
       );
@@ -144,7 +147,7 @@ describe('OrdersService', () => {
 
     it('should throw BadRequestException if promo code is invalid', async () => {
       prisma.product.findUnique.mockResolvedValue({
-        id: 1, price: 100, recipeItems: []
+        id: 1, price: 100, category: 'Bakery', recipeItems: []
       } as any);
 
       // Mock promo not found
@@ -157,7 +160,7 @@ describe('OrdersService', () => {
 
     it('should correctly calculate discounts for points and valid percentage promo', async () => {
       prisma.product.findUnique.mockResolvedValue({
-        id: 1, price: 100, recipeItems: []
+        id: 1, price: 100, category: 'Bakery', recipeItems: []
       } as any);
 
       prisma.customer.findUnique.mockResolvedValue({
@@ -180,16 +183,17 @@ describe('OrdersService', () => {
       });
 
       // Total = 2 items * 100 = 200
-      // Points = 50 THB
+      // Points = 50 pts = 5 THB (10 pts = 1 THB)
       // Promo = 20% of 200 = 40 THB
-      // Total Discount = 50 + 40 = 90 THB
-      // Net Amount = 200 - 90 = 110 THB
+      // Total Discount = 5 + 40 = 45 THB
+      // Net Amount = 200 - 45 = 155 THB
       
       expect(prisma.order.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            discountAmount: 90,
-            netAmount: 110,
+            discountAmount: 45,
+            netAmount: 155,
+            status: 'COMPLETED',
           })
         })
       );
@@ -199,6 +203,43 @@ describe('OrdersService', () => {
         where: { id: 1 },
         data: { points: { decrement: 50 } }
       });
+    });
+
+    it('should throw if a beverage product has no recipe', async () => {
+      prisma.product.findUnique.mockResolvedValue({
+        id: 1,
+        name: 'Latte',
+        price: 100,
+        category: 'Coffee',
+        recipeItems: [],
+      } as any);
+
+      await expect(service.createOrder(mockOrderData)).rejects.toThrow(
+        new BadRequestException('Product "Latte" requires a recipe before it can be sold.'),
+      );
+    });
+
+    it('should complete retail-only orders at checkout', async () => {
+      prisma.product.findUnique.mockResolvedValue({
+        id: 2,
+        name: 'Croissant',
+        price: 80,
+        category: 'Bakery',
+        recipeItems: [],
+      } as any);
+
+      prisma.order.create.mockResolvedValue({ id: 2, status: 'COMPLETED' } as any);
+
+      await service.createOrder({
+        ...mockOrderData,
+        items: [{ productId: 2, quantity: 1 }],
+      });
+
+      expect(prisma.order.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'COMPLETED' }),
+        }),
+      );
     });
   });
 });

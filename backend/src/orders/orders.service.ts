@@ -6,6 +6,11 @@ import { InventoryHelper } from './helpers/inventory.helper';
 import { OutboxService } from '../outbox/outbox.service';
 import { toNum } from '../common/decimal.util';
 import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
+import { pointsToDiscountBaht } from '../customers/loyalty.constants';
+import {
+  productRequiresKitchen,
+  resolveInitialOrderStatus,
+} from './order-status.util';
 
 @Injectable()
 export class OrdersService {
@@ -32,6 +37,7 @@ export class OrdersService {
       let totalCogs = 0;
 
       const ingredientRequirements = new Map<number, number>();
+      const productsForStatus: { category: string }[] = [];
 
       for (const item of data.items) {
         const product = await tx.product.findUnique({
@@ -40,6 +46,14 @@ export class OrdersService {
         });
 
         if (!product) throw new BadRequestException(`Product with ID ${item.productId} not found`);
+
+        productsForStatus.push(product);
+
+        if (productRequiresKitchen(product.category) && product.recipeItems.length === 0) {
+          throw new BadRequestException(
+            `Product "${product.name}" requires a recipe before it can be sold.`,
+          );
+        }
 
         totalAmount += toNum(product.price) * item.quantity;
 
@@ -69,7 +83,7 @@ export class OrdersService {
         
         if (pointsRedeemed > 0) {
           if (customer.points < pointsRedeemed) throw new BadRequestException('Not enough points to redeem');
-          discountAmount += pointsRedeemed; // 1 point = 1 THB
+          discountAmount += pointsToDiscountBaht(pointsRedeemed);
           await tx.customer.update({
             where: { id: customer.id },
             data: { points: { decrement: pointsRedeemed } }
@@ -109,10 +123,13 @@ export class OrdersService {
         // via the order.created event to reduce checkout latency.
       }
 
+      const orderStatus = resolveInitialOrderStatus(productsForStatus);
+
       const order = await tx.order.create({
         data: {
           userId: data.userId,
           branchId: data.branchId,
+          status: orderStatus,
           totalAmount,
           discountAmount,
           netAmount,

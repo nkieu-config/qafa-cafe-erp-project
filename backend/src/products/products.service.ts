@@ -28,7 +28,27 @@ export class ProductsService {
 
   async update(id: number, data: Partial<{ name: string; description?: string; price: number; category: string; isActive?: boolean; branchId?: number; recipeItems?: { ingredientId: number; quantity: number }[] }>) {
     const { recipeItems, ...updateData } = data;
-    return this.prisma.product.update({ where: { id }, data: updateData });
+
+    return this.prisma.$transaction(async (tx) => {
+      if (recipeItems !== undefined) {
+        await tx.recipeItem.deleteMany({ where: { productId: id } });
+        if (recipeItems.length > 0) {
+          await tx.recipeItem.createMany({
+            data: recipeItems.map((item) => ({
+              productId: id,
+              ingredientId: item.ingredientId,
+              quantity: item.quantity,
+            })),
+          });
+        }
+      }
+
+      return tx.product.update({
+        where: { id },
+        data: updateData,
+        include: { recipeItems: true },
+      });
+    });
   }
 
   async remove(id: number) {
