@@ -11,10 +11,14 @@ export class ReportsService {
     // Return last 7 days of sales aggregated by day
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const branchFilter = branchId ? Prisma.sql`AND "branchId" = ${branchId}` : Prisma.empty;
 
-    const results = await this.prisma.$queryRaw<{ date: string; total: number }[]>`
+    const branchFilter = branchId
+      ? Prisma.sql`AND "branchId" = ${branchId}`
+      : Prisma.empty;
+
+    const results = await this.prisma.$queryRaw<
+      { date: string; total: number }[]
+    >`
       SELECT 
         to_char("createdAt", 'YYYY-MM-DD') as date,
         SUM("netAmount") as total
@@ -40,13 +44,16 @@ export class ReportsService {
       }
     }
 
-    return Array.from(dailyMap.entries()).map(([date, total]) => ({ date, total }));
+    return Array.from(dailyMap.entries()).map(([date, total]) => ({
+      date,
+      total,
+    }));
   }
 
   async getTopProducts(branchId?: number) {
     // We aggregate OrderItems across orders
     const where = branchId ? { order: { branchId } } : {};
-    
+
     const items = await this.prisma.orderItem.groupBy({
       by: ['productId'],
       _sum: {
@@ -55,15 +62,18 @@ export class ReportsService {
       },
       where,
       orderBy: {
-        _sum: { quantity: 'desc' }
+        _sum: { quantity: 'desc' },
       },
       take: 5,
     });
 
     // Populate product names
-    const result: any[] = [];
+    const result: { productId: number; name: string; totalQuantity: number }[] =
+      [];
     for (const item of items) {
-      const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
+      const product = await this.prisma.product.findUnique({
+        where: { id: item.productId },
+      });
       if (product) {
         result.push({
           productId: item.productId,
@@ -72,7 +82,7 @@ export class ReportsService {
         });
       }
     }
-    
+
     return result;
   }
 
@@ -94,8 +104,11 @@ export class ReportsService {
     });
 
     const payrolls = await this.prisma.payslip.aggregate({
-      where: { 
-        payrollRun: { ...(branchId && { branchId }), createdAt: { gte: startOfMonth } }
+      where: {
+        payrollRun: {
+          ...(branchId && { branchId }),
+          createdAt: { gte: startOfMonth },
+        },
       },
       _sum: { netPay: true },
     });
@@ -129,11 +142,19 @@ export class ReportsService {
 
     // 1. Sales Today vs Yesterday
     const salesTodayAgg = await this.prisma.order.aggregate({
-      where: { ...whereBranch, createdAt: { gte: today }, status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] } },
+      where: {
+        ...whereBranch,
+        createdAt: { gte: today },
+        status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] },
+      },
       _sum: { netAmount: true },
     });
     const salesYesterdayAgg = await this.prisma.order.aggregate({
-      where: { ...whereBranch, createdAt: { gte: yesterday, lt: today }, status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] } },
+      where: {
+        ...whereBranch,
+        createdAt: { gte: yesterday, lt: today },
+        status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] },
+      },
       _sum: { netAmount: true },
     });
 
@@ -145,23 +166,32 @@ export class ReportsService {
     }
 
     // 2. Top Branch by Sales Today
-    let topBranch: any = null;
+    let topBranch: {
+      id: number;
+      name: string;
+      totalSales: number;
+    } | null = null;
     if (!branchId) {
       const branchSales = await this.prisma.order.groupBy({
         by: ['branchId'],
         _sum: { netAmount: true },
-        where: { createdAt: { gte: today }, status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] } },
+        where: {
+          createdAt: { gte: today },
+          status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] },
+        },
         orderBy: { _sum: { netAmount: 'desc' } },
         take: 1,
       });
 
       if (branchSales.length > 0) {
-        const branch = await this.prisma.branch.findUnique({ where: { id: branchSales[0].branchId } });
+        const branch = await this.prisma.branch.findUnique({
+          where: { id: branchSales[0].branchId },
+        });
         if (branch) {
           topBranch = {
             id: branch.id,
             name: branch.name,
-            totalSales: branchSales[0]._sum.netAmount || 0,
+            totalSales: toNum(branchSales[0]._sum.netAmount),
           };
         }
       }
@@ -174,10 +204,10 @@ export class ReportsService {
     });
 
     const alerts = inventories
-      .filter(inv => inv.stock <= inv.minStock)
-      .sort((a, b) => (a.stock - a.minStock) - (b.stock - b.minStock))
+      .filter((inv) => inv.stock <= inv.minStock)
+      .sort((a, b) => a.stock - a.minStock - (b.stock - b.minStock))
       .slice(0, 5)
-      .map(inv => ({
+      .map((inv) => ({
         id: inv.id,
         ingredientName: inv.ingredient.name,
         branchName: inv.branch.name,

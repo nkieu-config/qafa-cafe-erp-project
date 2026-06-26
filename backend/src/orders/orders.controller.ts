@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Request, Query, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+  Query,
+  Patch,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -12,7 +23,10 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto, @Request() req: RequestWithUser) {
+  create(
+    @Body() createOrderDto: CreateOrderDto,
+    @Request() req: RequestWithUser,
+  ) {
     const branchId = resolveBranchId(req.user, createOrderDto.branchId);
     return this.ordersService.createOrder({
       ...createOrderDto,
@@ -22,7 +36,10 @@ export class OrdersController {
   }
 
   @Get()
-  findAll(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
+  findAll(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchIdQuery?: string,
+  ) {
     if (req.user.role === 'SUPER_ADMIN' && !branchIdQuery) {
       return this.ordersService.findAll();
     }
@@ -34,7 +51,10 @@ export class OrdersController {
   }
 
   @Get('kds')
-  getKdsOrders(@Query('branchId', ParseIntPipe) branchId: number, @Request() req: RequestWithUser) {
+  getKdsOrders(
+    @Query('branchId', ParseIntPipe) branchId: number,
+    @Request() req: RequestWithUser,
+  ) {
     assertBranchAccess(req.user, branchId);
     return this.ordersService.getKdsOrders(branchId);
   }
@@ -49,7 +69,10 @@ export class OrdersController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @Request() req: RequestWithUser) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: RequestWithUser,
+  ) {
     return this.ordersService.findOne(id, req.user);
   }
 }

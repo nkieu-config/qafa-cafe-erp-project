@@ -1,4 +1,14 @@
-import { IsArray, IsInt, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, Min, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsInt,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class StockInItemDto {

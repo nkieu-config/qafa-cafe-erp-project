@@ -38,13 +38,25 @@ describe('OutboxProcessor', () => {
 
   it('marks event completed after successful dispatch', async () => {
     prisma.outboxEvent.findMany.mockResolvedValue([
-      { id: 1, eventType: 'order.created', payload: { order: { id: 1 }, ingredientRequirements: [], branchId: 1, customerId: null } },
+      {
+        id: 1,
+        eventType: 'order.created',
+        payload: {
+          order: { id: 1 },
+          ingredientRequirements: [],
+          branchId: 1,
+          customerId: null,
+        },
+      },
     ]);
     prisma.outboxEvent.findUnique.mockResolvedValue({ attempts: 1 });
 
     await processor.handleCron();
 
-    expect(eventEmitter.emitAsync).toHaveBeenCalledWith('order.created', expect.any(Object));
+    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+      'order.created',
+      expect.any(Object),
+    );
     expect(prisma.outboxEvent.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 1 },
@@ -55,7 +67,11 @@ describe('OutboxProcessor', () => {
 
   it('schedules retry when dispatch fails under max attempts', async () => {
     prisma.outboxEvent.findMany.mockResolvedValue([
-      { id: 2, eventType: 'order.status.updated', payload: { orderId: 9, status: 'COMPLETED', branchId: 1 } },
+      {
+        id: 2,
+        eventType: 'order.status.updated',
+        payload: { orderId: 9, status: 'COMPLETED', branchId: 1 },
+      },
     ]);
     prisma.outboxEvent.findUnique.mockResolvedValue({ attempts: 2 });
     eventEmitter.emitAsync.mockRejectedValue(new Error('handler down'));
@@ -65,7 +81,10 @@ describe('OutboxProcessor', () => {
     expect(prisma.outboxEvent.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 2 },
-        data: expect.objectContaining({ status: 'PENDING', lastError: 'handler down' }),
+        data: expect.objectContaining({
+          status: 'PENDING',
+          lastError: 'handler down',
+        }),
       }),
     );
   });
@@ -74,7 +93,9 @@ describe('OutboxProcessor', () => {
     prisma.outboxEvent.findMany.mockResolvedValue([
       { id: 3, eventType: 'order.created', payload: {} },
     ]);
-    prisma.outboxEvent.findUnique.mockResolvedValue({ attempts: MAX_OUTBOX_ATTEMPTS });
+    prisma.outboxEvent.findUnique.mockResolvedValue({
+      attempts: MAX_OUTBOX_ATTEMPTS,
+    });
     eventEmitter.emitAsync.mockRejectedValue(new Error('still failing'));
 
     await processor.handleCron();

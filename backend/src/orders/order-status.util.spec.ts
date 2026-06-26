@@ -12,11 +12,16 @@ describe('order-status.util', () => {
 
   it('queues beverage orders for KDS', () => {
     expect(
-      resolveInitialOrderStatus([{ category: 'Coffee' }, { category: 'Bakery' }]),
+      resolveInitialOrderStatus([
+        { category: 'Coffee' },
+        { category: 'Bakery' },
+      ]),
     ).toBe('PENDING');
   });
 
   it('completes retail-only orders at payment', () => {
-    expect(resolveInitialOrderStatus([{ category: 'Bakery' }])).toBe('COMPLETED');
+    expect(resolveInitialOrderStatus([{ category: 'Bakery' }])).toBe(
+      'COMPLETED',
+    );
   });
 });

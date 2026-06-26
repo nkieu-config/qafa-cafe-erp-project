@@ -10,7 +10,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     const secret = process.env.JWT_SECRET;
     if (!secret) {
-      throw new Error('JWT_SECRET environment variable is not set. Server cannot start without it.');
+      throw new Error(
+        'JWT_SECRET environment variable is not set. Server cannot start without it.',
+      );
     }
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -22,7 +24,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
-    return { userId: payload.sub, email: payload.email, role: payload.role, branchId: payload.branchId };
+  validate(payload: JwtPayload) {
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      branchId: payload.branchId,
+    };
   }
 }

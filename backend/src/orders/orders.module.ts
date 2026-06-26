@@ -9,6 +9,6 @@ import { OutboxModule } from '../outbox/outbox.module';
 @Module({
   imports: [ProcurementModule, CustomersModule, AccountingModule, OutboxModule],
   controllers: [OrdersController],
-  providers: [OrdersService]
+  providers: [OrdersService],
 })
 export class OrdersModule {}

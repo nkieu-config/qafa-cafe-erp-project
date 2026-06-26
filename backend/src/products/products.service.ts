@@ -5,16 +5,24 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: { name: string; price: number; category: string; isActive?: boolean; recipeItems?: { ingredientId: number, quantity: number }[] }) {
+  async create(data: {
+    name: string;
+    price: number;
+    category: string;
+    isActive?: boolean;
+    recipeItems?: { ingredientId: number; quantity: number }[];
+  }) {
     const { recipeItems, ...productData } = data;
     return this.prisma.product.create({
       data: {
         ...productData,
-        recipeItems: recipeItems ? {
-          create: recipeItems
-        } : undefined
+        recipeItems: recipeItems
+          ? {
+              create: recipeItems,
+            }
+          : undefined,
       },
-      include: { recipeItems: true }
+      include: { recipeItems: true },
     });
   }
 
@@ -23,10 +31,24 @@ export class ProductsService {
   }
 
   async findOne(id: number) {
-    return this.prisma.product.findUnique({ where: { id }, include: { recipeItems: true } });
+    return this.prisma.product.findUnique({
+      where: { id },
+      include: { recipeItems: true },
+    });
   }
 
-  async update(id: number, data: Partial<{ name: string; description?: string; price: number; category: string; isActive?: boolean; branchId?: number; recipeItems?: { ingredientId: number; quantity: number }[] }>) {
+  async update(
+    id: number,
+    data: Partial<{
+      name: string;
+      description?: string;
+      price: number;
+      category: string;
+      isActive?: boolean;
+      branchId?: number;
+      recipeItems?: { ingredientId: number; quantity: number }[];
+    }>,
+  ) {
     const { recipeItems, ...updateData } = data;
 
     return this.prisma.$transaction(async (tx) => {

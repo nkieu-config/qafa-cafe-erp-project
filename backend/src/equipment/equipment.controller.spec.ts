@@ -15,10 +15,10 @@ describe('EquipmentController', () => {
             create: jest.fn(),
             findAll: jest.fn(),
             update: jest.fn(),
-            logMaintenance: jest.fn()
-          }
-        }
-      ]
+            logMaintenance: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     controller = module.get<EquipmentController>(EquipmentController);

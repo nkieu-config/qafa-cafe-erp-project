@@ -44,11 +44,13 @@ describe('OrdersController branch scope', () => {
   });
 
   it('creates order for own branch', async () => {
-    const ordersService = { createOrder: jest.fn().mockResolvedValue({ id: 1 }) };
+    const ordersService = {
+      createOrder: jest.fn().mockResolvedValue({ id: 1 }),
+    };
     const controller = await createController(ordersService);
 
     await controller.create(
-      { branchId: 2, items: [{ productId: 1, quantity: 1 }] } as any,
+      { branchId: 2, items: [{ productId: 1, quantity: 1 }] },
       { user: staffUser } as any,
     );
 

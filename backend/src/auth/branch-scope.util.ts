@@ -53,7 +53,10 @@ export function resolveOptionalBranchId(
 /**
  * Ensures non-admin users cannot access another branch's data.
  */
-export function assertBranchAccess(user: BranchScopedUser, branchId: number): void {
+export function assertBranchAccess(
+  user: BranchScopedUser,
+  branchId: number,
+): void {
   if (user.role === 'SUPER_ADMIN') return;
 
   const ownBranch = user.branchId;

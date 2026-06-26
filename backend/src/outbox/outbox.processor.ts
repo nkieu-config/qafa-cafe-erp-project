@@ -44,11 +44,17 @@ export class OutboxProcessor {
         await this.dispatch(event.eventType, event.payload);
         await this.prisma.outboxEvent.update({
           where: { id: event.id },
-          data: { status: 'COMPLETED', processedAt: new Date(), lastError: null },
+          data: {
+            status: 'COMPLETED',
+            processedAt: new Date(),
+            lastError: null,
+          },
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        const updated = await this.prisma.outboxEvent.findUnique({ where: { id: event.id } });
+        const updated = await this.prisma.outboxEvent.findUnique({
+          where: { id: event.id },
+        });
         const attempts = updated?.attempts ?? MAX_OUTBOX_ATTEMPTS;
         const willRetry = attempts < MAX_OUTBOX_ATTEMPTS;
 

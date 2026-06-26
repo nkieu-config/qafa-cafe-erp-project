@@ -103,7 +103,7 @@ export default function GeneralLedgerPage() {
         rowKey="id" 
         size="small" 
         className="my-2 border border-slate-200 rounded-lg overflow-hidden"
-        summary={(pageData: readonly any[]) => {
+        summary={(pageData: readonly { debit?: number; credit?: number }[]) => {
           let totalDebit = 0;
           let totalCredit = 0;
 

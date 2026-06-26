@@ -1,11 +1,18 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { PaymentMethod, OrderStatus, Customer } from '@prisma/client';
 import { InventoryHelper } from './helpers/inventory.helper';
 import { OutboxService } from '../outbox/outbox.service';
 import { toNum, roundMoney } from '../common/decimal.util';
-import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
+import {
+  assertBranchAccess,
+  BranchScopedUser,
+} from '../auth/branch-scope.util';
 import { pointsToDiscountBaht } from '../customers/loyalty.constants';
 import {
   productRequiresKitchen,
@@ -19,9 +26,9 @@ export class OrdersService {
     private outboxService: OutboxService,
   ) {}
 
-  async createOrder(data: { 
-    userId: number; 
-    branchId: number; 
+  async createOrder(data: {
+    userId: number;
+    branchId: number;
     items: { productId: number; quantity: number; notes?: string }[];
     customerPhone?: string;
     promotionCode?: string;
@@ -45,11 +52,17 @@ export class OrdersService {
           include: { recipeItems: { include: { ingredient: true } } },
         });
 
-        if (!product) throw new BadRequestException(`Product with ID ${item.productId} not found`);
+        if (!product)
+          throw new BadRequestException(
+            `Product with ID ${item.productId} not found`,
+          );
 
         productsForStatus.push(product);
 
-        if (productRequiresKitchen(product.category) && product.recipeItems.length === 0) {
+        if (
+          productRequiresKitchen(product.category) &&
+          product.recipeItems.length === 0
+        ) {
           throw new BadRequestException(
             `Product "${product.name}" requires a recipe before it can be sold.`,
           );
@@ -59,49 +72,70 @@ export class OrdersService {
 
         for (const recipe of product.recipeItems) {
           const totalNeeded = recipe.quantity * item.quantity;
-          const currentNeeded = ingredientRequirements.get(recipe.ingredientId) || 0;
-          ingredientRequirements.set(recipe.ingredientId, currentNeeded + totalNeeded);
-          
+          const currentNeeded =
+            ingredientRequirements.get(recipe.ingredientId) || 0;
+          ingredientRequirements.set(
+            recipe.ingredientId,
+            currentNeeded + totalNeeded,
+          );
+
           totalCogs += toNum(recipe.ingredient.costPerUnit) * totalNeeded;
         }
       }
 
       // Check and Deduct Inventory using external Helper to enforce Boundaries
-      await InventoryHelper.deductInventoryFIFO(tx, data.branchId, ingredientRequirements);
+      await InventoryHelper.deductInventoryFIFO(
+        tx,
+        data.branchId,
+        ingredientRequirements,
+      );
 
       // CRM & Promotions Logic
       let discountAmount = 0;
-      let pointsRedeemed = data.pointsToRedeem || 0;
+      const pointsRedeemed = data.pointsToRedeem || 0;
       let customerId: number | null = null;
       let promotionId: number | null = null;
-      
+
       let customer: Customer | null = null;
       if (data.customerPhone) {
-        customer = await tx.customer.findUnique({ where: { phone: data.customerPhone } });
+        customer = await tx.customer.findUnique({
+          where: { phone: data.customerPhone },
+        });
         if (!customer) throw new BadRequestException('Customer not found');
         customerId = customer.id;
-        
+
         if (pointsRedeemed > 0) {
-          if (customer.points < pointsRedeemed) throw new BadRequestException('Not enough points to redeem');
+          if (customer.points < pointsRedeemed)
+            throw new BadRequestException('Not enough points to redeem');
           discountAmount += pointsToDiscountBaht(pointsRedeemed);
           await tx.customer.update({
             where: { id: customer.id },
-            data: { points: { decrement: pointsRedeemed } }
+            data: { points: { decrement: pointsRedeemed } },
           });
         }
       } else if (pointsRedeemed > 0) {
-        throw new BadRequestException('Must provide customer phone to redeem points');
+        throw new BadRequestException(
+          'Must provide customer phone to redeem points',
+        );
       }
 
       if (data.promotionCode) {
-        const promo = await tx.promotion.findUnique({ where: { code: data.promotionCode } });
-        if (!promo || !promo.isActive) throw new BadRequestException('Invalid or inactive promotion');
-        
+        const promo = await tx.promotion.findUnique({
+          where: { code: data.promotionCode },
+        });
+        if (!promo || !promo.isActive)
+          throw new BadRequestException('Invalid or inactive promotion');
+
         const now = new Date();
-        if (promo.startDate && now < promo.startDate) throw new BadRequestException('Promotion not started yet');
-        if (promo.endDate && now > promo.endDate) throw new BadRequestException('Promotion expired');
-        if (promo.minPurchase && totalAmount < toNum(promo.minPurchase)) throw new BadRequestException(`Minimum purchase of ${promo.minPurchase} required`);
-        
+        if (promo.startDate && now < promo.startDate)
+          throw new BadRequestException('Promotion not started yet');
+        if (promo.endDate && now > promo.endDate)
+          throw new BadRequestException('Promotion expired');
+        if (promo.minPurchase && totalAmount < toNum(promo.minPurchase))
+          throw new BadRequestException(
+            `Minimum purchase of ${toNum(promo.minPurchase)} required`,
+          );
+
         promotionId = promo.id;
         let promoDiscount = 0;
         if (promo.discountType === 'PERCENTAGE') {
@@ -109,15 +143,18 @@ export class OrdersService {
         } else {
           promoDiscount = toNum(promo.discountValue);
         }
-        
+
         discountAmount += promoDiscount;
       }
-      
-      discountAmount = Math.min(roundMoney(discountAmount), roundMoney(totalAmount));
+
+      discountAmount = Math.min(
+        roundMoney(discountAmount),
+        roundMoney(totalAmount),
+      );
       const netAmount = roundMoney(totalAmount - discountAmount);
       const taxAmount = roundMoney((netAmount * 7) / 107); // VAT 7% Inclusive
       const pointsEarned = customer ? Math.floor(netAmount / 100) : 0;
-      
+
       if (customer && pointsEarned > 0) {
         // Point updates are decoupled and handled in CustomersService asynchronously
         // via the order.created event to reduce checkout latency.
@@ -145,18 +182,26 @@ export class OrdersService {
           taxInvoiceTaxId: data.taxInvoiceTaxId,
           taxInvoiceAddress: data.taxInvoiceAddress,
           items: {
-            create: await Promise.all(data.items.map(async (item) => {
-              const product = await tx.product.findUnique({ where: { id: item.productId } });
-              return {
-                productId: item.productId,
-                quantity: item.quantity,
-                price: product!.price,
-                notes: item.notes,
-              };
-            }))
-          }
+            create: await Promise.all(
+              data.items.map(async (item) => {
+                const product = await tx.product.findUnique({
+                  where: { id: item.productId },
+                });
+                return {
+                  productId: item.productId,
+                  quantity: item.quantity,
+                  price: product!.price,
+                  notes: item.notes,
+                };
+              }),
+            ),
+          },
         },
-        include: { items: { include: { product: true } }, customer: true, promotion: true },
+        include: {
+          items: { include: { product: true } },
+          customer: true,
+          promotion: true,
+        },
       });
 
       await this.outboxService.enqueue(tx, 'order.created', {
@@ -171,9 +216,9 @@ export class OrdersService {
   }
 
   async findAll() {
-    return this.prisma.order.findMany({ 
+    return this.prisma.order.findMany({
       include: { items: true, branch: true, customer: true, promotion: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -198,20 +243,26 @@ export class OrdersService {
   // ==================== KDS (Kitchen Display System) ====================
   async getKdsOrders(branchId: number) {
     return this.prisma.order.findMany({
-      where: { 
+      where: {
         branchId,
-        status: { in: ['PENDING', 'PREPARING'] } 
+        status: { in: ['PENDING', 'PREPARING'] },
       },
-      include: { 
-        items: { include: { product: true } }, 
-        customer: true 
+      include: {
+        items: { include: { product: true } },
+        customer: true,
       },
-      orderBy: { createdAt: 'asc' }
+      orderBy: { createdAt: 'asc' },
     });
   }
 
-  async updateOrderStatus(orderId: number, status: OrderStatus, user?: BranchScopedUser) {
-    const existing = await this.prisma.order.findUnique({ where: { id: orderId } });
+  async updateOrderStatus(
+    orderId: number,
+    status: OrderStatus,
+    user?: BranchScopedUser,
+  ) {
+    const existing = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!existing) throw new NotFoundException('Order not found');
     if (user) assertBranchAccess(user, existing.branchId);
 

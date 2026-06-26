@@ -38,12 +38,16 @@ describe('AccountingService', () => {
         lines: [
           { accountCode: '1010', debit: 100, credit: 0 },
           { accountCode: '4010', debit: 0, credit: 90 }, // Unbalanced!
-        ]
+        ],
       };
 
-      await expect(service.createJournalEntry(entryData)).rejects.toThrow(BadRequestException);
-      await expect(service.createJournalEntry(entryData)).rejects.toThrow('Journal entry unbalanced');
-      
+      await expect(service.createJournalEntry(entryData)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.createJournalEntry(entryData)).rejects.toThrow(
+        'Journal entry unbalanced',
+      );
+
       expect(prismaMock.account.findMany).not.toHaveBeenCalled();
       expect(prismaMock.journalEntry.create).not.toHaveBeenCalled();
     });
@@ -54,15 +58,19 @@ describe('AccountingService', () => {
         lines: [
           { accountCode: '1010', debit: 100, credit: 0 },
           { accountCode: '9999', debit: 0, credit: 100 }, // 9999 does not exist
-        ]
+        ],
       };
 
       // Mock DB returning only 1 account
       prismaMock.account.findMany.mockResolvedValue([mockAccounts[0]] as any);
 
-      await expect(service.createJournalEntry(entryData)).rejects.toThrow(BadRequestException);
-      await expect(service.createJournalEntry(entryData)).rejects.toThrow('One or more account codes are invalid');
-      
+      await expect(service.createJournalEntry(entryData)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.createJournalEntry(entryData)).rejects.toThrow(
+        'One or more account codes are invalid',
+      );
+
       expect(prismaMock.journalEntry.create).not.toHaveBeenCalled();
     });
 
@@ -74,37 +82,39 @@ describe('AccountingService', () => {
         lines: [
           { accountCode: '1010', debit: 100, credit: 0 },
           { accountCode: '4010', debit: 0, credit: 100 },
-        ]
+        ],
       };
 
       prismaMock.account.findMany.mockResolvedValue(mockAccounts as any);
-      
+
       const createdEntry = {
         id: 1,
         ...entryData,
         status: 'POSTED',
-        date: new Date()
+        date: new Date(),
       };
-      
+
       prismaMock.journalEntry.create.mockResolvedValue(createdEntry as any);
 
       const result = await service.createJournalEntry(entryData);
 
       expect(result).toEqual(createdEntry);
       expect(prismaMock.account.findMany).toHaveBeenCalledWith({
-        where: { code: { in: ['1010', '4010'] } }
+        where: { code: { in: ['1010', '4010'] } },
       });
-      expect(prismaMock.journalEntry.create).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({
-          status: 'POSTED',
-          lines: {
-            create: [
-              { accountId: 1, debit: 100, credit: 0, description: undefined },
-              { accountId: 2, debit: 0, credit: 100, description: undefined }
-            ]
-          }
-        })
-      }));
+      expect(prismaMock.journalEntry.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'POSTED',
+            lines: {
+              create: [
+                { accountId: 1, debit: 100, credit: 0, description: undefined },
+                { accountId: 2, debit: 0, credit: 100, description: undefined },
+              ],
+            },
+          }),
+        }),
+      );
     });
   });
 

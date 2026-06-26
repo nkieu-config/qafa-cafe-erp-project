@@ -1,4 +1,9 @@
-import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -45,9 +50,17 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const requestedBranch = client.handshake.auth?.branchId;
-    const parsedBranch = requestedBranch != null ? Number(requestedBranch) : undefined;
-    const branchId = this.resolveSocketBranch(user.role, user.branchId, parsedBranch);
+    const auth = client.handshake.auth as
+      | { branchId?: unknown; token?: string }
+      | undefined;
+    const requestedBranch = auth?.branchId;
+    const parsedBranch =
+      requestedBranch != null ? Number(requestedBranch) : undefined;
+    const branchId = this.resolveSocketBranch(
+      user.role,
+      user.branchId,
+      parsedBranch,
+    );
 
     if (
       parsedBranch != null &&
@@ -60,9 +73,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    client.data.user = user;
+    (client.data as { user?: JwtPayload }).user = user;
     if (branchId != null) {
-      client.join(`branch:${branchId}`);
+      void client.join(`branch:${branchId}`);
     }
 
     this.logger.log(
@@ -77,12 +90,16 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @OnEvent('order.created', { async: true })
   handleOrderCreated(event: OrderCreatedEvent) {
     this.logger.log(`Broadcasting new order via WS: ${event.order.id}`);
-    this.server.to(`branch:${event.branchId}`).emit('orderCreated', event.order);
+    this.server
+      .to(`branch:${event.branchId}`)
+      .emit('orderCreated', event.order);
   }
 
   @OnEvent('order.status.updated', { async: true })
   handleOrderStatusUpdated(event: OrderStatusUpdatedEvent) {
-    this.logger.log(`Broadcasting status update via WS for order: ${event.orderId}`);
+    this.logger.log(
+      `Broadcasting status update via WS for order: ${event.orderId}`,
+    );
     this.server.to(`branch:${event.branchId}`).emit('orderStatusUpdated', {
       orderId: event.orderId,
       status: event.status,
@@ -104,7 +121,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const cookieToken = parseAuthCookie(client.handshake.headers?.cookie);
     if (cookieToken) return cookieToken;
 
-    const authToken = client.handshake.auth?.token as string | undefined;
-    return authToken;
+    const auth = client.handshake.auth as
+      | { branchId?: unknown; token?: string }
+      | undefined;
+    return auth?.token;
   }
 }

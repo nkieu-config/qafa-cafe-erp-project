@@ -5,7 +5,7 @@ import { PrismaService } from './prisma.service';
 export type MockPrismaService = DeepMockProxy<PrismaClient>;
 
 export const createMockPrismaService = (): MockPrismaService => {
-  return mockDeep<PrismaClient>() as unknown as MockPrismaService;
+  return mockDeep<PrismaClient>();
 };
 
 export const PrismaServiceMockProvider = {

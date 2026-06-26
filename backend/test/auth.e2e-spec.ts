@@ -52,8 +52,14 @@ describeIfDatabase('Auth cookies (e2e)', () => {
     expect(loginRes.body).not.toHaveProperty('access_token');
 
     const setCookie = loginRes.headers['set-cookie'];
-    const cookies = Array.isArray(setCookie) ? setCookie : setCookie ? [setCookie] : [];
-    const cookie = cookies.find((value) => value.startsWith(`${AUTH_COOKIE_NAME}=`));
+    const cookies = Array.isArray(setCookie)
+      ? setCookie
+      : setCookie
+        ? [setCookie]
+        : [];
+    const cookie = cookies.find((value) =>
+      value.startsWith(`${AUTH_COOKIE_NAME}=`),
+    );
     expect(cookie).toBeDefined();
     expect(cookie).toContain('HttpOnly');
 

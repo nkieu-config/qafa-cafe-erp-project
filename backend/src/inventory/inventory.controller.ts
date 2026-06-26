@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { InventoryService } from './inventory.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -14,7 +23,10 @@ export class InventoryController {
 
   @Get('branch/:branchId/balance')
   @Roles('SUPER_ADMIN', 'MANAGER', 'STAFF')
-  getBalance(@Request() req: RequestWithUser, @Param('branchId', ParseIntPipe) branchId: number) {
+  getBalance(
+    @Request() req: RequestWithUser,
+    @Param('branchId', ParseIntPipe) branchId: number,
+  ) {
     assertBranchAccess(req.user, branchId);
     return this.inventoryService.getBalance(branchId);
   }
@@ -28,7 +40,7 @@ export class InventoryController {
   ) {
     assertBranchAccess(req.user, branchId);
     return this.inventoryService.receiveStock(branchId, {
-      items: dto.items.map(item => ({
+      items: dto.items.map((item) => ({
         ...item,
         expiryDate: item.expiryDate ? new Date(item.expiryDate) : undefined,
       })),

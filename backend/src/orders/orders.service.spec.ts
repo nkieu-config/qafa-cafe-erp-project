@@ -2,7 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BadRequestException } from '@nestjs/common';
-import { MockPrismaService, PrismaServiceMockProvider } from '../prisma/prisma.service.mock';
+import {
+  MockPrismaService,
+  PrismaServiceMockProvider,
+} from '../prisma/prisma.service.mock';
 import { OutboxService } from '../outbox/outbox.service';
 
 describe('OrdersService', () => {
@@ -24,7 +27,7 @@ describe('OrdersService', () => {
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
-    prisma = module.get(PrismaService) as MockPrismaService;
+    prisma = module.get(PrismaService);
 
     // Mock $transaction to simply yield the mocked prisma client
     prisma.$transaction.mockImplementation(async (cb: Function) => cb(prisma));
@@ -64,7 +67,15 @@ describe('OrdersService', () => {
             productId: 1,
             ingredientId: 1,
             quantity: 20, // Requires 20g
-            ingredient: { id: 1, name: 'Coffee Beans', costPerUnit: 1, unit: 'g', minStock: 100, createdAt: new Date(), updatedAt: new Date() },
+            ingredient: {
+              id: 1,
+              name: 'Coffee Beans',
+              costPerUnit: 1,
+              unit: 'g',
+              minStock: 100,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
           },
         ],
       } as any);
@@ -77,11 +88,21 @@ describe('OrdersService', () => {
         stock: 10,
         minStock: 50,
         updatedAt: new Date(),
-        ingredient: { id: 1, name: 'Coffee Beans', costPerUnit: 1, unit: 'g', minStock: 100, createdAt: new Date(), updatedAt: new Date() },
+        ingredient: {
+          id: 1,
+          name: 'Coffee Beans',
+          costPerUnit: 1,
+          unit: 'g',
+          minStock: 100,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       } as any);
 
       await expect(service.createOrder(mockOrderData)).rejects.toThrow(
-        new BadRequestException('Not enough stock for Coffee Beans at this branch.'),
+        new BadRequestException(
+          'Not enough stock for Coffee Beans at this branch.',
+        ),
       );
     });
 
@@ -147,39 +168,53 @@ describe('OrdersService', () => {
 
     it('should throw BadRequestException if promo code is invalid', async () => {
       prisma.product.findUnique.mockResolvedValue({
-        id: 1, price: 100, category: 'Bakery', recipeItems: []
+        id: 1,
+        price: 100,
+        category: 'Bakery',
+        recipeItems: [],
       } as any);
 
       // Mock promo not found
       prisma.promotion.findUnique.mockResolvedValue(null);
 
-      await expect(service.createOrder({ ...mockOrderData, promotionCode: 'INVALID' })).rejects.toThrow(
-        new BadRequestException('Invalid or inactive promotion')
+      await expect(
+        service.createOrder({ ...mockOrderData, promotionCode: 'INVALID' }),
+      ).rejects.toThrow(
+        new BadRequestException('Invalid or inactive promotion'),
       );
     });
 
     it('should correctly calculate discounts for points and valid percentage promo', async () => {
       prisma.product.findUnique.mockResolvedValue({
-        id: 1, price: 100, category: 'Bakery', recipeItems: []
+        id: 1,
+        price: 100,
+        category: 'Bakery',
+        recipeItems: [],
       } as any);
 
       prisma.customer.findUnique.mockResolvedValue({
-        id: 1, phone: '1234567890', points: 50
+        id: 1,
+        phone: '1234567890',
+        points: 50,
       } as any);
 
       prisma.promotion.findUnique.mockResolvedValue({
-        id: 1, code: 'SALE20', isActive: true, discountType: 'PERCENTAGE', discountValue: 20
+        id: 1,
+        code: 'SALE20',
+        isActive: true,
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
       } as any);
 
       prisma.customer.update.mockResolvedValue({} as any);
-      
+
       prisma.order.create.mockResolvedValue({ id: 1 } as any);
 
       await service.createOrder({
         ...mockOrderData,
         customerPhone: '1234567890',
         pointsToRedeem: 50,
-        promotionCode: 'SALE20'
+        promotionCode: 'SALE20',
       });
 
       // Total = 2 items * 100 = 200
@@ -187,21 +222,21 @@ describe('OrdersService', () => {
       // Promo = 20% of 200 = 40 THB
       // Total Discount = 5 + 40 = 45 THB
       // Net Amount = 200 - 45 = 155 THB
-      
+
       expect(prisma.order.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             discountAmount: 45,
             netAmount: 155,
             status: 'COMPLETED',
-          })
-        })
+          }),
+        }),
       );
-      
+
       // Points deduction
       expect(prisma.customer.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { points: { decrement: 50 } }
+        data: { points: { decrement: 50 } },
       });
     });
 
@@ -215,7 +250,9 @@ describe('OrdersService', () => {
       } as any);
 
       await expect(service.createOrder(mockOrderData)).rejects.toThrow(
-        new BadRequestException('Product "Latte" requires a recipe before it can be sold.'),
+        new BadRequestException(
+          'Product "Latte" requires a recipe before it can be sold.',
+        ),
       );
     });
 
@@ -228,7 +265,10 @@ describe('OrdersService', () => {
         recipeItems: [],
       } as any);
 
-      prisma.order.create.mockResolvedValue({ id: 2, status: 'COMPLETED' } as any);
+      prisma.order.create.mockResolvedValue({
+        id: 2,
+        status: 'COMPLETED',
+      } as any);
 
       await service.createOrder({
         ...mockOrderData,

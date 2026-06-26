@@ -30,12 +30,34 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
 @Module({
   imports: [
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 60,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 60,
+      },
+    ]),
     EventEmitterModule.forRoot(),
-    PrismaModule, ProductsModule, IngredientsModule, OrdersModule, AuthModule, BranchesModule, ProcurementModule, CustomersModule, PromotionsModule, HrModule, FinanceModule, InventoryModule, EventsModule, EquipmentModule, ScheduleModule.forRoot(), ReportsModule, AuditModule, AccountingModule, ProductionModule, SettingsModule, OutboxModule
+    PrismaModule,
+    ProductsModule,
+    IngredientsModule,
+    OrdersModule,
+    AuthModule,
+    BranchesModule,
+    ProcurementModule,
+    CustomersModule,
+    PromotionsModule,
+    HrModule,
+    FinanceModule,
+    InventoryModule,
+    EventsModule,
+    EquipmentModule,
+    ScheduleModule.forRoot(),
+    ReportsModule,
+    AuditModule,
+    AccountingModule,
+    ProductionModule,
+    SettingsModule,
+    OutboxModule,
   ],
   controllers: [AppController],
   providers: [

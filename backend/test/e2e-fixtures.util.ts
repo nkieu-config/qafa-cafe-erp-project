@@ -52,9 +52,13 @@ export async function cleanupPosFixture(prisma: PrismaService, email: string) {
 
   await prisma.orderItem.deleteMany({ where: { order: { userId: user.id } } });
   await prisma.order.deleteMany({ where: { userId: user.id } });
-  await prisma.recipeItem.deleteMany({ where: { product: { name: 'E2E Latte' } } });
+  await prisma.recipeItem.deleteMany({
+    where: { product: { name: 'E2E Latte' } },
+  });
   await prisma.product.deleteMany({ where: { name: 'E2E Latte' } });
-  await prisma.branchInventory.deleteMany({ where: { branch: { name: 'E2E POS Branch' } } });
+  await prisma.branchInventory.deleteMany({
+    where: { branch: { name: 'E2E POS Branch' } },
+  });
   await prisma.ingredient.deleteMany({ where: { name: 'E2E Beans' } });
   await prisma.user.deleteMany({ where: { email } });
   await prisma.branch.deleteMany({ where: { name: 'E2E POS Branch' } });

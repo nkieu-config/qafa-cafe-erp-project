@@ -8,6 +8,6 @@ import { OutboxModule } from '../outbox/outbox.module';
   imports: [PrismaModule, OutboxModule],
   controllers: [ProductionController],
   providers: [ProductionService],
-  exports: [ProductionService]
+  exports: [ProductionService],
 })
 export class ProductionModule {}

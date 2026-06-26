@@ -9,6 +9,6 @@ import { OutboxModule } from '../outbox/outbox.module';
   imports: [PrismaModule, OutboxModule],
   controllers: [SuppliersController, PurchaseOrdersController],
   providers: [ProcurementService],
-  exports: [ProcurementService]
+  exports: [ProcurementService],
 })
 export class ProcurementModule {}

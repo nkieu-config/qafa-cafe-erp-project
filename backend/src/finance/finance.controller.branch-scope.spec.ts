@@ -39,13 +39,14 @@ describe('FinanceController branch scope', () => {
   });
 
   it('submits settlement for own branch', async () => {
-    const financeService = { submitSettlement: jest.fn().mockResolvedValue({ id: 1 }) };
+    const financeService = {
+      submitSettlement: jest.fn().mockResolvedValue({ id: 1 }),
+    };
     const controller = await createController(financeService);
 
-    await controller.submitSettlement(
-      { branchId: 2, actualCash: 1000 } as any,
-      { user: managerUser } as any,
-    );
+    await controller.submitSettlement({ branchId: 2, actualCash: 1000 }, {
+      user: managerUser,
+    } as any);
 
     expect(financeService.submitSettlement).toHaveBeenCalledWith(
       expect.objectContaining({ branchId: 2, actualCash: 1000 }),

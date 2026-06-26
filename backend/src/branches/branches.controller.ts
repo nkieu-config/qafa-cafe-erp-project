@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Request, UseGuards, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  Request,
+  UseGuards,
+  Patch,
+} from '@nestjs/common';
 import { BranchesService } from './branches.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -41,7 +51,10 @@ export class BranchesController {
   }
 
   @Post('transfers')
-  createTransfer(@Body() dto: CreateTransferDto, @Request() req: RequestWithUser) {
+  createTransfer(
+    @Body() dto: CreateTransferDto,
+    @Request() req: RequestWithUser,
+  ) {
     assertBranchAccess(req.user, dto.fromBranchId);
     if (req.user.role !== 'SUPER_ADMIN') {
       assertBranchAccess(req.user, dto.toBranchId);
@@ -53,18 +66,27 @@ export class BranchesController {
   }
 
   @Post('transfers/:id/accept')
-  acceptTransfer(@Param('id', ParseIntPipe) id: number, @Request() req: RequestWithUser) {
+  acceptTransfer(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: RequestWithUser,
+  ) {
     return this.branchesService.acceptTransfer(id, req.user.userId, req.user);
   }
 
   @Roles('SUPER_ADMIN')
   @Patch(':id')
-  updateBranch(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateBranchDto) {
+  updateBranch(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateBranchDto,
+  ) {
     return this.branchesService.updateBranch(id, dto);
   }
 
   @Get(':id/transfers')
-  getTransfers(@Param('id', ParseIntPipe) id: number, @Request() req: RequestWithUser) {
+  getTransfers(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: RequestWithUser,
+  ) {
     assertBranchAccess(req.user, id);
     return this.branchesService.getTransfers(id);
   }
@@ -90,7 +112,10 @@ export class BranchesController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @Request() req: RequestWithUser) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req: RequestWithUser,
+  ) {
     assertBranchAccess(req.user, id);
     return this.branchesService.findOne(id);
   }

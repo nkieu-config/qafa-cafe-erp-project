@@ -1,4 +1,14 @@
-import { IsEnum, IsInt, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, Min, MinLength } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+  IsString,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { EquipmentStatus, EquipmentType } from '@prisma/client';
 
 export class CreateEquipmentDto {

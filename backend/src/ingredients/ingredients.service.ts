@@ -5,19 +5,39 @@ import { PrismaService } from '../prisma/prisma.service';
 export class IngredientsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(data: { name: string; unit: string; costPerUnit?: number; primarySupplierId?: number; isActive?: boolean }) {
+  async create(data: {
+    name: string;
+    unit: string;
+    costPerUnit?: number;
+    primarySupplierId?: number;
+    isActive?: boolean;
+  }) {
     return this.prisma.ingredient.create({ data });
   }
 
   async findAll() {
-    return this.prisma.ingredient.findMany({ include: { primarySupplier: true } });
+    return this.prisma.ingredient.findMany({
+      include: { primarySupplier: true },
+    });
   }
 
   async findOne(id: number) {
-    return this.prisma.ingredient.findUnique({ where: { id }, include: { primarySupplier: true } });
+    return this.prisma.ingredient.findUnique({
+      where: { id },
+      include: { primarySupplier: true },
+    });
   }
 
-  async update(id: number, data: { name?: string; unit?: string; costPerUnit?: number; primarySupplierId?: number; isActive?: boolean }) {
+  async update(
+    id: number,
+    data: {
+      name?: string;
+      unit?: string;
+      costPerUnit?: number;
+      primarySupplierId?: number;
+      isActive?: boolean;
+    },
+  ) {
     return this.prisma.ingredient.update({ where: { id }, data });
   }
 
@@ -28,7 +48,7 @@ export class IngredientsService {
   async getBranchInventory(branchId: number) {
     return this.prisma.branchInventory.findMany({
       where: { branchId },
-      include: { ingredient: true }
+      include: { ingredient: true },
     });
   }
 
@@ -36,7 +56,7 @@ export class IngredientsService {
     return this.prisma.wasteLog.findMany({
       where: { branchId },
       include: { ingredient: true, recordedBy: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 }

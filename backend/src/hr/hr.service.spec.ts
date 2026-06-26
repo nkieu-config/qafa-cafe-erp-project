@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HrService } from './hr.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { MockPrismaService, PrismaServiceMockProvider } from '../prisma/prisma.service.mock';
+import {
+  MockPrismaService,
+  PrismaServiceMockProvider,
+} from '../prisma/prisma.service.mock';
 import { BadRequestException } from '@nestjs/common';
 
 describe('HrService', () => {
@@ -10,14 +13,11 @@ describe('HrService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        HrService,
-        PrismaServiceMockProvider,
-      ],
+      providers: [HrService, PrismaServiceMockProvider],
     }).compile();
 
     service = module.get<HrService>(HrService);
-    prisma = module.get(PrismaService) as MockPrismaService;
+    prisma = module.get(PrismaService);
   });
 
   it('should be defined', () => {
@@ -90,11 +90,11 @@ describe('HrService', () => {
                   otHours: 192,
                   basePay: 16000,
                   socialSecurity: 750, // Math.min(16000 * 0.05, 750) = Math.min(800, 750) = 750
-                })
-              ])
-            }
-          })
-        })
+                }),
+              ]),
+            },
+          }),
+        }),
       );
     });
   });

@@ -32,7 +32,12 @@ describe('BranchesController branch scope', () => {
 
     expect(() =>
       controller.createTransfer(
-        { fromBranchId: 99, toBranchId: 2, ingredientId: 1, quantity: 5 } as any,
+        {
+          fromBranchId: 99,
+          toBranchId: 2,
+          ingredientId: 1,
+          quantity: 5,
+        } as any,
         { user: staffUser } as any,
       ),
     ).toThrow(ForbiddenException);

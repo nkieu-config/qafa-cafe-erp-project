@@ -1,9 +1,24 @@
-import { Controller, Get, Post, Body, Patch, Param, ParseIntPipe, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  ParseIntPipe,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { EquipmentService } from './equipment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 import { resolveBranchId } from '../auth/branch-scope.util';
-import { CreateEquipmentDto, LogMaintenanceDto, UpdateEquipmentDto } from './dto/equipment.dto';
+import {
+  CreateEquipmentDto,
+  LogMaintenanceDto,
+  UpdateEquipmentDto,
+} from './dto/equipment.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('equipment')
@@ -11,7 +26,10 @@ export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
 
   @Get()
-  findAll(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
+  findAll(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchIdQuery?: string,
+  ) {
     const branchId = resolveBranchId(
       req.user,
       branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
@@ -20,7 +38,10 @@ export class EquipmentController {
   }
 
   @Get(':id')
-  findOne(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
+  findOne(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.equipmentService.findOne(id, req.user);
   }
 
@@ -33,8 +54,12 @@ export class EquipmentController {
       type: dto.type,
       serialNumber: dto.serialNumber,
       purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : undefined,
-      warrantyExpiry: dto.warrantyExpiry ? new Date(dto.warrantyExpiry) : undefined,
-      nextMaintenanceDate: dto.nextMaintenanceDate ? new Date(dto.nextMaintenanceDate) : undefined,
+      warrantyExpiry: dto.warrantyExpiry
+        ? new Date(dto.warrantyExpiry)
+        : undefined,
+      nextMaintenanceDate: dto.nextMaintenanceDate
+        ? new Date(dto.nextMaintenanceDate)
+        : undefined,
     });
   }
 
@@ -46,8 +71,10 @@ export class EquipmentController {
   ) {
     const updateData: Record<string, unknown> = { ...dto };
     if (dto.purchaseDate) updateData.purchaseDate = new Date(dto.purchaseDate);
-    if (dto.warrantyExpiry) updateData.warrantyExpiry = new Date(dto.warrantyExpiry);
-    if (dto.nextMaintenanceDate) updateData.nextMaintenanceDate = new Date(dto.nextMaintenanceDate);
+    if (dto.warrantyExpiry)
+      updateData.warrantyExpiry = new Date(dto.warrantyExpiry);
+    if (dto.nextMaintenanceDate)
+      updateData.nextMaintenanceDate = new Date(dto.nextMaintenanceDate);
     return this.equipmentService.update(id, updateData, req.user);
   }
 
@@ -57,13 +84,19 @@ export class EquipmentController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: LogMaintenanceDto,
   ) {
-    return this.equipmentService.logMaintenance(id, {
-      description: dto.description,
-      cost: dto.cost,
-      performedBy: dto.performedBy,
-      date: dto.date ? new Date(dto.date) : new Date(),
-      nextMaintenanceDate: dto.nextMaintenanceDate ? new Date(dto.nextMaintenanceDate) : undefined,
-      newStatus: dto.newStatus,
-    }, req.user);
+    return this.equipmentService.logMaintenance(
+      id,
+      {
+        description: dto.description,
+        cost: dto.cost,
+        performedBy: dto.performedBy,
+        date: dto.date ? new Date(dto.date) : new Date(),
+        nextMaintenanceDate: dto.nextMaintenanceDate
+          ? new Date(dto.nextMaintenanceDate)
+          : undefined,
+        newStatus: dto.newStatus,
+      },
+      req.user,
+    );
   }
 }

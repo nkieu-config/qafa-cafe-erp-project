@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Request, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -13,7 +25,10 @@ export class IngredientsController {
   constructor(private readonly ingredientsService: IngredientsService) {}
 
   @Get('inventory/branch')
-  getBranchInventory(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
+  getBranchInventory(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchIdQuery?: string,
+  ) {
     const branchId = resolveBranchId(
       req.user,
       branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
@@ -22,7 +37,10 @@ export class IngredientsController {
   }
 
   @Get('waste/logs')
-  getWasteLogs(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
+  getWasteLogs(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchIdQuery?: string,
+  ) {
     const branchId = resolveBranchId(
       req.user,
       branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
@@ -48,7 +66,10 @@ export class IngredientsController {
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateIngredientDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateIngredientDto,
+  ) {
     return this.ingredientsService.update(id, dto);
   }
 

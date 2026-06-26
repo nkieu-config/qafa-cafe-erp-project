@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductsService } from './products.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { MockPrismaService, PrismaServiceMockProvider } from '../prisma/prisma.service.mock';
+import {
+  MockPrismaService,
+  PrismaServiceMockProvider,
+} from '../prisma/prisma.service.mock';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -13,7 +16,7 @@ describe('ProductsService', () => {
     }).compile();
 
     service = module.get(ProductsService);
-    prisma = module.get(PrismaService) as MockPrismaService;
+    prisma = module.get(PrismaService);
     prisma.$transaction.mockImplementation(async (cb: Function) => cb(prisma));
   });
 
@@ -37,7 +40,9 @@ describe('ProductsService', () => {
       ],
     });
 
-    expect(prisma.recipeItem.deleteMany).toHaveBeenCalledWith({ where: { productId: 1 } });
+    expect(prisma.recipeItem.deleteMany).toHaveBeenCalledWith({
+      where: { productId: 1 },
+    });
     expect(prisma.recipeItem.createMany).toHaveBeenCalledWith({
       data: [
         { productId: 1, ingredientId: 1, quantity: 18 },

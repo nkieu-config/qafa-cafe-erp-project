@@ -1,10 +1,23 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Patch, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+  Patch,
+  Req,
+} from '@nestjs/common';
 import { ProcurementService } from './procurement.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
-import { resolveBranchId, resolveOptionalBranchId } from '../auth/branch-scope.util';
+import {
+  resolveBranchId,
+  resolveOptionalBranchId,
+} from '../auth/branch-scope.util';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -26,7 +39,7 @@ export class PurchaseOrdersController {
       {
         branchId,
         supplierId: dto.supplierId,
-        items: dto.items.map(i => ({
+        items: dto.items.map((i) => ({
           ingredientId: i.ingredientId,
           quantity: i.quantity,
           price: i.unitPrice,
@@ -51,6 +64,11 @@ export class PurchaseOrdersController {
   @Roles('SUPER_ADMIN', 'MANAGER', 'STAFF')
   @Post(':id/receive')
   receive(@Param('id', ParseIntPipe) id: number, @Req() req: RequestWithUser) {
-    return this.procurementService.receivePO(id, req.user.userId, undefined, req.user);
+    return this.procurementService.receivePO(
+      id,
+      req.user.userId,
+      undefined,
+      req.user,
+    );
   }
 }

@@ -32,7 +32,9 @@ export async function createE2eApp(): Promise<INestApplication<App>> {
   return app;
 }
 
-export async function processOutboxOnce(app: INestApplication<App>): Promise<void> {
+export async function processOutboxOnce(
+  app: INestApplication<App>,
+): Promise<void> {
   const processor = app.get(OutboxProcessor);
   await processor.handleCron();
 }

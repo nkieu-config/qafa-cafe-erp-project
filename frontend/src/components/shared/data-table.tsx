@@ -2,12 +2,12 @@ import React from "react";
 import { Table, Skeleton } from "antd";
 import type { TableProps } from "antd";
 
-interface DataTableProps<RecordType extends object = any> extends TableProps<RecordType> {
+interface DataTableProps<RecordType extends object = object> extends TableProps<RecordType> {
   containerClassName?: string;
   hideBorders?: boolean;
 }
 
-export function DataTable<RecordType extends object = any>({
+export function DataTable<RecordType extends object = object>({
   containerClassName = "",
   hideBorders = false,
   ...props

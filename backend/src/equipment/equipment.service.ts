@@ -2,7 +2,10 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EquipmentType, EquipmentStatus, Prisma } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
+import {
+  assertBranchAccess,
+  BranchScopedUser,
+} from '../auth/branch-scope.util';
 
 @Injectable()
 export class EquipmentService {
@@ -26,13 +29,15 @@ export class EquipmentService {
     const equipmentList = await this.prisma.equipment.findMany({
       where: {
         status: 'ACTIVE',
-        nextMaintenanceDate: { lte: nextWeek }
+        nextMaintenanceDate: { lte: nextWeek },
       },
-      include: { branch: true }
+      include: { branch: true },
     });
 
     for (const eq of equipmentList) {
-      this.logger.warn(`Alert: Equipment [${eq.name}] at Branch [${eq.branch.name}] is due for maintenance by ${eq.nextMaintenanceDate?.toLocaleDateString()}`);
+      this.logger.warn(
+        `Alert: Equipment [${eq.name}] at Branch [${eq.branch.name}] is due for maintenance by ${eq.nextMaintenanceDate?.toLocaleDateString()}`,
+      );
       // In a real app, send an email, push notification, or WebSocket event here
     }
   }
@@ -41,7 +46,7 @@ export class EquipmentService {
     return this.prisma.equipment.findMany({
       where: branchId ? { branchId } : undefined,
       include: { branch: true },
-      orderBy: { id: 'asc' }
+      orderBy: { id: 'asc' },
     });
   }
 
@@ -67,17 +72,23 @@ export class EquipmentService {
     return this.prisma.equipment.create({ data });
   }
 
-  async update(id: number, data: Partial<{
-    name: string;
-    type: EquipmentType;
-    serialNumber: string;
-    status: EquipmentStatus;
-    purchaseDate: Date;
-    warrantyExpiry: Date;
-    nextMaintenanceDate: Date;
-  }>, user?: BranchScopedUser) {
+  async update(
+    id: number,
+    data: Partial<{
+      name: string;
+      type: EquipmentType;
+      serialNumber: string;
+      status: EquipmentStatus;
+      purchaseDate: Date;
+      warrantyExpiry: Date;
+      nextMaintenanceDate: Date;
+    }>,
+    user?: BranchScopedUser,
+  ) {
     if (user) {
-      const equipment = await this.prisma.equipment.findUnique({ where: { id } });
+      const equipment = await this.prisma.equipment.findUnique({
+        where: { id },
+      });
       if (!equipment) throw new NotFoundException('Equipment not found');
       assertBranchAccess(user, equipment.branchId);
     }
@@ -88,16 +99,22 @@ export class EquipmentService {
     });
   }
 
-  async logMaintenance(equipmentId: number, data: {
-    description: string;
-    cost: number;
-    performedBy?: string;
-    date: Date;
-    nextMaintenanceDate?: Date;
-    newStatus?: EquipmentStatus;
-  }, user?: BranchScopedUser) {
+  async logMaintenance(
+    equipmentId: number,
+    data: {
+      description: string;
+      cost: number;
+      performedBy?: string;
+      date: Date;
+      nextMaintenanceDate?: Date;
+      newStatus?: EquipmentStatus;
+    },
+    user?: BranchScopedUser,
+  ) {
     return this.prisma.$transaction(async (tx) => {
-      const equipment = await tx.equipment.findUnique({ where: { id: equipmentId } });
+      const equipment = await tx.equipment.findUnique({
+        where: { id: equipmentId },
+      });
       if (!equipment) throw new NotFoundException('Equipment not found');
       if (user) assertBranchAccess(user, equipment.branchId);
 
@@ -107,18 +124,19 @@ export class EquipmentService {
           description: data.description,
           cost: data.cost,
           performedBy: data.performedBy,
-          date: data.date
-        }
+          date: data.date,
+        },
       });
 
       const updateData: Prisma.EquipmentUpdateInput = {};
-      if (data.nextMaintenanceDate) updateData.nextMaintenanceDate = data.nextMaintenanceDate;
+      if (data.nextMaintenanceDate)
+        updateData.nextMaintenanceDate = data.nextMaintenanceDate;
       if (data.newStatus) updateData.status = data.newStatus;
 
       if (Object.keys(updateData).length > 0) {
         await tx.equipment.update({
           where: { id: equipmentId },
-          data: updateData
+          data: updateData,
         });
       }
 

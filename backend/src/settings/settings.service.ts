@@ -8,15 +8,18 @@ export class SettingsService {
   async getAllSettings() {
     const settings = await this.prisma.systemSetting.findMany();
     // Return as key-value pairs for easier frontend usage
-    return settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value;
-      return acc;
-    }, {} as Record<string, string>);
+    return settings.reduce(
+      (acc, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      },
+      {} as Record<string, string>,
+    );
   }
 
   async getSetting(key: string) {
     const setting = await this.prisma.systemSetting.findUnique({
-      where: { key }
+      where: { key },
     });
     return setting?.value || null;
   }
@@ -26,7 +29,7 @@ export class SettingsService {
       return this.prisma.systemSetting.upsert({
         where: { key },
         update: { value },
-        create: { key, value }
+        create: { key, value },
       });
     });
 

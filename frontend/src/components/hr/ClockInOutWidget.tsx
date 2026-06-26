@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 export function ClockInOutWidget() {
   const { user, activeBranchId } = useAuth();
-  const [activeRecord, setActiveRecord] = useState<any>(null);
+  const [activeRecord, setActiveRecord] = useState<{ clockIn: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [elapsed, setElapsed] = useState("");
 

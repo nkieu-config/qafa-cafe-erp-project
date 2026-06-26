@@ -1,9 +1,13 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { POStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { OnEvent } from '@nestjs/event-emitter';
 import { OrderCreatedEvent } from '../orders/events/order-created.event';
-import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
+import {
+  assertBranchAccess,
+  BranchScopedUser,
+} from '../auth/branch-scope.util';
 import { OutboxService } from '../outbox/outbox.service';
 import { toNum, roundMoney } from '../common/decimal.util';
 
@@ -32,12 +36,23 @@ export class ProcurementService {
   findAllPOs(branchId?: number) {
     return this.prisma.purchaseOrder.findMany({
       where: branchId ? { branchId } : undefined,
-      include: { supplier: true, branch: true, items: { include: { ingredient: true } } },
+      include: {
+        supplier: true,
+        branch: true,
+        items: { include: { ingredient: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async createPO(data: { branchId: number, supplierId: number, items: { ingredientId: number, quantity: number, price: number }[] }, userId?: number) {
+  async createPO(
+    data: {
+      branchId: number;
+      supplierId: number;
+      items: { ingredientId: number; quantity: number; price: number }[];
+    },
+    userId?: number,
+  ) {
     const po = await this.prisma.purchaseOrder.create({
       data: {
         poNumber: `PO-${Date.now()}`,
@@ -45,36 +60,44 @@ export class ProcurementService {
         supplierId: data.supplierId,
         status: 'PENDING',
         items: {
-          create: data.items.map(item => ({
+          create: data.items.map((item) => ({
             ingredientId: item.ingredientId,
             quantityRequested: item.quantity,
-            unitPrice: item.price
-          }))
-        }
+            unitPrice: item.price,
+          })),
+        },
       },
-      include: { items: true }
+      include: { items: true },
     });
 
     if (userId) {
-      await this.auditService.logAction(userId, 'CREATE_PO', 'PurchaseOrder', po.id, { poNumber: po.poNumber });
+      await this.auditService.logAction(
+        userId,
+        'CREATE_PO',
+        'PurchaseOrder',
+        po.id,
+        { poNumber: po.poNumber },
+      );
     }
 
     return po;
   }
 
   private async validatePOStatus(
-    poId: number, 
-    allowedStatuses: string[], 
-    actionName: string, 
-    txClient: any = this.prisma
+    poId: number,
+    allowedStatuses: POStatus[],
+    actionName: string,
+    txClient: PrismaService | Prisma.TransactionClient = this.prisma,
   ) {
-    const po = await txClient.purchaseOrder.findUnique({ 
+    const po = await txClient.purchaseOrder.findUnique({
       where: { id: poId },
-      include: { items: true }
+      include: { items: true },
     });
     if (!po) throw new BadRequestException('PO not found');
     if (!allowedStatuses.includes(po.status)) {
-      throw new BadRequestException(`Cannot ${actionName} PO with status ${po.status}`);
+      throw new BadRequestException(
+        `Cannot ${actionName} PO with status ${po.status}`,
+      );
     }
     return po;
   }
@@ -85,10 +108,16 @@ export class ProcurementService {
 
     const updatedPo = await this.prisma.purchaseOrder.update({
       where: { id: poId },
-      data: { status: 'APPROVED' }
+      data: { status: 'APPROVED' },
     });
 
-    await this.auditService.logAction(userId, 'APPROVE_PO', 'PurchaseOrder', poId, { poNumber: po.poNumber });
+    await this.auditService.logAction(
+      userId,
+      'APPROVE_PO',
+      'PurchaseOrder',
+      poId,
+      { poNumber: po.poNumber },
+    );
     return updatedPo;
   }
 
@@ -98,17 +127,23 @@ export class ProcurementService {
 
     const updatedPo = await this.prisma.purchaseOrder.update({
       where: { id: poId },
-      data: { status: 'DRAFT' } // Send back to draft or Cancelled. Using DRAFT so it can be edited.
+      data: { status: 'DRAFT' }, // Send back to draft or Cancelled. Using DRAFT so it can be edited.
     });
 
-    await this.auditService.logAction(userId, 'REJECT_PO', 'PurchaseOrder', poId, { poNumber: po.poNumber });
+    await this.auditService.logAction(
+      userId,
+      'REJECT_PO',
+      'PurchaseOrder',
+      poId,
+      { poNumber: po.poNumber },
+    );
     return updatedPo;
   }
 
   async receivePO(
     poId: number,
     userId?: number,
-    expiryDates?: { ingredientId: number, date: string }[],
+    expiryDates?: { ingredientId: number; date: string }[],
     user?: BranchScopedUser,
   ) {
     return this.prisma.$transaction(async (tx) => {
@@ -119,9 +154,11 @@ export class ProcurementService {
       // 2. Create InventoryBatch (FIFO Log)
       for (const item of po.items) {
         // Create Batch
-        const expiryDateStr = expiryDates?.find(e => e.ingredientId === item.ingredientId)?.date;
+        const expiryDateStr = expiryDates?.find(
+          (e) => e.ingredientId === item.ingredientId,
+        )?.date;
         const expiryDate = expiryDateStr ? new Date(expiryDateStr) : null;
-        
+
         await tx.inventoryBatch.create({
           data: {
             branchId: po.branchId,
@@ -129,19 +166,24 @@ export class ProcurementService {
             quantity: item.quantityRequested,
             expiryDate: expiryDate,
             poId: po.id,
-            status: 'ACTIVE'
-          }
+            status: 'ACTIVE',
+          },
         });
 
         // Update Cached BranchInventory
         const inventory = await tx.branchInventory.findUnique({
-          where: { branchId_ingredientId: { branchId: po.branchId, ingredientId: item.ingredientId } }
+          where: {
+            branchId_ingredientId: {
+              branchId: po.branchId,
+              ingredientId: item.ingredientId,
+            },
+          },
         });
 
         if (inventory) {
           await tx.branchInventory.update({
             where: { id: inventory.id },
-            data: { stock: inventory.stock + item.quantityRequested }
+            data: { stock: inventory.stock + item.quantityRequested },
           });
         } else {
           await tx.branchInventory.create({
@@ -149,8 +191,8 @@ export class ProcurementService {
               branchId: po.branchId,
               ingredientId: item.ingredientId,
               stock: item.quantityRequested,
-              minStock: 0
-            }
+              minStock: 0,
+            },
           });
         }
       }
@@ -158,11 +200,17 @@ export class ProcurementService {
       // Mark PO as RECEIVED
       const updatedPo = await tx.purchaseOrder.update({
         where: { id: poId },
-        data: { status: 'RECEIVED' }
+        data: { status: 'RECEIVED' },
       });
 
       if (userId) {
-        await this.auditService.logAction(userId, 'RECEIVE_PO', 'PurchaseOrder', poId, { poNumber: po.poNumber });
+        await this.auditService.logAction(
+          userId,
+          'RECEIVE_PO',
+          'PurchaseOrder',
+          poId,
+          { poNumber: po.poNumber },
+        );
       }
 
       const totalAmount = roundMoney(
@@ -188,14 +236,16 @@ export class ProcurementService {
   async checkAndAutoReorder(branchId: number, ingredientId: number) {
     const inventory = await this.prisma.branchInventory.findUnique({
       where: { branchId_ingredientId: { branchId, ingredientId } },
-      include: { ingredient: true }
+      include: { ingredient: true },
     });
 
     if (!inventory || inventory.stock >= inventory.minStock) return;
 
     const supplierId = inventory.ingredient.primarySupplierId;
     if (!supplierId) {
-      console.warn(`[Auto-Reorder] No primary supplier for ingredient ${inventory.ingredient.name}. Skipping.`);
+      console.warn(
+        `[Auto-Reorder] No primary supplier for ingredient ${inventory.ingredient.name}. Skipping.`,
+      );
       return;
     }
 
@@ -205,18 +255,20 @@ export class ProcurementService {
         branchId,
         supplierId,
         status: { in: ['DRAFT', 'PENDING'] },
-        items: { some: { ingredientId } }
-      }
+        items: { some: { ingredientId } },
+      },
     });
 
     if (existingPO) {
-      console.log(`[Auto-Reorder] Active PO already exists for ${inventory.ingredient.name}. Skipping.`);
+      console.log(
+        `[Auto-Reorder] Active PO already exists for ${inventory.ingredient.name}. Skipping.`,
+      );
       return;
     }
 
     // Create or find a DRAFT PO to attach to
-    let draftPo = await this.prisma.purchaseOrder.findFirst({
-      where: { branchId, supplierId, status: 'DRAFT', isAutoGenerated: true }
+    const draftPo = await this.prisma.purchaseOrder.findFirst({
+      where: { branchId, supplierId, status: 'DRAFT', isAutoGenerated: true },
     });
 
     const orderQuantity = Math.max(inventory.minStock * 2, 10); // Simple logic
@@ -227,10 +279,12 @@ export class ProcurementService {
           poId: draftPo.id,
           ingredientId,
           quantityRequested: orderQuantity,
-          unitPrice: inventory.ingredient.costPerUnit || 0
-        }
+          unitPrice: inventory.ingredient.costPerUnit || 0,
+        },
       });
-      console.log(`[Auto-Reorder] Appended ${inventory.ingredient.name} to existing Draft PO ${draftPo.poNumber}`);
+      console.log(
+        `[Auto-Reorder] Appended ${inventory.ingredient.name} to existing Draft PO ${draftPo.poNumber}`,
+      );
     } else {
       await this.prisma.purchaseOrder.create({
         data: {
@@ -240,15 +294,19 @@ export class ProcurementService {
           status: 'DRAFT',
           isAutoGenerated: true,
           items: {
-            create: [{
-              ingredientId,
-              quantityRequested: orderQuantity,
-              unitPrice: inventory.ingredient.costPerUnit || 0
-            }]
-          }
-        }
+            create: [
+              {
+                ingredientId,
+                quantityRequested: orderQuantity,
+                unitPrice: inventory.ingredient.costPerUnit || 0,
+              },
+            ],
+          },
+        },
       });
-      console.log(`[Auto-Reorder] Created new Draft PO for ${inventory.ingredient.name}`);
+      console.log(
+        `[Auto-Reorder] Created new Draft PO for ${inventory.ingredient.name}`,
+      );
     }
   }
 }

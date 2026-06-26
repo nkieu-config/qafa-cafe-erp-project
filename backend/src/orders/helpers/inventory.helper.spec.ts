@@ -28,13 +28,17 @@ describe('InventoryHelper', () => {
         stock: 10, // Only 10 available
         minStock: 5,
         // @ts-ignore (ignoring nested relation strict typing for simplicity in mock)
-        ingredient: { name: 'Coffee Beans' }
+        ingredient: { name: 'Coffee Beans' },
       } as any);
 
       await expect(
-        InventoryHelper.deductInventoryFIFO(txMock as unknown as Prisma.TransactionClient, branchId, ingredientRequirements)
+        InventoryHelper.deductInventoryFIFO(
+          txMock as unknown as Prisma.TransactionClient,
+          branchId,
+          ingredientRequirements,
+        ),
       ).rejects.toThrow(BadRequestException);
-      
+
       expect(txMock.branchInventory.update).not.toHaveBeenCalled();
     });
 
@@ -48,7 +52,7 @@ describe('InventoryHelper', () => {
         stock: 50, // Plenty of stock
         minStock: 5,
         // @ts-ignore
-        ingredient: { name: 'Coffee Beans' }
+        ingredient: { name: 'Coffee Beans' },
       } as any);
 
       txMock.inventoryBatch.findMany.mockResolvedValue([
@@ -56,27 +60,31 @@ describe('InventoryHelper', () => {
         { id: 11, quantity: 10, status: 'ACTIVE' }, // Second batch has 10 (5 will be taken)
       ] as any);
 
-      await InventoryHelper.deductInventoryFIFO(txMock as unknown as Prisma.TransactionClient, branchId, ingredientRequirements);
+      await InventoryHelper.deductInventoryFIFO(
+        txMock,
+        branchId,
+        ingredientRequirements,
+      );
 
       // Verify aggregate cache update
       expect(txMock.branchInventory.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { stock: 35 } // 50 - 15
+        data: { stock: 35 }, // 50 - 15
       });
 
       // Verify FIFO logic
       expect(txMock.inventoryBatch.update).toHaveBeenCalledTimes(2);
-      
+
       // Batch 1 should be depleted
       expect(txMock.inventoryBatch.update).toHaveBeenNthCalledWith(1, {
         where: { id: 10 },
-        data: { quantity: 0, status: 'DEPLETED' }
+        data: { quantity: 0, status: 'DEPLETED' },
       });
 
       // Batch 2 should be partially deducted
       expect(txMock.inventoryBatch.update).toHaveBeenNthCalledWith(2, {
         where: { id: 11 },
-        data: { quantity: 5 } // 10 - 5
+        data: { quantity: 5 }, // 10 - 5
       });
     });
 
@@ -97,7 +105,11 @@ describe('InventoryHelper', () => {
       ] as any);
 
       await expect(
-        InventoryHelper.deductInventoryFIFO(txMock as unknown as Prisma.TransactionClient, branchId, ingredientRequirements)
+        InventoryHelper.deductInventoryFIFO(
+          txMock as unknown as Prisma.TransactionClient,
+          branchId,
+          ingredientRequirements,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });

@@ -10,10 +10,15 @@ export class AuditService {
     action: string,
     targetType: string,
     targetId?: number,
-    details?: string | any,
+    details?: string | Record<string, unknown>,
   ) {
-    const detailsString = typeof details === 'object' ? JSON.stringify(details) : details;
-    
+    const detailsString =
+      details == null
+        ? undefined
+        : typeof details === 'object'
+          ? JSON.stringify(details)
+          : details;
+
     return this.prisma.auditLog.create({
       data: {
         userId,
@@ -33,9 +38,9 @@ export class AuditService {
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
-          select: { id: true, name: true, email: true, role: true }
-        }
-      }
+          select: { id: true, name: true, email: true, role: true },
+        },
+      },
     });
   }
 }

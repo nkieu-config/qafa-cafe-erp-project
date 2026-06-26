@@ -65,9 +65,13 @@ describeIfDatabase('Branch transfer flow (e2e)', () => {
       where: { ingredient: { name: 'E2E Transfer Beans' } },
     });
     await prisma.branchInventory.deleteMany({
-      where: { branch: { name: { in: ['E2E Transfer From', 'E2E Transfer To'] } } },
+      where: {
+        branch: { name: { in: ['E2E Transfer From', 'E2E Transfer To'] } },
+      },
     });
-    await prisma.ingredient.deleteMany({ where: { name: 'E2E Transfer Beans' } });
+    await prisma.ingredient.deleteMany({
+      where: { name: 'E2E Transfer Beans' },
+    });
     await prisma.user.deleteMany({ where: { email } });
     await prisma.branch.deleteMany({
       where: { name: { in: ['E2E Transfer From', 'E2E Transfer To'] } },
@@ -98,7 +102,9 @@ describeIfDatabase('Branch transfer flow (e2e)', () => {
       .expect(201);
 
     const fromInv = await prisma.branchInventory.findUnique({
-      where: { branchId_ingredientId: { branchId: fromBranchId, ingredientId } },
+      where: {
+        branchId_ingredientId: { branchId: fromBranchId, ingredientId },
+      },
     });
     const toInv = await prisma.branchInventory.findUnique({
       where: { branchId_ingredientId: { branchId: toBranchId, ingredientId } },

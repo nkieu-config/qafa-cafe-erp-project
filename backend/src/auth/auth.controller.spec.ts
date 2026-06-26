@@ -24,7 +24,14 @@ describe('AuthController', () => {
   it('sets httpOnly auth cookie on login', async () => {
     authService.login.mockResolvedValue({
       accessToken: 'signed-jwt',
-      user: { id: 1, email: 'a@b.com', name: 'A', role: 'STAFF', branchId: 1, branch: 'B' },
+      user: {
+        id: 1,
+        email: 'a@b.com',
+        name: 'A',
+        role: 'STAFF',
+        branchId: 1,
+        branch: 'B',
+      },
     });
 
     const cookie = jest.fn();

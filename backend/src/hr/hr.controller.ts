@@ -1,10 +1,25 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Patch, UseGuards, Request, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  Patch,
+  UseGuards,
+  Request,
+  Query,
+} from '@nestjs/common';
 import { HrService } from './hr.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { assertBranchAccess, resolveBranchId, resolveOptionalBranchId } from '../auth/branch-scope.util';
+import {
+  assertBranchAccess,
+  resolveBranchId,
+  resolveOptionalBranchId,
+} from '../auth/branch-scope.util';
 import { ClockInDto } from './dto/clock-in.dto';
 import { CreateShiftDto } from './dto/create-shift.dto';
 import { RequestLeaveDto } from './dto/request-leave.dto';
@@ -48,7 +63,10 @@ export class HrController {
   }
 
   @Get('shifts/branch/:branchId')
-  getShiftsByBranch(@Request() req: RequestWithUser, @Param('branchId', ParseIntPipe) branchId: number) {
+  getShiftsByBranch(
+    @Request() req: RequestWithUser,
+    @Param('branchId', ParseIntPipe) branchId: number,
+  ) {
     assertBranchAccess(req.user, branchId);
     return this.hrService.getShiftsByBranch(branchId);
   }
@@ -65,7 +83,10 @@ export class HrController {
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Get('leave')
-  getLeaveRequests(@Request() req: RequestWithUser, @Query('branchId') branchId?: string) {
+  getLeaveRequests(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchId?: string,
+  ) {
     const resolvedBranchId = resolveOptionalBranchId(
       req.user,
       branchId ? parseInt(branchId, 10) : undefined,
@@ -90,33 +111,48 @@ export class HrController {
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Post('payroll/generate')
-  generatePayrollRun(@Request() req: RequestWithUser, @Body() dto: GeneratePayrollDto) {
+  generatePayrollRun(
+    @Request() req: RequestWithUser,
+    @Body() dto: GeneratePayrollDto,
+  ) {
     assertBranchAccess(req.user, dto.branchId);
     return this.hrService.generatePayrollRun(dto.branchId, dto.month, dto.year);
   }
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Get('payroll-runs')
-  getPayrollRuns(@Request() req: RequestWithUser, @Query('branchId', ParseIntPipe) branchId: number) {
+  getPayrollRuns(
+    @Request() req: RequestWithUser,
+    @Query('branchId', ParseIntPipe) branchId: number,
+  ) {
     assertBranchAccess(req.user, branchId);
     return this.hrService.getPayrollRuns(branchId);
   }
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Patch('payroll-runs/:id/approve')
-  approvePayrollRun(@Request() req: RequestWithUser, @Param('id', ParseIntPipe) id: number) {
+  approvePayrollRun(
+    @Request() req: RequestWithUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.hrService.approvePayrollRun(id, req.user);
   }
 
   @Roles('SUPER_ADMIN')
   @Patch('users/:userId/rate')
-  updateHourlyRate(@Param('userId', ParseIntPipe) userId: number, @Body() dto: UpdateHourlyRateDto) {
+  updateHourlyRate(
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() dto: UpdateHourlyRateDto,
+  ) {
     return this.hrService.updateHourlyRate(userId, dto.hourlyRate);
   }
 
   @Roles('SUPER_ADMIN', 'MANAGER')
   @Get('users')
-  getAllUsers(@Request() req: RequestWithUser, @Query('branchId') branchId?: string) {
+  getAllUsers(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchId?: string,
+  ) {
     const resolvedBranchId = resolveOptionalBranchId(
       req.user,
       branchId ? parseInt(branchId, 10) : undefined,
@@ -132,7 +168,10 @@ export class HrController {
 
   @Roles('SUPER_ADMIN')
   @Patch('users/:id')
-  updateUser(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
+  updateUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateUserDto,
+  ) {
     return this.hrService.updateUser(id, dto);
   }
 }

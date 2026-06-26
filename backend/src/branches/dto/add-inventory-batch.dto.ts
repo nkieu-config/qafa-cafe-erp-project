@@ -1,4 +1,10 @@
-import { IsInt, IsISO8601, IsNumber, IsOptional, IsPositive } from 'class-validator';
+import {
+  IsInt,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsPositive,
+} from 'class-validator';
 
 export class AddInventoryBatchDto {
   @IsInt()

@@ -1,7 +1,20 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Patch, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import { PromotionsService } from './promotions.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreatePromotionDto, TogglePromotionDto, ValidatePromotionDto } from './dto/promotion.dto';
+import {
+  CreatePromotionDto,
+  TogglePromotionDto,
+  ValidatePromotionDto,
+} from './dto/promotion.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('promotions')
@@ -19,7 +32,10 @@ export class PromotionsController {
   }
 
   @Patch(':id/toggle')
-  toggleActive(@Param('id', ParseIntPipe) id: number, @Body() dto: TogglePromotionDto) {
+  toggleActive(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: TogglePromotionDto,
+  ) {
     return this.promotionsService.toggleActive(id, dto.isActive);
   }
 

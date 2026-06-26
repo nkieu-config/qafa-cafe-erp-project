@@ -1,7 +1,10 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { toNum, roundMoney } from '../common/decimal.util';
-import { assertBranchAccess, BranchScopedUser } from '../auth/branch-scope.util';
+import {
+  assertBranchAccess,
+  BranchScopedUser,
+} from '../auth/branch-scope.util';
 import { ProductionStatus } from '@prisma/client';
 import { OutboxService } from '../outbox/outbox.service';
 
@@ -35,9 +38,16 @@ export class ProductionService {
   }
 
   // 3. Create a Production Order
-  async createProductionOrder(data: { branchId: number, targetIngredientId: number, quantityToProduce: number, plannedStartDate?: Date }) {
+  async createProductionOrder(data: {
+    branchId: number;
+    targetIngredientId: number;
+    quantityToProduce: number;
+    plannedStartDate?: Date;
+  }) {
     // Ensure the branch is a central kitchen
-    const branch = await this.prisma.branch.findUnique({ where: { id: data.branchId } });
+    const branch = await this.prisma.branch.findUnique({
+      where: { id: data.branchId },
+    });
     if (!branch || !branch.isCentralKitchen) {
       throw new BadRequestException('Branch is not a central kitchen');
     }
@@ -50,13 +60,19 @@ export class ProductionService {
         quantityToProduce: data.quantityToProduce,
         plannedStartDate: data.plannedStartDate,
         status: 'PLANNED',
-      }
+      },
     });
   }
 
   // Update Order Status (for Kanban dragging)
-  async updateOrderStatus(orderId: number, status: ProductionStatus, user: BranchScopedUser) {
-    const order = await this.prisma.productionOrder.findUnique({ where: { id: orderId } });
+  async updateOrderStatus(
+    orderId: number,
+    status: ProductionStatus,
+    user: BranchScopedUser,
+  ) {
+    const order = await this.prisma.productionOrder.findUnique({
+      where: { id: orderId },
+    });
     if (!order) throw new BadRequestException('Order not found');
     assertBranchAccess(user, order.branchId);
 
@@ -67,7 +83,11 @@ export class ProductionService {
   }
 
   // 4. Complete a Production Order (Deduct raw materials, add finished good)
-  async completeProductionOrder(orderId: number, userId?: number, user?: BranchScopedUser) {
+  async completeProductionOrder(
+    orderId: number,
+    userId?: number,
+    user?: BranchScopedUser,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const order = await tx.productionOrder.findUnique({
         where: { id: orderId },
@@ -76,12 +96,13 @@ export class ProductionService {
 
       if (!order) throw new BadRequestException('Order not found');
       if (user) assertBranchAccess(user, order.branchId);
-      if (order.status === 'COMPLETED') throw new BadRequestException('Order already completed');
+      if (order.status === 'COMPLETED')
+        throw new BadRequestException('Order already completed');
 
       // Find BOM for the target ingredient
       const boms = await tx.productionBOM.findMany({
         where: { targetIngredientId: order.targetIngredientId },
-        include: { rawIngredient: true }
+        include: { rawIngredient: true },
       });
 
       if (boms.length === 0) {
@@ -93,19 +114,26 @@ export class ProductionService {
       // Deduct Raw Materials
       for (const bom of boms) {
         const requiredQuantity = bom.quantityNeeded * order.quantityToProduce;
-        
+
         const inventory = await tx.branchInventory.findUnique({
-          where: { branchId_ingredientId: { branchId: order.branchId, ingredientId: bom.rawIngredientId } }
+          where: {
+            branchId_ingredientId: {
+              branchId: order.branchId,
+              ingredientId: bom.rawIngredientId,
+            },
+          },
         });
 
         if (!inventory || inventory.stock < requiredQuantity) {
-          throw new BadRequestException(`Insufficient stock for raw material: ${bom.rawIngredient.name}. Needed: ${requiredQuantity}, Available: ${inventory?.stock || 0}`);
+          throw new BadRequestException(
+            `Insufficient stock for raw material: ${bom.rawIngredient.name}. Needed: ${requiredQuantity}, Available: ${inventory?.stock || 0}`,
+          );
         }
 
         // Deduct
         await tx.branchInventory.update({
           where: { id: inventory.id },
-          data: { stock: inventory.stock - requiredQuantity }
+          data: { stock: inventory.stock - requiredQuantity },
         });
 
         totalRawCost += requiredQuantity * toNum(bom.rawIngredient.costPerUnit);
@@ -115,13 +143,18 @@ export class ProductionService {
 
       // Add Finished Good to Inventory
       const targetInventory = await tx.branchInventory.findUnique({
-        where: { branchId_ingredientId: { branchId: order.branchId, ingredientId: order.targetIngredientId } }
+        where: {
+          branchId_ingredientId: {
+            branchId: order.branchId,
+            ingredientId: order.targetIngredientId,
+          },
+        },
       });
 
       if (targetInventory) {
         await tx.branchInventory.update({
           where: { id: targetInventory.id },
-          data: { stock: targetInventory.stock + order.quantityToProduce }
+          data: { stock: targetInventory.stock + order.quantityToProduce },
         });
       } else {
         await tx.branchInventory.create({
@@ -129,20 +162,20 @@ export class ProductionService {
             branchId: order.branchId,
             ingredientId: order.targetIngredientId,
             stock: order.quantityToProduce,
-            minStock: 0
-          }
+            minStock: 0,
+          },
         });
       }
 
       // Mark Order as COMPLETED
       const updatedOrder = await tx.productionOrder.update({
         where: { id: orderId },
-        data: { 
+        data: {
           status: 'COMPLETED',
           completedAt: new Date(),
           actualCost: totalRawCost,
-          createdByUserId: userId
-        }
+          createdByUserId: userId,
+        },
       });
 
       if (totalRawCost > 0) {
@@ -159,20 +192,24 @@ export class ProductionService {
   }
 
   // Helper to create BOM
-  async createBOM(data: { targetIngredientId: number, rawIngredientId: number, quantityNeeded: number }) {
+  async createBOM(data: {
+    targetIngredientId: number;
+    rawIngredientId: number;
+    quantityNeeded: number;
+  }) {
     return this.prisma.productionBOM.upsert({
       where: {
         targetIngredientId_rawIngredientId: {
           targetIngredientId: data.targetIngredientId,
           rawIngredientId: data.rawIngredientId,
-        }
+        },
       },
       update: { quantityNeeded: data.quantityNeeded },
       create: {
         targetIngredientId: data.targetIngredientId,
         rawIngredientId: data.rawIngredientId,
         quantityNeeded: data.quantityNeeded,
-      }
+      },
     });
   }
 }

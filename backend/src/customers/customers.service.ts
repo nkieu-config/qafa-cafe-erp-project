@@ -15,21 +15,27 @@ export class CustomersService {
   async handleOrderCreated(event: OrderCreatedEvent) {
     if (!event.customerId) return;
 
-    this.logger.log(`Handling order.created event for CRM Customer ${event.customerId}`);
+    this.logger.log(
+      `Handling order.created event for CRM Customer ${event.customerId}`,
+    );
 
     if (event.order.pointsEarned && event.order.pointsEarned > 0) {
       await this.prisma.customer.update({
         where: { id: event.customerId },
         data: { points: { increment: event.order.pointsEarned } },
       });
-      this.logger.log(`Added ${event.order.pointsEarned} points to customer ${event.customerId}`);
+      this.logger.log(
+        `Added ${event.order.pointsEarned} points to customer ${event.customerId}`,
+      );
     }
 
     await this.checkAndUpdateTier(event.customerId);
   }
 
   async create(data: { name: string; phone: string }) {
-    const existing = await this.prisma.customer.findUnique({ where: { phone: data.phone } });
+    const existing = await this.prisma.customer.findUnique({
+      where: { phone: data.phone },
+    });
     if (existing) {
       throw new BadRequestException('Customer with this phone already exists');
     }
@@ -44,13 +50,18 @@ export class CustomersService {
   }
 
   async findAll(search?: string) {
-    const where = search ? {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' as const } },
-        { phone: { contains: search } },
-      ],
-    } : {};
-    return this.prisma.customer.findMany({ where, orderBy: { createdAt: 'desc' } });
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { phone: { contains: search } },
+          ],
+        }
+      : {};
+    return this.prisma.customer.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async findOne(id: number) {
@@ -65,12 +76,17 @@ export class CustomersService {
     });
   }
 
-  async update(id: number, data: Partial<{ name: string; email: string; phone: string }>) {
+  async update(
+    id: number,
+    data: Partial<{ name: string; email: string; phone: string }>,
+  ) {
     return this.prisma.customer.update({ where: { id }, data });
   }
 
   async findByPhone(phone: string) {
-    const customer = await this.prisma.customer.findUnique({ where: { phone } });
+    const customer = await this.prisma.customer.findUnique({
+      where: { phone },
+    });
     if (!customer) throw new BadRequestException('Customer not found');
     return customer;
   }
@@ -78,17 +94,20 @@ export class CustomersService {
   // Calculate and update tier based on lifetime spend
   async checkAndUpdateTier(customerId: number) {
     const agg = await this.prisma.order.aggregate({
-      where: { customerId, status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] } },
+      where: {
+        customerId,
+        status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] },
+      },
       _sum: { netAmount: true },
     });
 
     const lifetimeSpend = toNum(agg._sum.netAmount);
-    
+
     const customer = await this.prisma.customer.findUnique({
       where: { id: customerId },
     });
     if (!customer) return;
-    
+
     let newTier: Tier = 'REGULAR';
     if (lifetimeSpend >= 50000) newTier = 'PLATINUM';
     else if (lifetimeSpend >= 20000) newTier = 'GOLD';
@@ -110,8 +129,8 @@ export class CustomersService {
           orderBy: { createdAt: 'desc' },
           take: 5,
           include: {
-            items: { include: { product: true } }
-          }
+            items: { include: { product: true } },
+          },
         },
       },
     });
@@ -120,7 +139,10 @@ export class CustomersService {
 
     // Calculate Lifetime Spend via Aggregation
     const agg = await this.prisma.order.aggregate({
-      where: { customerId: id, status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] } },
+      where: {
+        customerId: id,
+        status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] },
+      },
       _sum: { netAmount: true },
     });
 
@@ -130,7 +152,7 @@ export class CustomersService {
     let nextTier: string | null = null;
     let amountToNextTier = 0;
     let progressPercentage = 0;
-    
+
     if (lifetimeSpend < 5000) {
       nextTier = 'SILVER';
       amountToNextTier = 5000 - lifetimeSpend;
@@ -152,16 +174,26 @@ export class CustomersService {
     const favoriteItemsAgg = await this.prisma.orderItem.groupBy({
       by: ['productId'],
       _sum: { quantity: true },
-      where: { order: { customerId: id, status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] } } },
+      where: {
+        order: {
+          customerId: id,
+          status: { in: ['COMPLETED', 'PENDING', 'PREPARING'] },
+        },
+      },
       orderBy: { _sum: { quantity: 'desc' } },
       take: 3,
     });
 
     const favoriteDrinks: { name: string; count: number }[] = [];
     for (const fav of favoriteItemsAgg) {
-      const product = await this.prisma.product.findUnique({ where: { id: fav.productId } });
+      const product = await this.prisma.product.findUnique({
+        where: { id: fav.productId },
+      });
       if (product) {
-        favoriteDrinks.push({ name: product.name, count: fav._sum.quantity || 0 });
+        favoriteDrinks.push({
+          name: product.name,
+          count: fav._sum.quantity || 0,
+        });
       }
     }
 
@@ -172,7 +204,7 @@ export class CustomersService {
       const lastOrderDate = customer.orders[0].createdAt;
       const msDiff = new Date().getTime() - lastOrderDate.getTime();
       daysSinceLastOrder = Math.floor(msDiff / (1000 * 3600 * 24));
-      
+
       if (daysSinceLastOrder > 60) churnRisk = 'HIGH';
       else if (daysSinceLastOrder > 30) churnRisk = 'MEDIUM';
     } else {

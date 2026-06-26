@@ -3,19 +3,21 @@ import { BadRequestException } from '@nestjs/common';
 
 export class InventoryHelper {
   static async deductInventoryFIFO(
-    tx: Prisma.TransactionClient, 
-    branchId: number, 
-    ingredientRequirements: Map<number, number>
+    tx: Prisma.TransactionClient,
+    branchId: number,
+    ingredientRequirements: Map<number, number>,
   ) {
     for (const [ingredientId, neededQty] of ingredientRequirements.entries()) {
       const branchInventory = await tx.branchInventory.findUnique({
         where: { branchId_ingredientId: { branchId, ingredientId } },
-        include: { ingredient: true }
+        include: { ingredient: true },
       });
 
       if (!branchInventory || branchInventory.stock < neededQty) {
         const name = branchInventory?.ingredient?.name || `ID ${ingredientId}`;
-        throw new BadRequestException(`Not enough stock for ${name} at this branch.`);
+        throw new BadRequestException(
+          `Not enough stock for ${name} at this branch.`,
+        );
       }
 
       // Deduct from BranchInventory (Cache)
@@ -41,9 +43,15 @@ export class InventoryHelper {
 
         if (batch.quantity <= remainingToDeduct) {
           remainingToDeduct -= batch.quantity;
-          await tx.inventoryBatch.update({ where: { id: batch.id }, data: { quantity: 0, status: 'DEPLETED' } });
+          await tx.inventoryBatch.update({
+            where: { id: batch.id },
+            data: { quantity: 0, status: 'DEPLETED' },
+          });
         } else {
-          await tx.inventoryBatch.update({ where: { id: batch.id }, data: { quantity: batch.quantity - remainingToDeduct } });
+          await tx.inventoryBatch.update({
+            where: { id: batch.id },
+            data: { quantity: batch.quantity - remainingToDeduct },
+          });
           remainingToDeduct = 0;
         }
       }

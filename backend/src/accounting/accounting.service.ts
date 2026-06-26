@@ -19,7 +19,9 @@ export class AccountingService {
 
   @OnEvent('order.created', { async: true })
   async handleOrderCreated(event: OrderCreatedEvent) {
-    this.logger.log(`Handling order.created event for Accounting (Order ${event.order.id})`);
+    this.logger.log(
+      `Handling order.created event for Accounting (Order ${event.order.id})`,
+    );
 
     const { order } = event;
     const netAmount = roundMoney(toNum(order.netAmount));
@@ -39,11 +41,28 @@ export class AccountingService {
             credit: 0,
             description: paymentAccountLabel(order.paymentMethod),
           },
-          { accountCode: '4010', debit: 0, credit: netAmount, description: 'Sales Revenue' },
-          ...(totalCogs > 0 ? [
-            { accountCode: '5010', debit: totalCogs, credit: 0, description: 'Cost of Goods Sold' },
-            { accountCode: '1030', debit: 0, credit: totalCogs, description: 'Inventory reduction' },
-          ] : []),
+          {
+            accountCode: '4010',
+            debit: 0,
+            credit: netAmount,
+            description: 'Sales Revenue',
+          },
+          ...(totalCogs > 0
+            ? [
+                {
+                  accountCode: '5010',
+                  debit: totalCogs,
+                  credit: 0,
+                  description: 'Cost of Goods Sold',
+                },
+                {
+                  accountCode: '1030',
+                  debit: 0,
+                  credit: totalCogs,
+                  description: 'Inventory reduction',
+                },
+              ]
+            : []),
         ],
       });
     }
@@ -59,8 +78,18 @@ export class AccountingService {
       reference: event.poNumber,
       description: `Accounts Payable for PO ${event.poNumber}`,
       lines: [
-        { accountCode: '1030', debit: totalAmount, credit: 0, description: 'Inventory received' },
-        { accountCode: '2010', debit: 0, credit: totalAmount, description: 'Accounts Payable recognized' },
+        {
+          accountCode: '1030',
+          debit: totalAmount,
+          credit: 0,
+          description: 'Inventory received',
+        },
+        {
+          accountCode: '2010',
+          debit: 0,
+          credit: totalAmount,
+          description: 'Accounts Payable recognized',
+        },
       ],
     });
   }
@@ -75,8 +104,18 @@ export class AccountingService {
       reference: event.orderNumber,
       description: `Production Completion for ${event.targetIngredientName}`,
       lines: [
-        { accountCode: '1030', debit: totalRawCost, credit: 0, description: 'Finished Goods Inventory Increase' },
-        { accountCode: '1030', debit: 0, credit: totalRawCost, description: 'Raw Materials Inventory Decrease' },
+        {
+          accountCode: '1030',
+          debit: totalRawCost,
+          credit: 0,
+          description: 'Finished Goods Inventory Increase',
+        },
+        {
+          accountCode: '1030',
+          debit: 0,
+          credit: totalRawCost,
+          description: 'Raw Materials Inventory Decrease',
+        },
       ],
     });
   }
@@ -107,18 +146,31 @@ export class AccountingService {
     date?: Date;
     reference?: string;
     description: string;
-    lines: { accountCode: string; debit: number; credit: number; description?: string }[];
+    lines: {
+      accountCode: string;
+      debit: number;
+      credit: number;
+      description?: string;
+    }[];
   }) {
     // 1. Verify debits equal credits
-    const totalDebits = data.lines.reduce((sum, line) => sum + roundMoney(line.debit), 0);
-    const totalCredits = data.lines.reduce((sum, line) => sum + roundMoney(line.credit), 0);
+    const totalDebits = data.lines.reduce(
+      (sum, line) => sum + roundMoney(line.debit),
+      0,
+    );
+    const totalCredits = data.lines.reduce(
+      (sum, line) => sum + roundMoney(line.credit),
+      0,
+    );
 
     if (!isBalancedMoney(totalDebits, totalCredits)) {
-      throw new BadRequestException(`Journal entry unbalanced. Debits: ${totalDebits}, Credits: ${totalCredits}`);
+      throw new BadRequestException(
+        `Journal entry unbalanced. Debits: ${totalDebits}, Credits: ${totalCredits}`,
+      );
     }
 
     // 2. Fetch account IDs based on codes
-    const accountCodes = data.lines.map(l => l.accountCode);
+    const accountCodes = data.lines.map((l) => l.accountCode);
     const accounts = await this.prisma.account.findMany({
       where: { code: { in: accountCodes } },
     });
@@ -127,7 +179,7 @@ export class AccountingService {
       throw new BadRequestException('One or more account codes are invalid.');
     }
 
-    const accountMap = new Map(accounts.map(a => [a.code, a.id]));
+    const accountMap = new Map(accounts.map((a) => [a.code, a.id]));
 
     // 3. Create the journal entry
     return this.prisma.journalEntry.create({
@@ -138,7 +190,7 @@ export class AccountingService {
         description: data.description,
         status: 'POSTED',
         lines: {
-          create: data.lines.map(line => ({
+          create: data.lines.map((line) => ({
             accountId: accountMap.get(line.accountCode)!,
             debit: roundMoney(line.debit),
             credit: roundMoney(line.credit),
@@ -163,7 +215,11 @@ export class AccountingService {
       { code: '2010', name: 'Accounts Payable', type: 'LIABILITY' as const },
       { code: '3010', name: 'Owner Equity', type: 'EQUITY' as const },
       { code: '4010', name: 'Sales Revenue', type: 'REVENUE' as const },
-      { code: '5010', name: 'Cost of Goods Sold (COGS)', type: 'EXPENSE' as const },
+      {
+        code: '5010',
+        name: 'Cost of Goods Sold (COGS)',
+        type: 'EXPENSE' as const,
+      },
       { code: '5020', name: 'Payroll Expense', type: 'EXPENSE' as const },
     ];
 
@@ -174,17 +230,24 @@ export class AccountingService {
         create: acc,
       });
     }
-    
+
     this.logger.log('Default accounts seeded.');
   }
 
   async getProfitLoss(branchId?: number) {
-    const branchFilter = branchId ? Prisma.sql`AND je."branchId" = ${branchId}` : Prisma.empty;
-    
+    const branchFilter = branchId
+      ? Prisma.sql`AND je."branchId" = ${branchId}`
+      : Prisma.empty;
+
     // Use raw SQL to group by month and account type directly in the database
     // This prevents loading thousands of rows into Node.js memory
     const results = await this.prisma.$queryRaw<
-      { month: string; type: string; total_credit: number; total_debit: number }[]
+      {
+        month: string;
+        type: string;
+        total_credit: number;
+        total_debit: number;
+      }[]
     >`
       SELECT 
         to_char(je."date", 'YYYY-MM') as month,
@@ -214,12 +277,12 @@ export class AccountingService {
       if (!monthlyData.has(row.month)) {
         monthlyData.set(row.month, { revenue: 0, expense: 0 });
       }
-      
+
       const stats = monthlyData.get(row.month)!;
       if (row.type === 'REVENUE') {
-        stats.revenue += (Number(row.total_credit) - Number(row.total_debit));
+        stats.revenue += Number(row.total_credit) - Number(row.total_debit);
       } else if (row.type === 'EXPENSE') {
-        stats.expense += (Number(row.total_debit) - Number(row.total_credit));
+        stats.expense += Number(row.total_debit) - Number(row.total_credit);
       }
     }
 

@@ -5,7 +5,10 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 
-import { WinstonModule, utilities as nestWinstonModuleUtilities } from 'nest-winston';
+import {
+  WinstonModule,
+  utilities as nestWinstonModuleUtilities,
+} from 'nest-winston';
 import * as winston from 'winston';
 
 async function bootstrap() {
@@ -26,13 +29,13 @@ async function bootstrap() {
           filename: 'application.log',
           format: winston.format.combine(
             winston.format.timestamp(),
-            winston.format.json()
-          )
-        })
+            winston.format.json(),
+          ),
+        }),
       ],
     }),
   });
-  
+
   app.use(helmet());
   app.use(cookieParser());
   app.enableCors({
@@ -52,4 +55,4 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();

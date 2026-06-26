@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, UseGuards, Query, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  Query,
+  Request,
+} from '@nestjs/common';
 import { AccountingService } from './accounting.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -19,7 +27,10 @@ export class AccountingController {
 
   @Get('journal-entries')
   @Roles('SUPER_ADMIN', 'MANAGER')
-  async getJournalEntries(@Request() req: RequestWithUser, @Query('branchId') branchId?: string) {
+  async getJournalEntries(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchId?: string,
+  ) {
     const resolvedBranchId = resolveOptionalBranchId(
       req.user,
       branchId ? parseInt(branchId, 10) : undefined,
@@ -29,7 +40,10 @@ export class AccountingController {
 
   @Get('profit-loss')
   @Roles('SUPER_ADMIN', 'MANAGER')
-  async getProfitLoss(@Request() req: RequestWithUser, @Query('branchId') branchId?: string) {
+  async getProfitLoss(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchId?: string,
+  ) {
     const resolvedBranchId = resolveOptionalBranchId(
       req.user,
       branchId ? parseInt(branchId, 10) : undefined,

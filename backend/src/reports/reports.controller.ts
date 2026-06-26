@@ -10,7 +10,10 @@ export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get('sales-trends')
-  getSalesTrends(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
+  getSalesTrends(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchIdQuery?: string,
+  ) {
     const branchId = resolveOptionalBranchId(
       req.user,
       branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
@@ -19,7 +22,10 @@ export class ReportsController {
   }
 
   @Get('top-products')
-  getTopProducts(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
+  getTopProducts(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchIdQuery?: string,
+  ) {
     const branchId = resolveOptionalBranchId(
       req.user,
       branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
@@ -28,7 +34,10 @@ export class ReportsController {
   }
 
   @Get('profit-loss')
-  getProfitLoss(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
+  getProfitLoss(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchIdQuery?: string,
+  ) {
     const branchId = resolveOptionalBranchId(
       req.user,
       branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
@@ -37,7 +46,10 @@ export class ReportsController {
   }
 
   @Get('executive-summary')
-  getExecutiveSummary(@Request() req: RequestWithUser, @Query('branchId') branchIdQuery?: string) {
+  getExecutiveSummary(
+    @Request() req: RequestWithUser,
+    @Query('branchId') branchIdQuery?: string,
+  ) {
     const branchId = resolveOptionalBranchId(
       req.user,
       branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,

@@ -5,6 +5,6 @@ export class OrderCreatedEvent {
     public readonly order: Order,
     public readonly ingredientRequirements: Map<number, number>,
     public readonly branchId: number,
-    public readonly customerId: number | null
+    public readonly customerId: number | null,
   ) {}
 }
