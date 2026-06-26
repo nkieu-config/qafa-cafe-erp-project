@@ -212,6 +212,37 @@ async function main() {
     },
   });
 
+  await prisma.product.create({
+    data: {
+      name: 'Cappuccino',
+      price: 52,
+      category: 'Coffee',
+      recipeItems: {
+        create: [
+          { ingredientId: coffeeBeans.id, quantity: 18 },
+          { ingredientId: milk.id, quantity: 120 },
+          { ingredientId: cup.id, quantity: 1 },
+        ],
+      },
+    },
+  });
+
+  await prisma.product.create({
+    data: {
+      name: 'Vanilla Latte',
+      price: 65,
+      category: 'Coffee',
+      recipeItems: {
+        create: [
+          { ingredientId: coffeeBeans.id, quantity: 18 },
+          { ingredientId: milk.id, quantity: 150 },
+          { ingredientId: cup.id, quantity: 1 },
+          { ingredientId: syrup.id, quantity: 50 },
+        ],
+      },
+    },
+  });
+
   const customer = await prisma.customer.create({
     data: { phone: '0811111111', name: 'Demo Member', points: 120, tier: 'SILVER' },
   });

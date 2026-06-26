@@ -2,6 +2,8 @@ node_modules
 dist
 .env
 !.env.example
+.env.compose
+!.env.compose.example
 .DS_Store
 *.log
 

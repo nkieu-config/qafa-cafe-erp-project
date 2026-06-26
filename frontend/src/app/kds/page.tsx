@@ -10,6 +10,20 @@ import { Button } from "@/components/ui/button"
 import { CheckCircle2, Clock, Play } from "lucide-react"
 import { Order, OrderItem, OrderStatus } from "@/types/api"
 
+const KDS_STATUSES: OrderStatus[] = ['PENDING', 'PREPARING']
+
+function mergeKdsOrders(existing: Order[], incoming: Order[]): Order[] {
+  const byId = new Map<number, Order>()
+  for (const order of [...existing, ...incoming]) {
+    if (KDS_STATUSES.includes(order.status)) {
+      byId.set(order.id, order)
+    }
+  }
+  return Array.from(byId.values()).sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  )
+}
+
 export default function KdsPage() {
   const { activeBranchId } = useAuth()
   const { socket, isConnected } = useSocket()
@@ -19,7 +33,7 @@ export default function KdsPage() {
     if (!activeBranchId) return
     try {
       const data = await getKdsOrders(activeBranchId)
-      setOrders(data || [])
+      setOrders(mergeKdsOrders([], data || []))
     } catch (err) {
       console.error(err)
     }
@@ -38,19 +52,20 @@ export default function KdsPage() {
     if (!socket || !activeBranchId) return
 
     const handleOrderCreated = (newOrder: Order) => {
-      // Only show orders for the current branch
-      if (newOrder.branchId === activeBranchId) {
-        // Use functional state update to avoid stale closure
-        setOrders((prev) => [...prev, newOrder])
-      }
+      if (newOrder.branchId !== activeBranchId) return
+      if (!KDS_STATUSES.includes(newOrder.status)) return
+      setOrders((prev) => mergeKdsOrders(prev, [newOrder]))
     }
 
     const handleOrderStatusUpdated = (data: { orderId: number, status: OrderStatus }) => {
       setOrders((prev) => {
-        if (data.status === 'COMPLETED') {
+        if (data.status === 'COMPLETED' || !KDS_STATUSES.includes(data.status)) {
           return prev.filter(o => o.id !== data.orderId)
         }
-        return prev.map(o => o.id === data.orderId ? { ...o, status: data.status } : o)
+        return mergeKdsOrders(
+          prev.map(o => o.id === data.orderId ? { ...o, status: data.status } : o),
+          [],
+        )
       })
     }
 

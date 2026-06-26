@@ -10,6 +10,7 @@ interface FormModalProps {
   children: React.ReactNode;
   width?: number | string;
   destroyOnHidden?: boolean;
+  forceRender?: boolean;
 }
 
 export function FormModal({
@@ -19,7 +20,8 @@ export function FormModal({
   onClose,
   children,
   width = 800,
-  destroyOnHidden = true,
+  destroyOnHidden = false,
+  forceRender = true,
 }: FormModalProps) {
   return (
     <Modal
@@ -33,6 +35,7 @@ export function FormModal({
       onCancel={onClose}
       footer={null}
       width={width}
+      forceRender={forceRender}
       destroyOnHidden={destroyOnHidden}
       className="dark:[&_.ant-modal-content]:bg-slate-900 [&_.ant-modal-content]:rounded-2xl"
     >
