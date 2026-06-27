@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { fetchAPI } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/endpoints';
+import { setStoredBranchId } from '@/lib/branch-storage';
 
 type User = {
   id: number;
@@ -29,9 +30,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [activeBranchId, setActiveBranchId] = useState<number | null>(null);
+  const [activeBranchId, setActiveBranchIdState] = useState<number | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
+
+  const setActiveBranchId = useCallback(
+    (id: number | null) => {
+      setActiveBranchIdState(id);
+      if (user?.role === 'SUPER_ADMIN') {
+        setStoredBranchId(id);
+      }
+    },
+    [user?.role],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -40,12 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((profile: User) => {
         if (cancelled) return;
         setUser(profile);
-        setActiveBranchId(profile.branchId ?? null);
+        setActiveBranchIdState(profile.branchId ?? null);
       })
       .catch(() => {
         if (cancelled) return;
         setUser(null);
-        setActiveBranchId(null);
+        setActiveBranchIdState(null);
       })
       .finally(() => {
         if (!cancelled) setIsInitialized(true);
@@ -58,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (newUser: User) => {
     setUser(newUser);
-    setActiveBranchId(newUser.branchId ?? null);
+    setActiveBranchIdState(newUser.branchId ?? null);
     const landing =
       newUser.role === 'STAFF' ? '/pos/terminal' : '/';
     router.push(landing);
@@ -72,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clear client state even if the server call fails.
     }
     setUser(null);
-    setActiveBranchId(null);
+    setActiveBranchIdState(null);
     router.push('/login');
     toast.success('Logged out successfully');
   }, [router]);

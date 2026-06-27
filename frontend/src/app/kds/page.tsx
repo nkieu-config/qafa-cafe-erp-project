@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { CheckCircle2, Clock, Play } from "lucide-react"
 import { Order, OrderItem, OrderStatus } from "@/types/api"
 import { formatQueueNumber } from "@/lib/queue"
+import { BranchEmptyState } from "@/components/shared/branch-empty-state"
 
 const KDS_STATUSES: OrderStatus[] = ['PENDING', 'PREPARING']
 
@@ -97,7 +98,12 @@ export default function KdsPage() {
   }
 
   if (!activeBranchId) {
-    return <div className="p-10 text-center">Please select a branch from the sidebar to view KDS.</div>
+    return (
+      <AnimatedPage className="h-full flex flex-col space-y-4">
+        <PageHeader title="Kitchen Display System (KDS)" description="Real-time order queue" />
+        <BranchEmptyState description="Select a branch in the top bar to view the kitchen display." />
+      </AnimatedPage>
+    )
   }
 
   return (

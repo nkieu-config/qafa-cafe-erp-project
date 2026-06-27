@@ -1,31 +1,54 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { usePathname } from "next/navigation"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Bell, MapPin } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { useBranches } from "@/hooks/domains/useGeneralQueries"
-
-type BranchOption = { id: number; name: string }
+import {
+  getStoredBranchSelection,
+  resolveDefaultBranchId,
+} from "@/lib/branch-storage"
+import type { Branch } from "@/types/api"
 
 export function Topbar() {
   const pathname = usePathname()
-  const { user, activeBranchId, setActiveBranchId } = useAuth()
+  const { user, activeBranchId, setActiveBranchId, isInitialized } = useAuth()
   const isSuperAdmin = user?.role === "SUPER_ADMIN"
-  const { data: branches = [] } = useBranches(isSuperAdmin) as { data: BranchOption[] }
-  
-  // Format breadcrumb based on pathname
+  const { data: branchesData = [] } = useBranches(isSuperAdmin)
+  const branches = branchesData as Branch[]
+  const hasAppliedBranchPref = useRef(false)
+
   const pathParts = pathname.split('/').filter(Boolean)
   const currentPage = pathParts.length > 0 
     ? pathParts[0].charAt(0).toUpperCase() + pathParts[0].slice(1)
     : 'Dashboard'
 
   useEffect(() => {
-    if (isSuperAdmin && !activeBranchId && branches.length > 0) {
-      setActiveBranchId(branches[0].id)
+    if (!isSuperAdmin || !isInitialized || branches.length === 0) return
+    if (hasAppliedBranchPref.current) return
+    hasAppliedBranchPref.current = true
+
+    const selection = getStoredBranchSelection()
+    if (selection === 'unset') {
+      const defaultId = resolveDefaultBranchId(branches)
+      if (defaultId != null) setActiveBranchId(defaultId)
+      return
     }
-  }, [isSuperAdmin, activeBranchId, branches, setActiveBranchId])
+
+    if (selection === null) {
+      setActiveBranchId(null)
+      return
+    }
+
+    if (branches.some((b) => b.id === selection)) {
+      setActiveBranchId(selection)
+    } else {
+      const defaultId = resolveDefaultBranchId(branches)
+      if (defaultId != null) setActiveBranchId(defaultId)
+    }
+  }, [isSuperAdmin, isInitialized, branches, setActiveBranchId])
 
   if (pathname === '/login') return null;
 
@@ -42,11 +65,15 @@ export function Topbar() {
           <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 shadow-sm">
             <MapPin className="w-4 h-4 text-emerald-500" />
             <select 
-              className="bg-transparent text-sm font-semibold text-slate-700 dark:text-slate-200 focus:outline-none appearance-none cursor-pointer pr-4"
-              value={activeBranchId || ''}
-              onChange={(e) => setActiveBranchId(Number(e.target.value))}
+              className="bg-transparent text-sm font-semibold text-slate-700 dark:text-slate-200 focus:outline-none appearance-none cursor-pointer pr-4 max-w-[220px] truncate"
+              value={activeBranchId ?? ''}
+              onChange={(e) => {
+                const val = e.target.value
+                setActiveBranchId(val ? Number(val) : null)
+              }}
             >
-              {branches.map((b: BranchOption) => (
+              <option value="" className="dark:bg-slate-900">All Branches (HQ)</option>
+              {branches.map((b) => (
                 <option key={b.id} value={b.id} className="dark:bg-slate-900">{b.name}</option>
               ))}
             </select>

@@ -1,23 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useKitchenOrders, useIngredients, useCompleteKitchenOrder, useUpdateOrderStatus, useCreateProductionOrder } from '@/hooks/domains/useProductionQueries';
-import { getProductionOrders, completeProductionOrder, getIngredients, createProductionOrder, updateProductionOrderStatus } from "@/lib/api"
+import { useBranches } from "@/hooks/domains/useGeneralQueries"
 import { Button, Form, Select, InputNumber, DatePicker, Spin } from "antd"
 import { Ingredient } from "@/types/api"
 import { FormModal } from "@/components/shared/form-modal"
 import { ChefHat, PackageOpen, Plus, Clock, PlayCircle, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { useAuth } from "@/context/AuthContext"
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent } from "@dnd-kit/core"
 import { useDroppable, useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import type { ProductionOrder } from "@/types/api"
+import type { ProductionOrder, Branch } from "@/types/api"
 
 type ProductionOrderWithTarget = ProductionOrder & { targetIngredient: Ingredient }
 
-// Helper Components for Kanban
 function KanbanColumn({ id, title, icon, color, children }: { id: string, title: string, icon: React.ReactNode, color: string, children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
@@ -81,10 +81,19 @@ function KanbanCard({ order, isOverlay = false }: { order: ProductionOrderWithTa
 }
 
 export default function CentralKitchenPage() {
-  const { activeBranchId } = useAuth()
+  const { activeBranchId, setActiveBranchId } = useAuth()
+  const { data: branchesData = [] } = useBranches()
+  const branches = branchesData as Branch[]
   const { data: ingredients = [] } = useIngredients()
   const { data: ordersData = [], isLoading } = useKitchenOrders()
-  const orders = ordersData.filter((o: ProductionOrderWithTarget) => ['PLANNED', 'IN_PROGRESS', 'COMPLETED'].includes(o.status))
+
+  const activeBranch = branches.find((b) => b.id === activeBranchId)
+  const centralKitchen = branches.find((b) => b.isCentralKitchen)
+  const isCentralKitchen = activeBranch?.isCentralKitchen === true
+
+  const orders = ordersData
+    .filter((o: ProductionOrderWithTarget) => ['PLANNED', 'IN_PROGRESS', 'COMPLETED'].includes(o.status))
+    .filter((o: ProductionOrderWithTarget) => !activeBranchId || o.branchId === activeBranchId)
   
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [form] = Form.useForm()
@@ -104,6 +113,7 @@ export default function CentralKitchenPage() {
 
   const handleCreate = async (values: { targetIngredientId: number; quantityToProduce: number; plannedStartDate?: Date }) => {
     if (!activeBranchId) return toast.error("Please select a branch");
+    if (!isCentralKitchen) return toast.error("Switch to a central kitchen branch to create production orders");
     try {
       await createOrderMutation.mutateAsync({
         branchId: activeBranchId,
@@ -122,7 +132,7 @@ export default function CentralKitchenPage() {
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const order = orders.find((o: ProductionOrderWithTarget) => o.id === active.id);
-    setActiveOrder(order);
+    setActiveOrder(order ?? null);
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -136,7 +146,6 @@ export default function CentralKitchenPage() {
 
     if (!order || order.status === newStatus) return;
     
-    // Prevent moving out of COMPLETED
     if (order.status === 'COMPLETED') {
       toast.error("Cannot change status of a completed order.");
       return;
@@ -161,6 +170,29 @@ export default function CentralKitchenPage() {
   const inProgressOrders = orders.filter((o: ProductionOrderWithTarget) => o.status === 'IN_PROGRESS');
   const completedOrders = orders.filter((o: ProductionOrderWithTarget) => o.status === 'COMPLETED');
 
+  const branchGuard = !activeBranchId ? (
+    <BranchEmptyState description="Use the branch selector in the top bar to manage production." />
+  ) : !isCentralKitchen ? (
+    <div className="rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 p-10 text-center max-w-lg mx-auto">
+      <ChefHat className="w-10 h-10 text-orange-500 mx-auto mb-4" />
+      <p className="font-semibold text-slate-800 dark:text-slate-100">
+        {activeBranch?.name} is not a central kitchen
+      </p>
+      <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+        Production orders are managed at a central kitchen branch. Switch branches to continue.
+      </p>
+      {centralKitchen && (
+        <Button
+          type="primary"
+          className="mt-6 bg-orange-500 hover:bg-orange-600 border-none font-bold"
+          onClick={() => setActiveBranchId(centralKitchen.id)}
+        >
+          Switch to {centralKitchen.name}
+        </Button>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-6 w-full">
       <HubPageHeader
@@ -168,18 +200,22 @@ export default function CentralKitchenPage() {
         icon={ChefHat}
         description="Drag and drop orders to update status."
         actions={
-          <Button 
-            type="primary" 
-            className="bg-orange-500 hover:bg-orange-600 shadow-sm font-bold flex items-center border-none"
-            onClick={() => setIsModalVisible(true)}
-            icon={<Plus className="w-4 h-4" />}
-          >
-            New Order
-          </Button>
+          isCentralKitchen ? (
+            <Button 
+              type="primary" 
+              className="bg-orange-500 hover:bg-orange-600 shadow-sm font-bold flex items-center border-none"
+              onClick={() => setIsModalVisible(true)}
+              icon={<Plus className="w-4 h-4" />}
+            >
+              New Order
+            </Button>
+          ) : undefined
         }
       />
 
-      {isLoading && orders.length === 0 ? (
+      {branchGuard ? (
+        branchGuard
+      ) : isLoading && orders.length === 0 ? (
         <div className="py-20 flex justify-center"><Spin size="large" /></div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

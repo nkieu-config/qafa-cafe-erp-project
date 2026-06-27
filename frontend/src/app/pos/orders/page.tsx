@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 
 function statusColor(status: OrderStatus) {
   switch (status) {
@@ -105,9 +106,7 @@ export default function PosOrdersPage() {
 
   if (!branchId) {
     return (
-      <div className="p-10 text-center text-slate-500">
-        Select a branch to view orders.
-      </div>
+      <BranchEmptyState description="Select a branch in the top bar to view orders and refunds." />
     );
   }
 

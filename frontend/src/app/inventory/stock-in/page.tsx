@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { filterActive, updateLineItem } from "@/lib/form";
 import type { Ingredient, StockLineItem } from "@/types/api";
 import { getErrorMessage } from "@/lib/errors";
+import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 
 export default function StockInPage() {
   const { activeBranchId } = useAuth();
@@ -68,6 +69,12 @@ export default function StockInPage() {
       toast.error(getErrorMessage(err, "Failed to receive stock"));
     }
   };
+
+  if (!activeBranchId) {
+    return (
+      <BranchEmptyState description="Select a branch in the top bar to receive stock." />
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 max-w-4xl">

@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getBranches } from "@/lib/api";
 import { useBranches } from '@/hooks/domains/useGeneralQueries';
 import { useAnalyticsSummary, useTopProducts, useSalesTrends } from '@/hooks/domains/useReportsQueries';
+import { useAuth } from "@/context/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, TrendingDown, DollarSign, Award, Store, AlertTriangle, GripHorizontal, CheckCircle2, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
@@ -43,7 +42,9 @@ function SortableWidget({ id, children, className }: { id: string, children: Rea
 }
 
 export default function AnalyticsDashboard() {
-  const [selectedBranch, setSelectedBranch] = useState<string>("ALL");
+  const { activeBranchId } = useAuth();
+  const analyticsBranch =
+    activeBranchId != null ? String(activeBranchId) : "ALL";
 
   // Layout State
   const defaultLayout = ['sales', 'topBranch', 'lowStock', 'topProducts', 'salesChart'];
@@ -68,9 +69,15 @@ export default function AnalyticsDashboard() {
 
   // ✅ REACT QUERY HOOKS
   const { data: branches = [] } = useBranches();
-  const { data: summary, isLoading: isLoadingSummary, isError: isSummaryError, error: summaryError, refetch: refetchSummary } = useAnalyticsSummary(selectedBranch);
-  const { data: topProducts = [], isLoading: isLoadingProducts, isError: isProductsError, error: productsError, refetch: refetchProducts } = useTopProducts(selectedBranch);
-  const { data: salesTrends = [], isLoading: isLoadingTrends } = useSalesTrends(selectedBranch);
+  const { data: summary, isLoading: isLoadingSummary, isError: isSummaryError, error: summaryError, refetch: refetchSummary } = useAnalyticsSummary(analyticsBranch);
+  const { data: topProducts = [], isLoading: isLoadingProducts, isError: isProductsError, error: productsError, refetch: refetchProducts } = useTopProducts(analyticsBranch);
+  const { data: salesTrends = [], isLoading: isLoadingTrends } = useSalesTrends(analyticsBranch);
+
+  const branchLabel =
+    activeBranchId != null
+      ? (branches as Branch[]).find((b) => b.id === activeBranchId)?.name ??
+        `Branch #${activeBranchId}`
+      : "All Branches (HQ)";
 
   const loading = isLoadingSummary || isLoadingProducts || isLoadingTrends;
   const hasError = isSummaryError || isProductsError;
@@ -240,20 +247,12 @@ export default function AnalyticsDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
           <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Executive Dashboard</h2>
-          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">Drag widgets from the top right corner to customize layout.</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
+            Drag widgets from the top right corner to customize layout.
+          </p>
         </div>
-        <div className="w-full sm:w-72">
-          <Select value={selectedBranch} onValueChange={(val) => setSelectedBranch(val || "ALL")}>
-            <SelectTrigger className="bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 font-bold h-12 shadow-sm rounded-xl">
-              <SelectValue placeholder="Select Branch" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl font-medium">
-              <SelectItem value="ALL">All Branches (HQ Overview)</SelectItem>
-              {branches.map((b: Branch) => (
-                <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="text-sm font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-xl">
+          Viewing: <span className="text-emerald-600 dark:text-emerald-400">{branchLabel}</span>
         </div>
       </div>
 

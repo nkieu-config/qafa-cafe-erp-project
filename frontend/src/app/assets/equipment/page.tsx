@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Wrench, AlertTriangle, Coffee } from "lucide-react";
 import { toast } from "sonner";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { DataTable } from "@/components/shared/data-table";
 import { Equipment, Branch } from "@/types/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -76,6 +77,12 @@ export default function EquipmentPage() {
   };
 
 
+
+  if (!activeBranchId) {
+    return (
+      <BranchEmptyState description="Select a branch in the top bar to manage equipment." />
+    );
+  }
 
   return (
     <div className="space-y-6">

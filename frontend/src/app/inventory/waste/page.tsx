@@ -14,6 +14,7 @@ import type { Ingredient, WasteLineItem } from "@/types/api";
 import { getErrorMessage } from "@/lib/errors";
 import { DataTable } from "@/components/shared/data-table";
 import { HubCard } from "@/components/shared/hub-card";
+import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { format } from "date-fns";
 
 const emptyLine = (): WasteLineItem => ({
@@ -88,9 +89,7 @@ export default function WasteLogPage() {
 
   if (!branchId) {
     return (
-      <div className="p-10 text-center text-slate-500">
-        Select a branch to record and view waste logs.
-      </div>
+      <BranchEmptyState description="Select a branch in the top bar to record and view waste logs." />
     );
   }
 

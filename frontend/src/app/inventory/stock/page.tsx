@@ -2,17 +2,17 @@
 
 import { useState } from "react";
 import { useBranchDetails, useAddInventoryBatch, useReportWaste } from '@/hooks/domains/useInventoryQueries';
-import { StockTransfersPanel } from "@/components/inventory/StockTransfersPanel";
+import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { Table, Tag, Button as AntButton, Popconfirm, Calendar, Popover, Badge } from "antd";
-import { PackageOpen, PackagePlus, Trash2, CalendarDays, AlertCircle } from "lucide-react";
+import { PackageOpen, PackagePlus, Trash2, CalendarDays, AlertCircle, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { HubPageHeader } from "@/components/shared/hub-card"
+import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { DataTable } from "@/components/shared/data-table"
 import { format, differenceInDays } from "date-fns";
 import type { Dayjs } from "dayjs";
@@ -38,6 +38,15 @@ export default function InventoryPage() {
   const [batchExpiry, setBatchExpiry] = useState("");
   const [isAddingBatch, setIsAddingBatch] = useState(false);
   const [calendarMode, setCalendarMode] = useState<'month' | 'year'>('month');
+  const [wasteTarget, setWasteTarget] = useState<{
+    batchId: number;
+    ingredientId: number;
+    maxQty: number;
+    ingredientName: string;
+  } | null>(null);
+  const [wasteQty, setWasteQty] = useState("");
+  const [wasteReason, setWasteReason] = useState("Expired");
+  const [isWasteOpen, setIsWasteOpen] = useState(false);
 
   // Removed useEffect and fetchInventory, handled by React Query
 
@@ -67,26 +76,42 @@ export default function InventoryPage() {
     }
   };
 
-  const handleWaste = async (batchId: number, ingredientId: number, maxQty: number) => {
-    const qtyStr = prompt(`How much to discard from this batch? (Max: ${maxQty})`);
-    if (!qtyStr) return;
-    const qty = Number(qtyStr);
-    if (isNaN(qty) || qty <= 0 || qty > maxQty) {
-      toast.error("Invalid quantity");
+  const openWasteDialog = (
+    batchId: number,
+    ingredientId: number,
+    maxQty: number,
+    ingredientName: string,
+  ) => {
+    setWasteTarget({ batchId, ingredientId, maxQty, ingredientName });
+    setWasteQty(String(maxQty));
+    setWasteReason("Expired");
+    setIsWasteOpen(true);
+  };
+
+  const handleWasteSubmit = async () => {
+    if (!wasteTarget || !activeBranchId) return;
+    const qty = Number(wasteQty);
+    if (isNaN(qty) || qty <= 0 || qty > wasteTarget.maxQty) {
+      toast.error(`Enter a quantity between 0 and ${wasteTarget.maxQty}`);
       return;
     }
-    const reason = prompt("Reason for waste (e.g. Expired, Spilled):") || "Expired";
+    if (!wasteReason.trim()) {
+      toast.error("Please enter a reason");
+      return;
+    }
     try {
       await reportWasteMutation.mutateAsync({
-        branchId: activeBranchId!,
+        branchId: activeBranchId,
         data: {
-          batchId,
-          ingredientId,
+          batchId: wasteTarget.batchId,
+          ingredientId: wasteTarget.ingredientId,
           quantity: qty,
-          reason
-        }
+          reason: wasteReason.trim(),
+        },
       });
       toast.success("Waste reported successfully.");
+      setIsWasteOpen(false);
+      setWasteTarget(null);
     } catch (err: unknown) {
       if (err instanceof Error) toast.error(err.message);
     }
@@ -239,7 +264,14 @@ export default function InventoryPage() {
             type="text" 
             danger
             icon={<Trash2 className="w-4 h-4" />}
-            onClick={() => handleWaste(b.id, b.ingredientId, b.quantity)}
+            onClick={() =>
+              openWasteDialog(
+                b.id,
+                b.ingredientId,
+                b.quantity,
+                record.ingredient.name,
+              )
+            }
             title="Mark as Waste/Expired"
           />
         ),
@@ -262,9 +294,7 @@ export default function InventoryPage() {
 
   if (!activeBranchId) {
     return (
-      <div className="p-10 text-center font-bold text-slate-500 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
-        Please select a branch to view its inventory.
-      </div>
+      <BranchEmptyState description="Select a branch in the top bar to manage batches and expiry." />
     );
   }
 
@@ -272,52 +302,93 @@ export default function InventoryPage() {
 
   return (
     <div className="w-full space-y-6">
-      <HubPageHeader
-        title="Batches & Expiry"
-        icon={PackageOpen}
-        description="Manage stock levels and expiring batches."
-        actions={
-          <div className="flex gap-2">
-            <Dialog>
-              <DialogTrigger render={<Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold">
-                <PackagePlus className="w-4 h-4 mr-2" /> Receive Stock
-              </Button>} />
-            <DialogContent className="rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="font-black text-xl">Receive New Batch</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleAddBatch} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label className="font-bold text-slate-700">Ingredient</Label>
-                  <select 
-                    className="flex h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
-                    value={batchIngredient} 
-                    onChange={(e) => setBatchIngredient(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Ingredient</option>
-                    {uniqueIngredients.map((inv: Ingredient) => (
-                      <option key={inv.id} value={inv.id}>{inv.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold text-slate-700">Quantity</Label>
-                  <Input className="h-11 rounded-xl bg-slate-50" type="number" min="0.1" step="0.1" value={batchQty} onChange={(e) => setBatchQty(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold text-slate-700">Expiry Date (Optional)</Label>
-                  <Input className="h-11 rounded-xl bg-slate-50" type="date" value={batchExpiry} onChange={(e) => setBatchExpiry(e.target.value)} />
-                </div>
-                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11 font-bold rounded-xl" disabled={isAddingBatch}>
-                  {isAddingBatch ? "Saving..." : "Save Batch"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+      <div className="flex justify-end">
+        <Dialog>
+          <DialogTrigger render={
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold">
+              <PackagePlus className="w-4 h-4 mr-2" /> Receive Stock
+            </Button>
+          } />
+          <DialogContent className="rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="font-black text-xl">Receive New Batch</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddBatch} className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label className="font-bold text-slate-700">Ingredient</Label>
+                <select 
+                  className="flex h-11 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
+                  value={batchIngredient} 
+                  onChange={(e) => setBatchIngredient(e.target.value)}
+                  required
+                >
+                  <option value="">Select Ingredient</option>
+                  {uniqueIngredients.map((inv: Ingredient) => (
+                    <option key={inv.id} value={inv.id}>{inv.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold text-slate-700">Quantity</Label>
+                <Input className="h-11 rounded-xl bg-slate-50" type="number" min="0.1" step="0.1" value={batchQty} onChange={(e) => setBatchQty(e.target.value)} required />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold text-slate-700">Expiry Date (Optional)</Label>
+                <Input className="h-11 rounded-xl bg-slate-50" type="date" value={batchExpiry} onChange={(e) => setBatchExpiry(e.target.value)} />
+              </div>
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-11 font-bold rounded-xl" disabled={isAddingBatch}>
+                {isAddingBatch ? "Saving..." : "Save Batch"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <Dialog open={isWasteOpen} onOpenChange={setIsWasteOpen}>
+        <DialogContent className="rounded-2xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-black text-xl">Report Batch Waste</DialogTitle>
+            <DialogDescription>
+              {wasteTarget
+                ? `Discard from ${wasteTarget.ingredientName} (max ${wasteTarget.maxQty})`
+                : "Record waste for this batch"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label className="font-bold">Quantity</Label>
+              <Input
+                type="number"
+                min="0.01"
+                step="0.01"
+                max={wasteTarget?.maxQty}
+                value={wasteQty}
+                onChange={(e) => setWasteQty(e.target.value)}
+              />
             </div>
-          }
-        />
+            <div className="space-y-2">
+              <Label className="font-bold">Reason</Label>
+              <Input
+                value={wasteReason}
+                onChange={(e) => setWasteReason(e.target.value)}
+                placeholder="Expired, Spilled, etc."
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setIsWasteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={() => void handleWasteSubmit()}
+              disabled={reportWasteMutation.isPending}
+            >
+              {reportWasteMutation.isPending ? "Saving..." : "Confirm Waste"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Heatmap Section */}
@@ -367,13 +438,25 @@ export default function InventoryPage() {
             />
           </div>
 
-          <StockTransfersPanel
-            mode="compact"
-            sourceInventories={inventories.map((i) => ({
-              ingredient: i.ingredient,
-              stock: i.stock,
-            }))}
-          />
+          <Link
+            href="/procurement/transfers"
+            className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
+                <ArrowRightLeft className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900 dark:text-slate-100">Stock Transfers</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Request and accept transfers between branches
+                </p>
+              </div>
+            </div>
+            <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400 shrink-0">
+              Open →
+            </span>
+          </Link>
         </div>
       </div>
     </div>

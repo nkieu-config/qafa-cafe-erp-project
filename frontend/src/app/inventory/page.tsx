@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Package, AlertTriangle } from "lucide-react";
 import { DataTable } from "@/components/shared/data-table";
+import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 
 import type { BranchInventory } from "@/types/api";
 
@@ -15,6 +16,9 @@ export default function InventoryBalancePage() {
   const { data: inventoryData, isLoading } = useBranchInventory(activeBranchId || undefined);
   const inventory = inventoryData || [];
 
+  if (!activeBranchId) {
+    return <BranchEmptyState description="Select a branch in the top bar to view stock balances." />;
+  }
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
