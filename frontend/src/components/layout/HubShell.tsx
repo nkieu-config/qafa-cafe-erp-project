@@ -63,12 +63,12 @@ export function HubShell({
       </div>
 
       {tabs.length > 0 && (
-        <div className="relative shrink-0">
+        <div className="relative shrink-0 w-fit max-w-full">
           <div
             ref={tabsRef}
             role="tablist"
             aria-label={`${hub.label} sections`}
-            className="flex space-x-2 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl w-full max-w-full overflow-x-auto scrollbar-thin scroll-smooth snap-x snap-mandatory"
+            className="inline-flex max-w-full space-x-2 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl overflow-x-auto scrollbar-thin scroll-smooth snap-x snap-mandatory"
           >
             {tabs.map((tab) => {
               const isActive = isTabActive(pathname, tab.path, hub.basePath);
