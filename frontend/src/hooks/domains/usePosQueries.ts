@@ -1,6 +1,59 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
+import type { Order, OrderStatus } from '@/types/api';
+import { KDS_STATUSES, mergeKdsOrders, normalizeKdsOrders } from '@/lib/kds-utils';
+
+export const kdsOrdersQueryKey = (branchId?: number) => ['kdsOrders', branchId] as const;
+
+export const useKdsOrders = (branchId?: number, isConnected = false) => {
+  return useQuery({
+    queryKey: kdsOrdersQueryKey(branchId),
+    queryFn: () => fetchAPI(API_ENDPOINTS.orders.kds(branchId!)),
+    enabled: !!branchId,
+    refetchInterval: isConnected ? false : 30_000,
+    select: normalizeKdsOrders,
+  });
+};
+
+export const useUpdateKdsOrderStatus = (branchId?: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ orderId, status }: { orderId: number; status: string }) =>
+      fetchAPI(API_ENDPOINTS.orders.updateStatus(orderId), {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      }),
+    onMutate: async ({ orderId, status }) => {
+      if (!branchId) return;
+      await queryClient.cancelQueries({ queryKey: kdsOrdersQueryKey(branchId) });
+      const previous = queryClient.getQueryData<Order[]>(kdsOrdersQueryKey(branchId));
+
+      queryClient.setQueryData<Order[]>(kdsOrdersQueryKey(branchId), (old) => {
+        const current = normalizeKdsOrders(old);
+        if (status === 'COMPLETED' || !KDS_STATUSES.includes(status as OrderStatus)) {
+          return current.filter((o) => o.id !== orderId);
+        }
+        return mergeKdsOrders(
+          current.map((o) => (o.id === orderId ? { ...o, status: status as OrderStatus } : o)),
+          [],
+        );
+      });
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (branchId && context?.previous) {
+        queryClient.setQueryData(kdsOrdersQueryKey(branchId), context.previous);
+      }
+    },
+    onSettled: () => {
+      if (branchId) {
+        queryClient.invalidateQueries({ queryKey: kdsOrdersQueryKey(branchId) });
+      }
+    },
+  });
+};
 
 // ==========================================
 // 🛒 POS HOOKS

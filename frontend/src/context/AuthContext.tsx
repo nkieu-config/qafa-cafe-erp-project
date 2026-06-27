@@ -1,25 +1,17 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { fetchAPI } from '@/lib/api/client';
-import { API_ENDPOINTS } from '@/lib/endpoints';
-import { setStoredBranchId } from '@/lib/branch-storage';
-
-type User = {
-  id: number;
-  email: string;
-  name: string;
-  role: string;
-  branchId: number | null;
-  branch: string | null;
-};
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { fetchAPI } from "@/lib/api/client";
+import { API_ENDPOINTS } from "@/lib/endpoints";
+import { setStoredBranchId } from "@/lib/branch-storage";
+import type { SessionUser } from "@/types/auth";
 
 type AuthContextType = {
-  user: User | null;
+  user: SessionUser | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
+  login: (user: SessionUser) => void;
   logout: () => Promise<void>;
   activeBranchId: number | null;
   setActiveBranchId: (id: number | null) => void;
@@ -28,16 +20,26 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [activeBranchId, setActiveBranchIdState] = useState<number | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+type AuthProviderProps = {
+  children: React.ReactNode;
+  initialUser?: SessionUser;
+  hydratedFromServer?: boolean;
+};
+
+export function AuthProvider({
+  children,
+  initialUser,
+  hydratedFromServer = false,
+}: AuthProviderProps) {
+  const [user, setUser] = useState<SessionUser | null>(initialUser ?? null);
+  const [activeBranchId, setActiveBranchIdState] = useState<number | null>(initialUser?.branchId ?? null);
+  const [isInitialized, setIsInitialized] = useState(hydratedFromServer);
   const router = useRouter();
 
   const setActiveBranchId = useCallback(
     (id: number | null) => {
       setActiveBranchIdState(id);
-      if (user?.role === 'SUPER_ADMIN') {
+      if (user?.role === "SUPER_ADMIN") {
         setStoredBranchId(id);
       }
     },
@@ -45,10 +47,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
+    if (hydratedFromServer) return;
+
     let cancelled = false;
 
     fetchAPI(API_ENDPOINTS.auth.me)
-      .then((profile: User) => {
+      .then((profile: SessionUser) => {
         if (cancelled) return;
         setUser(profile);
         setActiveBranchIdState(profile.branchId ?? null);
@@ -65,27 +69,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [hydratedFromServer]);
 
-  const login = (newUser: User) => {
+  const login = (newUser: SessionUser) => {
     setUser(newUser);
     setActiveBranchIdState(newUser.branchId ?? null);
-    const landing =
-      newUser.role === 'STAFF' ? '/pos/terminal' : '/';
+    setIsInitialized(true);
+    const landing = newUser.role === "STAFF" ? "/pos/terminal" : "/";
     router.push(landing);
-    toast.success('Logged in successfully');
+    toast.success("Logged in successfully");
   };
 
   const logout = useCallback(async () => {
     try {
-      await fetchAPI(API_ENDPOINTS.auth.logout, { method: 'POST' });
+      await fetchAPI(API_ENDPOINTS.auth.logout, { method: "POST" });
     } catch {
       // Clear client state even if the server call fails.
     }
     setUser(null);
     setActiveBranchIdState(null);
-    router.push('/login');
-    toast.success('Logged out successfully');
+    router.push("/login");
+    toast.success("Logged out successfully");
   }, [router]);
 
   return (
@@ -108,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

@@ -27,10 +27,11 @@ export const useAttendance = () => {
   });
 };
 
-export const useActiveClockIn = () => {
+export const useActiveClockIn = (enabled = true) => {
   return useQuery({
     queryKey: ['attendance', 'status'],
     queryFn: () => fetchAPI(API_ENDPOINTS.hr.attendanceStatus),
+    enabled,
   });
 };
 

@@ -81,8 +81,6 @@ export function Sidebar() {
     setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
   };
 
-  if (pathname === '/login') return null;
-
   return (
     <div className="w-64 glass-panel border-r-slate-200/50 dark:border-r-slate-800/50 h-screen flex flex-col z-40 relative">
       <div className="h-16 flex items-center px-6 border-b border-slate-200/30 dark:border-slate-800/50 shrink-0">

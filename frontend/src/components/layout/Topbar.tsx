@@ -56,8 +56,6 @@ export function Topbar() {
     }
   }, [isSuperAdmin, isInitialized, branches, setActiveBranchId])
 
-  if (pathname === '/login') return null;
-
   return (
     <header className="h-16 shrink-0 flex items-center justify-between px-4 md:px-8 bg-transparent mb-4 z-20 relative">
       <nav aria-label="Breadcrumb" className="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400">
