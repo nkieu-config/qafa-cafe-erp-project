@@ -379,6 +379,9 @@
   --kds-item-qty: var(--brand);
   --kds-note-bg: var(--status-danger-bg);
   --kds-note-fg: var(--status-danger-fg);
+  --kds-modifier-bg: color-mix(in oklch, var(--metric-blue) 12%, var(--card));
+  --kds-modifier-fg: color-mix(in oklch, var(--metric-blue) 75%, var(--foreground));
+  --kds-timer-chip-bg: color-mix(in oklch, var(--foreground) 18%, transparent);
   --kds-start-btn: var(--metric-amber);
   --kds-done-btn: var(--brand);
   --kds-loading: var(--brand);
@@ -434,6 +437,18 @@
   --on-kds-header-fg: var(--foreground);
   --on-kds-start-fg: var(--foreground);
   --on-kds-done-fg: var(--foreground);
+  --kds-ticket-bg: var(--card);
+  --kds-ticket-footer-bg: color-mix(in oklch, var(--background) 55%, var(--surface-elevated));
+  --kds-ticket-divider: color-mix(in oklch, var(--border) 85%, var(--foreground) 8%);
+  --kds-item-qty: var(--brand-text);
+  --kds-note-bg: color-mix(in oklch, var(--metric-red) 18%, var(--card));
+  --kds-note-fg: color-mix(in oklch, var(--metric-red) 75%, var(--foreground));
+  --kds-modifier-bg: color-mix(in oklch, var(--metric-blue) 16%, var(--card));
+  --kds-modifier-fg: color-mix(in oklch, var(--metric-blue) 70%, var(--foreground));
+  --kds-timer-chip-bg: color-mix(in oklch, var(--foreground) 14%, transparent);
+  --kds-empty-icon: var(--brand-text);
+  --kds-loading: var(--brand-text);
+  --kds-connected-dot: var(--semantic-success);
 
   --auth-hero-card-bg: color-mix(in oklch, var(--brand) 10%, var(--surface-elevated));
   --auth-hero-card-border: color-mix(in oklch, var(--brand) 22%, transparent);

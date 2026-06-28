@@ -11,7 +11,7 @@ import { MobileNavProvider, useMobileNav } from "@/context/MobileNavContext";
 import { SidebarBadgesProvider } from "@/context/SidebarBadgesContext";
 import { SidebarPreferencesProvider } from "@/context/SidebarPreferencesContext";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { isImmersiveRoute, isPosImmersiveRoute } from "@/lib/shell-routes";
+import { isImmersiveRoute, isOperationalImmersiveRoute } from "@/lib/shell-routes";
 import { cn } from "@/lib/utils";
 import { mainContentWithMobileNavClassName, mainContentWithPosImmersiveNavClassName, shell, shellContentFrameClassName, shellContentPaddingYClassName, skipLinkClassName } from "@/lib/theme";
 
@@ -20,13 +20,13 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const { open, setOpen, close } = useMobileNav();
   const immersive = isImmersiveRoute(pathname);
-  const posImmersive = isPosImmersiveRoute(pathname);
+  const operationalImmersive = isOperationalImmersiveRoute(pathname);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const useRail = immersive && !sidebarExpanded;
   const showMobileBottomNav = !immersive;
   const mobileContentPadding = showMobileBottomNav
     ? mainContentWithMobileNavClassName()
-    : posImmersive
+    : operationalImmersive
       ? mainContentWithPosImmersiveNavClassName()
       : undefined;
 

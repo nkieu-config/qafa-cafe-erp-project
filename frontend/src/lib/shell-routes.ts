@@ -17,6 +17,16 @@ export function isPosImmersiveRoute(pathname: string) {
   );
 }
 
+/** KDS — mobile uses operational quick nav instead of global bottom nav. */
+export function isKdsImmersiveRoute(pathname: string) {
+  return pathname === "/kds" || pathname.startsWith("/kds/");
+}
+
+/** Shared bottom padding for POS/KDS immersive mobile nav bars. */
+export function isOperationalImmersiveRoute(pathname: string) {
+  return isPosImmersiveRoute(pathname) || isKdsImmersiveRoute(pathname);
+}
+
 /** Hub layout pages (HubShell) — used for compact topbar rhythm on desktop. */
 export function isShellHubPage(pathname: string): boolean {
   if (pathname === "/" || pathname === "") return false;

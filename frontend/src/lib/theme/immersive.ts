@@ -312,7 +312,7 @@ export function kdsLoadingClassName(className?: string) {
 export function kdsEmptyStateClassName(className?: string) {
   return cn(
     "w-full py-20 text-center rounded-2xl border border-dashed",
-    "border-[var(--pos-panel-border)] bg-[var(--pos-panel-bg)]",
+    "border-[var(--kds-ticket-divider)] bg-[var(--kds-ticket-bg)]",
     className,
   );
 }
@@ -327,7 +327,7 @@ export function kdsTicketGridClassName(className?: string) {
 
 export function kdsTicketClassName(urgency: KdsTicketUrgency, className?: string) {
   return cn(
-    "w-full min-h-[min(70vh,520px)] max-h-[min(85vh,720px)] rounded-2xl shadow-xl border-4 overflow-hidden flex flex-col",
+    "w-full min-h-[420px] max-h-[min(85vh,720px)] lg:min-h-[min(70vh,520px)] rounded-2xl shadow-xl border-4 overflow-hidden flex flex-col",
     "bg-[var(--kds-ticket-bg)] transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none",
     kdsTicketBorder[urgency],
     className,
@@ -362,6 +362,30 @@ export function kdsItemNoteClassName(className?: string) {
   return cn(
     "mt-2 text-xl font-bold px-2 py-1 rounded inline-block",
     "bg-[var(--kds-note-bg)] text-[var(--kds-note-fg)]",
+    className,
+  );
+}
+
+export function kdsItemModifierClassName(className?: string) {
+  return cn(
+    "mt-1 text-base font-semibold px-2 py-0.5 rounded inline-block",
+    "bg-[var(--kds-modifier-bg)] text-[var(--kds-modifier-fg)]",
+    className,
+  );
+}
+
+export function kdsTimerChipClassName(className?: string) {
+  return cn(
+    "flex items-center gap-2 font-mono text-lg sm:text-xl font-bold px-3 py-2 rounded-lg shadow-inner",
+    "bg-[var(--kds-timer-chip-bg)] text-[var(--on-kds-header-fg)]",
+    className,
+  );
+}
+
+export function kdsImmersiveHeaderClassName(className?: string) {
+  return cn(
+    "shrink-0 space-y-1 pb-3 border-b mb-4",
+    "border-[var(--kds-ticket-divider)]",
     className,
   );
 }

@@ -2,9 +2,11 @@
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useSocket } from "@/context/SocketContext";
 import type { Order, OrderStatus } from "@/types/api";
 import { KDS_STATUSES, mergeKdsOrders } from "@/lib/kds-utils";
+import { formatQueueNumber } from "@/lib/queue";
 import { kdsOrdersQueryKey } from "@/hooks/domains/usePosQueries";
 
 export function useKdsSocketSync(branchId?: number) {
@@ -19,6 +21,11 @@ export function useKdsSocketSync(branchId?: number) {
       queryClient.setQueryData<Order[]>(kdsOrdersQueryKey(branchId), (old) =>
         mergeKdsOrders(old ?? [], [newOrder]),
       );
+      const queueLabel =
+        newOrder.queueNumber != null && newOrder.queueNumber > 0
+          ? `#${formatQueueNumber(newOrder.queueNumber)}`
+          : `#${newOrder.id}`;
+      toast.message(`New kitchen order ${queueLabel}`);
     };
 
     const handleOrderStatusUpdated = (data: { orderId: number; status: OrderStatus }) => {
