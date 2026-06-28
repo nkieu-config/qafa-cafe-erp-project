@@ -124,6 +124,14 @@
   --tone-procurement-border: color-mix(in oklch, var(--hub-procurement) 30%, transparent);
   --tone-procurement-fg: color-mix(in oklch, var(--hub-procurement) 82%, black);
 
+  --tone-inventory-subtle: color-mix(in oklch, var(--hub-inventory) 10%, var(--card));
+  --tone-inventory-border: color-mix(in oklch, var(--hub-inventory) 30%, transparent);
+  --tone-inventory-fg: color-mix(in oklch, var(--hub-inventory) 82%, black);
+
+  --tone-pos-subtle: color-mix(in oklch, var(--hub-pos) 10%, var(--card));
+  --tone-pos-border: color-mix(in oklch, var(--hub-pos) 30%, transparent);
+  --tone-pos-fg: color-mix(in oklch, var(--hub-pos) 82%, black);
+
   --tone-kitchen-subtle: color-mix(in oklch, var(--hub-kitchen) 10%, var(--card));
   --tone-kitchen-border: color-mix(in oklch, var(--hub-kitchen) 30%, transparent);
   --tone-kitchen-fg: color-mix(in oklch, var(--hub-kitchen) 82%, black);

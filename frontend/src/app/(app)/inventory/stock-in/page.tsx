@@ -32,7 +32,7 @@ import type { Ingredient, StockLineItem, Branch } from "@/types/api";
 import { getErrorMessage } from "@/lib/errors";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   formFieldInsetClassName,
@@ -231,14 +231,16 @@ export default function StockInPage() {
           )}
         </div>
 
-        {ingredientsError && (
-          <QueryErrorBanner
-            message={getErrorMessage(ingredientsErr, "Failed to load ingredients")}
-            onRetry={() => void refetchIngredients()}
-            loading={ingredientsFetching}
-            className="mb-4"
-          />
-        )}
+        <HubListPage.Error
+          message={
+            ingredientsError
+              ? getErrorMessage(ingredientsErr, "Failed to load ingredients")
+              : undefined
+          }
+          onRetry={() => void refetchIngredients()}
+          loading={ingredientsFetching}
+          className="mb-4"
+        />
 
         {!ingredientsLoading && !ingredientsError && ingredients.length === 0 && (
           <div

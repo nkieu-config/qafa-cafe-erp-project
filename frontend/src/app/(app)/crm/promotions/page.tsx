@@ -9,7 +9,7 @@ import {
   useDeletePromotion,
   useTogglePromotion,
 } from "@/hooks/domains/useCrmQueries";
-import { TicketPercent, Plus, Users, Loader2, Pencil, Trash2 } from "lucide-react";
+import { TicketPercent, Plus, Users, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
@@ -31,8 +31,8 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { HubPageHeader } from "@/components/shared/hub-card";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TableActionButton } from "@/components/shared/table-action-button";
@@ -53,12 +53,9 @@ import {
 import {
   crmDialogContentClassName,
   crmSectionPanelClassName,
-  crmSummaryChipClassName,
   formFieldInsetClassName,
   formSelectContentClassName,
   hubCtaClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
   text,
 } from "@/lib/theme";
@@ -250,10 +247,6 @@ export default function PromotionsPage() {
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to delete promotion"));
     }
-  };
-
-  const toggleStatusFilter = (next: PromoStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
   };
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
@@ -514,7 +507,6 @@ export default function PromotionsPage() {
         hideTitle
         icon={TicketPercent}
         accentHub="crm"
-        description="Create and manage discount codes and marketing campaigns."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <ButtonLink href="/crm/customers" variant="outline" className="font-medium">
@@ -542,88 +534,14 @@ export default function PromotionsPage() {
         }
       />
 
-      <div className={crmSectionPanelClassName()}>
-        {!loading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} promo {summary.total === 1 ? "code" : "codes"}
-            </span>
-            {summary.active > 0 && (
-              <button
-                type="button"
-                className={crmSummaryChipClassName(
-                  statusFilter === "active",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleStatusFilter("active")}
-              >
-                {summary.active} active
-              </button>
-            )}
-            {summary.inactive > 0 && (
-              <button
-                type="button"
-                className={crmSummaryChipClassName(
-                  statusFilter === "inactive",
-                  text.muted,
-                )}
-                onClick={() => toggleStatusFilter("inactive")}
-              >
-                {summary.inactive} inactive
-              </button>
-            )}
-            {summary.expired > 0 && (
-              <button
-                type="button"
-                className={crmSummaryChipClassName(
-                  statusFilter === "expired",
-                  metricValueClassName("red"),
-                )}
-                onClick={() => toggleStatusFilter("expired")}
-              >
-                {summary.expired} expired
-              </button>
-            )}
-            {summary.scheduled > 0 && (
-              <button
-                type="button"
-                className={crmSummaryChipClassName(
-                  statusFilter === "scheduled",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleStatusFilter("scheduled")}
-              >
-                {summary.scheduled} scheduled
-              </button>
-            )}
-            {summary.total === 0 && (
-              <span className={text.muted}>No promotion codes yet</span>
-            )}
-            {isFetching && !loading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+      <HubListPage className={crmSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load promotions") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load promotions")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search by code or description…"
@@ -635,46 +553,44 @@ export default function PromotionsPage() {
           }}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={statusFilter}
-                onValueChange={(value) => {
-                  if (value != null) setStatusFilter(value as PromoStatusFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by status"
-                >
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
+                onValueChange={(value) => setStatusFilter(value as PromoStatusFilter)}
+                ariaLabel="Filter by status"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                  { value: "expired", label: "Expired" },
+                  { value: "scheduled", label: "Scheduled" },
+                ]}
+              />
+              <ListFilterSelect
                 value={discountFilter}
-                onValueChange={(value) => {
-                  if (value != null) setDiscountFilter(value as PromoDiscountFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                  aria-label="Filter by discount type"
-                >
-                  <SelectValue placeholder="All discount types" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All discount types</SelectItem>
-                  <SelectItem value="PERCENTAGE">Percentage</SelectItem>
-                  <SelectItem value="FIXED_AMOUNT">Fixed amount</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setDiscountFilter(value as PromoDiscountFilter)}
+                ariaLabel="Filter by discount type"
+                widthClassName="w-full sm:w-[200px]"
+                options={[
+                  { value: "ALL", label: "All discount types" },
+                  { value: "PERCENTAGE", label: "Percentage" },
+                  { value: "FIXED_AMOUNT", label: "Fixed amount" },
+                ]}
+              />
             </>
           }
+        />
+
+        <HubListPage.Count
+          isLoading={loading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredPromotions.length}
+          totalCount={summary.total}
+          itemLabel="promo code"
+          itemLabelPlural="promo codes"
+          emptyLabel="No promotion codes yet"
         />
 
         <DataTable
@@ -694,7 +610,7 @@ export default function PromotionsPage() {
               : "No promotion codes yet. Create one to get started."
           }
         />
-      </div>
+      </HubListPage>
 
       <ConfirmDialog
         open={deleteTarget != null}

@@ -9,7 +9,6 @@ import {
   Pencil,
   Plus,
   Shield,
-  ShieldCheck,
   User as UserIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,23 +17,15 @@ import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { AnimatedPage } from "@/components/animated-page";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { AccessDeniedState } from "@/components/shared/access-denied-state";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge, roleTone } from "@/components/shared/status-badge";
 import { RoleGuard } from "@/components/RoleGuard";
-import { OrganizationHubLinks } from "@/components/organization/OrganizationHubLinks";
 import { UserFormModal } from "@/components/organization/UserFormModal";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   type EmployeeRateFilter,
   type EmployeeRoleFilter,
@@ -55,20 +46,10 @@ import type {
 } from "@/types/api";
 import {
   avatarPlaceholderClassName,
-  formSelectContentClassName,
   hubCtaClassName,
-  infoBannerClassName,
-  infoBannerIconClassName,
-  infoBannerTextClassName,
-  infoBannerTitleClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   organizationSectionPanelClassName,
-  organizationSummaryChipClassName,
   text,
-  userRoleLegendSwatchClassName,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -144,14 +125,6 @@ export default function UsersPageClient({ embedded = false }: { embedded?: boole
     employmentTypeFilter !== "ALL" ||
     rateFilter !== "ALL" ||
     branchFilter !== "ALL";
-
-  const toggleRoleFilter = (next: EmployeeRoleFilter) => {
-    setRoleFilter((current) => (current === next ? "ALL" : next));
-  };
-
-  const toggleRateFilter = () => {
-    setRateFilter((current) => (current === "missing-rate" ? "ALL" : "missing-rate"));
-  };
 
   const resetFilters = () => {
     setSearch("");
@@ -293,128 +266,28 @@ export default function UsersPageClient({ embedded = false }: { embedded?: boole
       <HubPageHeader
         hideTitle
         accentHub="organization"
-        description="Manage system access, passwords, and branch assignments."
         actions={
-          <OrganizationHubLinks current="users">
-            <Button
-              className={hubCtaClassName("organization", "font-bold min-h-[44px]")}
-              onClick={handleAddNew}
-            >
-              <Plus className="w-4 h-4 mr-2" aria-hidden />
-              Add user
-            </Button>
-          </OrganizationHubLinks>
+          <Button
+            className={hubCtaClassName("organization", "font-bold min-h-[44px]")}
+            onClick={handleAddNew}
+          >
+            <Plus className="w-4 h-4 mr-2" aria-hidden />
+            Add user
+          </Button>
         }
       />
 
-      <div className={organizationSectionPanelClassName()}>
-        <div className={infoBannerClassName()}>
-          <div className="flex items-start gap-3">
-            <ShieldCheck className={infoBannerIconClassName()} aria-hidden />
-            <div>
-              <p className={infoBannerTitleClassName()}>Compensation &amp; HR workflows</p>
-              <p className={infoBannerTextClassName()}>
-                Use this tab for credentials and roles. To update hourly rates or browse staff by
-                branch, open{" "}
-                <Link href="/hr/employees" className={inlineLinkClassName()}>
-                  HR → Employee Directory
-                </Link>
-                .
-              </p>
-            </div>
-          </div>
-        </div>
+      <HubListPage className={organizationSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load users.") : undefined}
+          onRetry={() => {
+            void refetchUsers();
+            void refetchBranches();
+          }}
+          loading={isFetching}
+        />
 
-        {!isLoading && !isError && summary.total > 0 && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} user{summary.total === 1 ? "" : "s"}
-            </span>
-            {summary.superAdmins > 0 && (
-              <button
-                type="button"
-                className={organizationSummaryChipClassName(
-                  roleFilter === "SUPER_ADMIN",
-                  metricValueClassName("purple"),
-                )}
-                onClick={() => toggleRoleFilter("SUPER_ADMIN")}
-              >
-                {summary.superAdmins} super admin{summary.superAdmins === 1 ? "" : "s"}
-              </button>
-            )}
-            {summary.managers > 0 && (
-              <button
-                type="button"
-                className={organizationSummaryChipClassName(
-                  roleFilter === "MANAGER",
-                  metricValueClassName("blue"),
-                )}
-                onClick={() => toggleRoleFilter("MANAGER")}
-              >
-                {summary.managers} manager{summary.managers === 1 ? "" : "s"}
-              </button>
-            )}
-            {summary.staff > 0 && (
-              <button
-                type="button"
-                className={organizationSummaryChipClassName(
-                  roleFilter === "STAFF",
-                  text.muted,
-                )}
-                onClick={() => toggleRoleFilter("STAFF")}
-              >
-                {summary.staff} staff
-              </button>
-            )}
-            {summary.missingRate > 0 && (
-              <button
-                type="button"
-                className={organizationSummaryChipClassName(
-                  rateFilter === "missing-rate",
-                  metricValueClassName("amber"),
-                )}
-                onClick={toggleRateFilter}
-              >
-                {summary.missingRate} missing rate
-              </button>
-            )}
-          </div>
-        )}
-
-        {!isLoading && !isError && summary.total > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--text-subtle)]">
-            <span className="font-medium uppercase tracking-wide">Legend</span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={userRoleLegendSwatchClassName("SUPER_ADMIN")} aria-hidden />
-              Super Admin
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={userRoleLegendSwatchClassName("MANAGER")} aria-hidden />
-              Manager
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={userRoleLegendSwatchClassName("STAFF")} aria-hidden />
-              Staff
-            </span>
-          </div>
-        )}
-
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load users.")}
-            onRetry={() => {
-              void refetchUsers();
-              void refetchBranches();
-            }}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search name, email, role, branch…"
@@ -422,24 +295,19 @@ export default function UsersPageClient({ embedded = false }: { embedded?: boole
           onReset={resetFilters}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={roleFilter}
-                onValueChange={(value) => value && setRoleFilter(value as EmployeeRoleFilter)}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("w-full sm:w-[160px]")}
-                  aria-label="Filter by role"
-                >
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All roles</SelectItem>
-                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                  <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="STAFF">Staff</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
+                onValueChange={(value) => setRoleFilter(value as EmployeeRoleFilter)}
+                ariaLabel="Filter by role"
+                widthClassName="w-full sm:w-[160px]"
+                options={[
+                  { value: "ALL", label: "All roles" },
+                  { value: "SUPER_ADMIN", label: "Super Admin" },
+                  { value: "MANAGER", label: "Manager" },
+                  { value: "STAFF", label: "Staff" },
+                ]}
+              />
+              <ListFilterSelect
                 value={
                   branchFilter === "ALL"
                     ? "ALL"
@@ -448,46 +316,63 @@ export default function UsersPageClient({ embedded = false }: { embedded?: boole
                       : String(branchFilter)
                 }
                 onValueChange={(value) => {
-                  if (!value || value === "ALL") setBranchFilter("ALL");
+                  if (value === "ALL") setBranchFilter("ALL");
                   else if (value === "hq") setBranchFilter("hq");
                   else setBranchFilter(Number(value));
                 }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("w-full sm:w-[180px]")}
-                  aria-label="Filter by branch"
-                >
-                  <SelectValue placeholder="Branch" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All branches</SelectItem>
-                  <SelectItem value="hq">HQ / unassigned</SelectItem>
-                  {branchList.map((branch) => (
-                    <SelectItem key={branch.id} value={String(branch.id)}>
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
+                ariaLabel="Filter by branch"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All branches" },
+                  { value: "hq", label: "HQ / unassigned" },
+                  ...branchList.map((branch) => ({
+                    value: String(branch.id),
+                    label: branch.name,
+                  })),
+                ]}
+              />
+              <ListFilterSelect
                 value={employmentTypeFilter}
-                onValueChange={(value) =>
-                  value && setEmploymentTypeFilter(value as EmploymentTypeFilter)
-                }
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("w-full sm:w-[160px]")}
-                  aria-label="Filter by employment type"
-                >
-                  <SelectValue placeholder="Employment" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All types</SelectItem>
-                  <SelectItem value="FULL_TIME">Full-time</SelectItem>
-                  <SelectItem value="PART_TIME">Part-time</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setEmploymentTypeFilter(value as EmploymentTypeFilter)}
+                ariaLabel="Filter by employment type"
+                widthClassName="w-full sm:w-[160px]"
+                options={[
+                  { value: "ALL", label: "All types" },
+                  { value: "FULL_TIME", label: "Full-time" },
+                  { value: "PART_TIME", label: "Part-time" },
+                ]}
+              />
+              <ListFilterSelect
+                value={rateFilter}
+                onValueChange={(value) => setRateFilter(value as EmployeeRateFilter)}
+                ariaLabel="Filter by hourly rate"
+                widthClassName="w-full sm:w-[160px]"
+                options={[
+                  { value: "ALL", label: "All rates" },
+                  { value: "missing-rate", label: "Missing rate" },
+                ]}
+              />
             </>
+          }
+        />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredUsers.length}
+          totalCount={userList.length}
+          itemLabel="user"
+          emptyLabel="No users yet"
+          actions={
+            <Link
+              href="/hr/employees"
+              className={cn("inline-flex items-center gap-1 text-sm font-medium", inlineLinkClassName())}
+            >
+              <UserIcon className="w-3.5 h-3.5" aria-hidden />
+              Employee directory
+            </Link>
           }
         />
 
@@ -503,7 +388,7 @@ export default function UsersPageClient({ embedded = false }: { embedded?: boole
               : "Add your first user to grant system access."
           }
         />
-      </div>
+      </HubListPage>
 
       <UserFormModal
         open={isModalOpen}

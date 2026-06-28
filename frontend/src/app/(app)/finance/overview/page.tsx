@@ -4,21 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge, settlementStatusTone } from "@/components/shared/status-badge";
-import { FinanceHubLinks } from "@/components/finance/FinanceHubLinks";
 import { exportSales } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   BookOpen,
   CheckCircle2,
@@ -38,6 +30,7 @@ import {
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { getErrorMessage } from "@/lib/errors";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import { formatDate, formatDateTime } from "@/lib/intl-date";
 import { formatBaht } from "@/lib/money";
 import type { Branch, Expense, Settlement } from "@/types/api";
@@ -58,18 +51,12 @@ import {
   financeMetricIconClassName,
   financeSectionPanelClassName,
   financeSectionTitleClassName,
-  financeSummaryChipClassName,
-  formSelectContentClassName,
   hubCtaClassName,
-  hubLoadingSpinnerClassName,
   infoBannerClassName,
   infoBannerIconClassName,
   infoBannerTextClassName,
   infoBannerTitleClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   nativeTableBodyClassName,
   nativeTableCellMutedClassName,
   nativeTableCellPrimaryClassName,
@@ -78,9 +65,7 @@ import {
   nativeTableHeadClassName,
   nativeTableRowClassName,
   settlementDifferenceClassName,
-  settlementLegendSwatchClassName,
   tableActionAccentClassName,
-  text,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -134,6 +119,7 @@ export default function FinanceDashboardPage() {
   const approveSettlementMutation = useApproveSettlement();
 
   const hasError = settlementsError || expensesError;
+  const isLoading = loadingSettlements || loadingExpenses;
   const isFetching = fetchingSettlements || fetchingExpenses;
   const errorMessage = getErrorMessage(
     settlementsErr ?? expensesErr,
@@ -168,10 +154,6 @@ export default function FinanceDashboardPage() {
     },
     [router],
   );
-
-  const toggleSettlementFilter = (next: SettlementStatusFilter) => {
-    setSettlementFilterAndUrl(settlementFilter === next ? "ALL" : next);
-  };
 
   const handleApprove = async (id: number) => {
     try {
@@ -208,153 +190,53 @@ export default function FinanceDashboardPage() {
         hideTitle
         icon={Wallet}
         accentHub="finance"
-        description="Review end-of-day shift settlements and petty cash expenses before ledger posting."
         actions={
-          <FinanceHubLinks current="overview">
-            <Button
-              onClick={() => void handleExport()}
-              disabled={isExporting}
-              className={hubCtaClassName("finance", "font-bold")}
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
-                  Exporting…
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" aria-hidden />
-                  Export sales (CSV)
-                </>
-              )}
-            </Button>
-          </FinanceHubLinks>
+          <Button
+            onClick={() => void handleExport()}
+            disabled={isExporting}
+            className={hubCtaClassName("finance", "font-bold")}
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
+                Exporting…
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" aria-hidden />
+                Export sales (CSV)
+              </>
+            )}
+          </Button>
         }
       />
 
-      <div className={financeSectionPanelClassName("space-y-4")}>
+      <HubListPage className={financeSectionPanelClassName()}>
         {initialStatus === "PENDING" && summary.pending > 0 && (
-          <div className={infoBannerClassName()}>
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className={infoBannerIconClassName()} aria-hidden />
-              <div>
-                <p className={infoBannerTitleClassName()}>Settlements awaiting approval</p>
-                <p className={infoBannerTextClassName()}>
-                  {summary.pending} settlement{summary.pending === 1 ? "" : "s"}{" "}
-                  {summary.pending === 1 ? "needs" : "need"} cash reconciliation review
-                  {showAllBranches ? " across branches" : ` at ${branchName ?? "this branch"}`}.
-                </p>
+          <HubListPage.Banner>
+            <div className={infoBannerClassName()}>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className={infoBannerIconClassName()} aria-hidden />
+                <div>
+                  <p className={infoBannerTitleClassName()}>Settlements awaiting approval</p>
+                  <p className={infoBannerTextClassName()}>
+                    {summary.pending} settlement{summary.pending === 1 ? "" : "s"}{" "}
+                    {summary.pending === 1 ? "needs" : "need"} cash reconciliation review
+                    {showAllBranches ? " across branches" : ` at ${branchName ?? "this branch"}`}.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </HubListPage.Banner>
         )}
 
-        {!loadingSettlements && !loadingExpenses && !hasError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.settlements > 0 || summary.expenses > 0
-                ? `${summary.settlements} settlement${summary.settlements === 1 ? "" : "s"} · ${summary.expenses} expense${summary.expenses === 1 ? "" : "s"}`
-                : "No finance activity yet"}
-            </span>
-            {summary.pending > 0 && (
-              <button
-                type="button"
-                className={financeSummaryChipClassName(
-                  settlementFilter === "PENDING",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleSettlementFilter("PENDING")}
-              >
-                {summary.pending} pending
-              </button>
-            )}
-            {summary.approved > 0 && (
-              <button
-                type="button"
-                className={financeSummaryChipClassName(
-                  settlementFilter === "APPROVED",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleSettlementFilter("APPROVED")}
-              >
-                {summary.approved} approved
-              </button>
-            )}
-            {summary.rejected > 0 && (
-              <button
-                type="button"
-                className={financeSummaryChipClassName(
-                  settlementFilter === "REJECTED",
-                  metricValueClassName("red"),
-                )}
-                onClick={() => toggleSettlementFilter("REJECTED")}
-              >
-                {summary.rejected} rejected
-              </button>
-            )}
-            {summary.totalExpenseAmount > 0 && (
-              <span className={cn("tabular-nums font-medium", metricValueClassName("red"))}>
-                -{formatBaht(summary.totalExpenseAmount)} expenses
-              </span>
-            )}
-            {isFetching && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className={cn(hubLoadingSpinnerClassName(), "w-3.5 h-3.5")}
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+        <HubListPage.Error
+          message={hasError ? errorMessage : undefined}
+          onRetry={handleRetry}
+          loading={isFetching}
+        />
 
-        {!loadingSettlements && !loadingExpenses && !hasError && (
-          <div
-            className={cn(
-              "flex flex-wrap items-center gap-x-4 gap-y-2 text-xs",
-              "pb-3 border-b border-[var(--table-row-border)]",
-            )}
-            aria-label="Settlement status legend"
-          >
-            {(
-              [
-                ["PENDING", "Pending"],
-                ["APPROVED", "Approved"],
-                ["REJECTED", "Rejected"],
-              ] as const
-            ).map(([status, label]) => (
-              <span
-                key={status}
-                className={cn("inline-flex items-center gap-1.5 font-medium", text.secondary)}
-              >
-                <span className={settlementLegendSwatchClassName(status)} aria-hidden />
-                {label}
-              </span>
-            ))}
-            <Link
-              href="/finance/ledger"
-              className={cn("inline-flex items-center gap-1 font-medium", inlineLinkClassName())}
-            >
-              <BookOpen className="w-3.5 h-3.5" aria-hidden />
-              General ledger
-            </Link>
-          </div>
-        )}
-
-        {hasError && (
-          <QueryErrorBanner
-            message={errorMessage}
-            onRetry={handleRetry}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           branchName={branchName}
           allBranches={showAllBranches}
           search={expenseSearch}
@@ -366,27 +248,52 @@ export default function FinanceDashboardPage() {
             setExpenseSearch("");
           }}
           filters={
-            <Select
+            <ListFilterSelect
               value={settlementFilter}
               onValueChange={(value) =>
-                value && setSettlementFilterAndUrl(value as SettlementStatusFilter)
+                setSettlementFilterAndUrl(value as SettlementStatusFilter)
               }
-            >
-              <SelectTrigger
-                className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                aria-label="Filter settlements by status"
-              >
-                <SelectValue placeholder="All settlements" />
-              </SelectTrigger>
-              <SelectContent className={formSelectContentClassName()}>
-                <SelectItem value="ALL">All settlements</SelectItem>
-                <SelectItem value="PENDING">Pending approval</SelectItem>
-                <SelectItem value="APPROVED">Approved</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
+              ariaLabel="Filter settlements by status"
+              widthClassName="w-full sm:w-[180px]"
+              options={[
+                { value: "ALL", label: "All settlements" },
+                { value: "PENDING", label: "Pending approval" },
+                { value: "APPROVED", label: "Approved" },
+                { value: "REJECTED", label: "Rejected" },
+              ]}
+            />
           }
         />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={hasError}
+          isFetching={isFetching}
+          actions={
+            <Link
+              href="/finance/ledger"
+              className={cn("inline-flex items-center gap-1 text-sm font-medium", inlineLinkClassName())}
+            >
+              <BookOpen className="w-3.5 h-3.5" aria-hidden />
+              General ledger
+            </Link>
+          }
+        >
+          {formatHubListCountWithFetching(
+            (() => {
+              const base = hasActiveFilters
+                ? `${visibleSettlements.length} of ${settlements.length} settlements · ${visibleExpenses.length} of ${expenses.length} expenses`
+                : summary.settlements > 0 || summary.expenses > 0
+                  ? `${summary.settlements} settlement${summary.settlements === 1 ? "" : "s"} · ${summary.expenses} expense${summary.expenses === 1 ? "" : "s"}`
+                  : "No finance activity yet";
+              return summary.totalExpenseAmount > 0 && !hasActiveFilters
+                ? `${base} · -${formatBaht(summary.totalExpenseAmount)} expenses`
+                : base;
+            })(),
+            isFetching,
+            isLoading,
+          )}
+        </HubListPage.Count>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className={financeSectionPanelClassName("flex flex-col border border-[var(--table-container-border)] bg-[var(--table-container-bg)]")}>
@@ -515,7 +422,7 @@ export default function FinanceDashboardPage() {
             </div>
           </div>
         </div>
-      </div>
+      </HubListPage>
 
       <ConfirmDialog
         open={approveTarget != null}

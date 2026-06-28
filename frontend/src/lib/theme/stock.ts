@@ -4,6 +4,7 @@ import type { MetricTone } from "./metric";
 import { metricValueClassName } from "./metric";
 import type { StatusTone } from "./status";
 import { hubCardIconClass } from "./hub-accent";
+import { summaryChipClassName } from "./hub-ui";
 import { text } from "./surface";
 
 export type StockLevel = "out" | "low" | "ok";
@@ -186,14 +187,9 @@ export function inventorySummaryStripClassName(className?: string) {
   );
 }
 
+/** @deprecated Use summaryChipClassName("inventory", ...) from @/lib/theme */
 export function inventorySummaryChipClassName(active = false, className?: string) {
-  return cn(
-    "rounded-md px-2 py-0.5 font-medium tabular-nums transition-colors",
-    active
-      ? "bg-[var(--table-row-hover)] ring-1 ring-[var(--border)]"
-      : "hover:bg-[var(--table-row-hover)] cursor-pointer",
-    className,
-  );
+  return summaryChipClassName("inventory", active, className);
 }
 
 export function inventorySectionPanelClassName(className?: string) {
@@ -266,18 +262,6 @@ export function expiryCalendarShellClassName(className?: string) {
 
 export function expiryHeatmapPopoverClassName(className?: string) {
   return cn("expiry-heatmap-popover", className);
-}
-
-export function expirySummaryChipClassName(
-  urgency: "expiring" | "expired",
-  active = false,
-  className?: string,
-) {
-  const toneClass =
-    urgency === "expired"
-      ? "text-[var(--expiry-expired-fg)]"
-      : "text-[var(--expiry-notice-fg)]";
-  return inventorySummaryChipClassName(active, cn(toneClass, className));
 }
 
 export function inventoryLinkCardClassName(className?: string) {

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   BarChart3,
-  Loader2,
   Edit,
   AlertTriangle,
 } from "lucide-react";
@@ -15,20 +14,12 @@ import { useProductsSummary } from "@/hooks/domains/useProductsSummary";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { DataTable } from "@/components/shared/data-table";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { ProductFormModal } from "@/components/products/ProductFormModal";
-import { ProductsHubLinks } from "@/components/products/ProductsHubLinks";
 import { FoodCostMarginPanel } from "@/components/products/FoodCostMarginPanel";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Progress,
   ProgressIndicator,
@@ -36,6 +27,7 @@ import {
   ProgressValue,
 } from "@/components/ui/progress";
 import { getErrorMessage } from "@/lib/errors";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import { formatBaht } from "@/lib/money";
 import { calcProductFoodCost, foodCostStatus } from "@/lib/food-cost";
 import {
@@ -47,18 +39,14 @@ import {
   type FoodCostStatusFilter,
 } from "@/lib/food-cost-filters";
 import { productHasRecipe } from "@/lib/menu-product-filters";
-import { buildProductsIngredientsUrl, parseProductsCostingSearchParams } from "@/lib/products-hub-url";
+import { parseProductsCostingSearchParams } from "@/lib/products-hub-url";
 import {
   foodCostProgressIndicatorClassName,
   foodCostStatusClassName,
-  formSelectContentClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
   productsCategoryBadgeClassName,
   productsSectionPanelClassName,
-  productsSummaryChipClassName,
   tableCellMutedClassName,
   text,
 } from "@/lib/theme";
@@ -158,10 +146,6 @@ export default function FoodCostPage() {
     categoryFilter !== "ALL" ||
     statusFilter !== "ALL" ||
     activeFilter !== "ALL";
-
-  const toggleStatusFilter = (next: FoodCostStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
-  };
 
   const handleEdit = useCallback((product: Product) => {
     setSelectedProduct(product);
@@ -330,122 +314,28 @@ export default function FoodCostPage() {
         hideTitle
         icon={BarChart3}
         accentHub="products"
-        description="Analyze menu recipe costs against sale prices. Target food cost is 30% or lower."
-        actions={<ProductsHubLinks current="costing" />}
       />
 
-      <div className={productsSectionPanelClassName()}>
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load menu items for food cost")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
+      <HubListPage className={productsSectionPanelClassName()}>
+        <HubListPage.Error
+          message={
+            isError ? getErrorMessage(error, "Failed to load menu items for food cost") : undefined
+          }
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
         {!isLoading && !isError && (
-          <FoodCostMarginPanel
-            orders={orders}
-            theoreticalAvgPercent={summary.foodCost.avgPercent}
-            ordersLoading={ordersLoading}
-          />
+          <HubListPage.Banner>
+            <FoodCostMarginPanel
+              orders={orders}
+              theoreticalAvgPercent={summary.foodCost.avgPercent}
+              ordersLoading={ordersLoading}
+            />
+          </HubListPage.Banner>
         )}
 
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} menu {summary.total === 1 ? "item" : "items"}
-            </span>
-            {summary.foodCost.avgPercent > 0 && (
-              <span className={productsCategoryBadgeClassName()}>
-                avg {summary.foodCost.avgPercent.toFixed(1)}% food cost
-              </span>
-            )}
-            {summary.foodCost.good > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  statusFilter === "good",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleStatusFilter("good")}
-              >
-                {summary.foodCost.good} on target
-              </button>
-            )}
-            {summary.foodCost.warn > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  statusFilter === "warn",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleStatusFilter("warn")}
-              >
-                {summary.foodCost.warn} watch
-              </button>
-            )}
-            {summary.foodCost.bad > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  statusFilter === "bad",
-                  metricValueClassName("red"),
-                )}
-                onClick={() => toggleStatusFilter("bad")}
-              >
-                {summary.foodCost.bad} high cost
-              </button>
-            )}
-            {summary.foodCost.noRecipe > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  statusFilter === "no-recipe",
-                  text.muted,
-                )}
-                onClick={() => toggleStatusFilter("no-recipe")}
-              >
-                {summary.foodCost.noRecipe} no recipe
-              </button>
-            )}
-            {summary.foodCost.missingCost > 0 && (
-              <Link
-                href={buildProductsIngredientsUrl({ cost: "missing-cost" })}
-                className={productsSummaryChipClassName(
-                  statusFilter === "missing-cost",
-                  metricValueClassName("amber"),
-                )}
-              >
-                {summary.foodCost.missingCost} missing cost
-              </Link>
-            )}
-            {summary.total === 0 && (
-              <span className={text.muted}>
-                No menu items yet —{" "}
-                <Link href="/products" className={inlineLinkClassName()}>
-                  add menu items
-                </Link>{" "}
-                and recipes to analyze food cost
-              </span>
-            )}
-            {isFetching && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search menu items…"
@@ -458,69 +348,63 @@ export default function FoodCostPage() {
           }}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={categoryFilter}
-                onValueChange={(value) => {
-                  if (value != null) setCategoryFilter(value);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by category"
-                >
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
+                onValueChange={setCategoryFilter}
+                ariaLabel="Filter by category"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All categories" },
+                  ...categories.map((cat) => ({ value: cat, label: cat })),
+                ]}
+              />
+              <ListFilterSelect
                 value={statusFilter}
-                onValueChange={(value) => {
-                  if (value != null) setStatusFilter(value as FoodCostStatusFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                  aria-label="Filter by food cost status"
-                >
-                  <SelectValue placeholder="All food cost levels" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All food cost levels</SelectItem>
-                  <SelectItem value="good">On target (≤30%)</SelectItem>
-                  <SelectItem value="warn">Watch (31–40%)</SelectItem>
-                  <SelectItem value="bad">High cost (&gt;40%)</SelectItem>
-                  <SelectItem value="no-recipe">No recipe</SelectItem>
-                  <SelectItem value="missing-cost">Missing ingredient cost</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
+                onValueChange={(value) => setStatusFilter(value as FoodCostStatusFilter)}
+                ariaLabel="Filter by food cost status"
+                widthClassName="w-full sm:w-[200px]"
+                options={[
+                  { value: "ALL", label: "All food cost levels" },
+                  { value: "good", label: "On target (≤30%)" },
+                  { value: "warn", label: "Watch (31–40%)" },
+                  { value: "bad", label: "High cost (>40%)" },
+                  { value: "no-recipe", label: "No recipe" },
+                  { value: "missing-cost", label: "Missing ingredient cost" },
+                ]}
+              />
+              <ListFilterSelect
                 value={activeFilter}
-                onValueChange={(value) => {
-                  if (value != null) setActiveFilter(value as FoodCostActiveFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[160px]")}
-                  aria-label="Filter by menu status"
-                >
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="active">Active only</SelectItem>
-                  <SelectItem value="inactive">Inactive only</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setActiveFilter(value as FoodCostActiveFilter)}
+                ariaLabel="Filter by menu status"
+                widthClassName="w-full sm:w-[160px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "active", label: "Active only" },
+                  { value: "inactive", label: "Inactive only" },
+                ]}
+              />
             </>
           }
         />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredProducts.length}
+          totalCount={summary.total}
+          itemLabel="menu item"
+          emptyLabel="No menu items yet"
+        >
+          {!hasActiveFilters && summary.total > 0 && summary.foodCost.avgPercent > 0
+            ? formatHubListCountWithFetching(
+                `${summary.total} menu item${summary.total === 1 ? "" : "s"} · avg ${summary.foodCost.avgPercent.toFixed(1)}% food cost`,
+                isFetching,
+                isLoading,
+              )
+            : undefined}
+        </HubListPage.Count>
 
         <DataTable
           loading={isLoading}
@@ -543,7 +427,7 @@ export default function FoodCostPage() {
               : "No menu items yet. Add recipes on Menu Items to track food cost."
           }
         />
-      </div>
+      </HubListPage>
 
       <ProductFormModal
         isOpen={isModalOpen}

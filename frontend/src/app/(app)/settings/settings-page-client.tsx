@@ -6,8 +6,7 @@ import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { Store, Receipt, Calculator, Banknote, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
-import { SettingsHubLinks } from "@/components/settings/SettingsHubLinks";
+import { HubListPage } from "@/components/shared/hub-list-page";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -93,18 +92,15 @@ export default function SettingsPage() {
       <HubPageHeader
         hideTitle
         accentHub="settings"
-        description="Company profile, tax defaults, and POS receipt configuration."
         actions={
-          <SettingsHubLinks current="general">
-            <Button
-              className={hubCtaClassName("settings", "font-bold min-h-[44px]")}
-              onClick={handleSave}
-              disabled={isLoading || isError || updateSettingsMutation.isPending || !isDirty}
-            >
-              <Save className="w-4 h-4 mr-2" aria-hidden />
-              {updateSettingsMutation.isPending ? "Saving…" : "Save settings"}
-            </Button>
-          </SettingsHubLinks>
+          <Button
+            className={hubCtaClassName("settings", "font-bold min-h-[44px]")}
+            onClick={handleSave}
+            disabled={isLoading || isError || updateSettingsMutation.isPending || !isDirty}
+          >
+            <Save className="w-4 h-4 mr-2" aria-hidden />
+            {updateSettingsMutation.isPending ? "Saving…" : "Save settings"}
+          </Button>
         }
       />
 
@@ -115,13 +111,11 @@ export default function SettingsPage() {
       )}
 
       <div className={settingsSectionPanelClassName()}>
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load settings.")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load settings.") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
         {isLoading ? (
           <div className="flex h-48 items-center justify-center">

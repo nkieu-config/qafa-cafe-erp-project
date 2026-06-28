@@ -7,22 +7,15 @@ import { useDeleteProduct } from "@/hooks/domains/useProductQueries";
 import { useProductsSummary } from "@/hooks/domains/useProductsSummary";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
-import { Plus, Edit, Trash2, Coffee, Loader2, ArrowRight } from "lucide-react";
+import { Plus, Edit, Trash2, Coffee, ArrowRight } from "lucide-react";
 import { ProductFormModal } from "@/components/products/ProductFormModal";
-import { ProductsHubLinks } from "@/components/products/ProductsHubLinks";
 import { DataTable } from "@/components/shared/data-table";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { getErrorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/intl-date";
@@ -38,15 +31,10 @@ import {
 import { buildProductsCostingUrl } from "@/lib/products-hub-url";
 import {
   foodCostStatusClassName,
-  formSelectContentClassName,
   hubCtaClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   productsCategoryBadgeClassName,
   productsSectionPanelClassName,
-  productsSummaryChipClassName,
   tableCellMutedClassName,
   text,
 } from "@/lib/theme";
@@ -112,10 +100,6 @@ export default function ProductsPage() {
     setSelectedProduct(null);
     setIsModalOpen(true);
   }, []);
-
-  const toggleStatusFilter = (next: MenuStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
-  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -274,101 +258,22 @@ export default function ProductsPage() {
         hideTitle
         icon={Coffee}
         accentHub="products"
-        description="Manage products that appear on the POS terminal."
         actions={
-          <ProductsHubLinks current="menu">
-            <Button onClick={handleAddNew} className={hubCtaClassName("products", "font-bold")}>
-              <Plus className="w-4 h-4 mr-2" aria-hidden />
-              Add Menu Item
-            </Button>
-          </ProductsHubLinks>
+          <Button onClick={handleAddNew} className={hubCtaClassName("products", "font-bold")}>
+            <Plus className="w-4 h-4 mr-2" aria-hidden />
+            Add Menu Item
+          </Button>
         }
       />
 
-      <div className={productsSectionPanelClassName()}>
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} menu {summary.total === 1 ? "item" : "items"}
-            </span>
-            {summary.active > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  statusFilter === "active",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleStatusFilter("active")}
-              >
-                {summary.active} active
-              </button>
-            )}
-            {summary.inactive > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  statusFilter === "inactive",
-                  text.muted,
-                )}
-                onClick={() => toggleStatusFilter("inactive")}
-              >
-                {summary.inactive} inactive
-              </button>
-            )}
-            {summary.foodCost.noRecipe > 0 && (
-              <Link
-                href={buildProductsCostingUrl({
-                  status: "no-recipe",
-                  category: categoryFilter !== "ALL" ? categoryFilter : undefined,
-                })}
-                className={productsSummaryChipClassName(
-                  false,
-                  metricValueClassName("amber"),
-                )}
-              >
-                {summary.foodCost.noRecipe} no recipe
-              </Link>
-            )}
-            {summary.foodCost.bad > 0 && (
-              <Link
-                href={buildProductsCostingUrl({
-                  status: "bad",
-                  category: categoryFilter !== "ALL" ? categoryFilter : undefined,
-                })}
-                className={productsSummaryChipClassName(
-                  false,
-                  metricValueClassName("red"),
-                )}
-              >
-                {summary.foodCost.bad} high food cost
-              </Link>
-            )}
-            {summary.total === 0 && (
-              <span className={text.muted}>
-                No menu items yet —{" "}
-                <Link href="/products/ingredients" className={inlineLinkClassName()}>
-                  add ingredients
-                </Link>{" "}
-                first
-              </span>
-            )}
-            {isFetching && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+      <HubListPage className={productsSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load menu items") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search menu items…"
@@ -380,43 +285,27 @@ export default function ProductsPage() {
           }}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={categoryFilter}
-                onValueChange={(value) => value != null && setCategoryFilter(value)}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                  aria-label="Filter by category"
-                >
-                  <SelectValue placeholder="All categories" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All categories</SelectItem>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
+                onValueChange={setCategoryFilter}
+                ariaLabel="Filter by category"
+                widthClassName="w-full sm:w-[200px]"
+                options={[
+                  { value: "ALL", label: "All categories" },
+                  ...categories.map((cat) => ({ value: cat, label: cat })),
+                ]}
+              />
+              <ListFilterSelect
                 value={statusFilter}
-                onValueChange={(value) => {
-                  if (value != null) setStatusFilter(value as MenuStatusFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by status"
-                >
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setStatusFilter(value as MenuStatusFilter)}
+                ariaLabel="Filter by status"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+              />
               <ButtonLink
                 href={costingUrl}
                 variant="outline"
@@ -427,6 +316,17 @@ export default function ProductsPage() {
               </ButtonLink>
             </>
           }
+        />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredProducts.length}
+          totalCount={summary.total}
+          itemLabel="menu item"
+          emptyLabel="No menu items yet"
         />
 
         <DataTable
@@ -450,7 +350,7 @@ export default function ProductsPage() {
           }}
           hideBorders
         />
-      </div>
+      </HubListPage>
 
       <ProductFormModal
         isOpen={isModalOpen}

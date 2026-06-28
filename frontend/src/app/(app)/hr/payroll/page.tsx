@@ -17,24 +17,16 @@ import { getErrorMessage } from "@/lib/errors";
 import { toast } from "sonner";
 import { AccessDeniedState } from "@/components/shared/access-denied-state";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { RoleGuard } from "@/components/RoleGuard";
 import { StatusBadge, payrollStatusTone } from "@/components/shared/status-badge";
 import { TableActionButton } from "@/components/shared/table-action-button";
-import { HrHubLinks } from "@/components/hr/HrHubLinks";
 import { PayrollPayslipPanel } from "@/components/hr/PayrollPayslipPanel";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { Branch, PayrollRun, User } from "@/types/api";
 import {
   useApprovePayrollRun,
@@ -45,6 +37,7 @@ import {
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { buildHrEmployeesUrl, buildHrPayrollUrl, parseHrPayrollSearchParams } from "@/lib/hr-hub-url";
 import { formatBaht } from "@/lib/money";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import {
   type PayrollRunWithPayslips,
   type PayrollStatusFilter,
@@ -58,9 +51,7 @@ import {
   summarizePayrollRuns,
 } from "@/lib/payroll-filters";
 import {
-  formSelectContentClassName,
   hrSectionPanelClassName,
-  hrSummaryChipClassName,
   hubCtaClassName,
   hubLoadingSpinnerClassName,
   infoBannerClassName,
@@ -68,10 +59,7 @@ import {
   infoBannerTextClassName,
   infoBannerTitleClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
-  payrollLegendSwatchClassName,
   tableActionAccentClassName,
   text,
 } from "@/lib/theme";
@@ -161,10 +149,6 @@ function PayrollPageContent() {
   );
 
   const hasActiveFilters = statusFilter !== "ALL" || employeeId != null;
-
-  const toggleStatusFilter = (next: PayrollStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
-  };
 
   const clearEmployeeFilter = () => {
     router.replace(buildHrPayrollUrl(), { scroll: false });
@@ -278,183 +262,85 @@ function PayrollPageContent() {
           hideTitle
           icon={Receipt}
           accentHub="hr"
-          description="Generate monthly payroll from attendance hours. Review payslips and approve runs before disbursement."
           actions={
-            <HrHubLinks current="payroll" showOrgUsers={role === "SUPER_ADMIN"}>
-              <Button
-                className={hubCtaClassName("hr", "font-bold")}
-                disabled={hasCurrentMonthRun || generatePayrollMutation.isPending}
-                onClick={() => setShowGenerateConfirm(true)}
-              >
-                {generatePayrollMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
-                    Generating…
-                  </>
-                ) : (
-                  <>Generate {currentPeriodLabel}</>
-                )}
-              </Button>
-            </HrHubLinks>
+            <Button
+              className={hubCtaClassName("hr", "font-bold")}
+              disabled={hasCurrentMonthRun || generatePayrollMutation.isPending}
+              onClick={() => setShowGenerateConfirm(true)}
+            >
+              {generatePayrollMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
+                  Generating…
+                </>
+              ) : (
+                <>Generate {currentPeriodLabel}</>
+              )}
+            </Button>
           }
         />
 
-        <div className={hrSectionPanelClassName()}>
+        <HubListPage className={hrSectionPanelClassName()}>
           {employeeId != null && (
-            <div className={infoBannerClassName()}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-start gap-3 min-w-0">
-                  <UserIcon className={infoBannerIconClassName()} aria-hidden />
-                  <div className="min-w-0">
-                    <p className={infoBannerTitleClassName()}>
-                      Payroll for {filteredEmployee?.name ?? `employee #${employeeId}`}
-                    </p>
-                    <p className={infoBannerTextClassName()}>
-                      Showing runs that include this employee. Expand a row to view their payslip
-                      lines only.
-                    </p>
+            <HubListPage.Banner>
+              <div className={infoBannerClassName()}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <UserIcon className={infoBannerIconClassName()} aria-hidden />
+                    <div className="min-w-0">
+                      <p className={infoBannerTitleClassName()}>
+                        Payroll for {filteredEmployee?.name ?? `employee #${employeeId}`}
+                      </p>
+                      <p className={infoBannerTextClassName()}>
+                        Showing runs that include this employee. Expand a row to view their payslip
+                        lines only.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <Link
+                      href={buildHrEmployeesUrl({ employee: employeeId })}
+                      className={cn("text-sm font-medium", inlineLinkClassName())}
+                    >
+                      Employee profile
+                    </Link>
+                    <button
+                      type="button"
+                      className={cn("text-sm font-medium", inlineLinkClassName())}
+                      onClick={clearEmployeeFilter}
+                    >
+                      Clear filter
+                    </button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  <Link
-                    href={buildHrEmployeesUrl({ employee: employeeId })}
-                    className={cn("text-sm font-medium", inlineLinkClassName())}
-                  >
-                    Employee profile
-                  </Link>
-                  <button
-                    type="button"
-                    className={cn("text-sm font-medium", inlineLinkClassName())}
-                    onClick={clearEmployeeFilter}
-                  >
-                    Clear filter
-                  </button>
-                </div>
               </div>
-            </div>
+            </HubListPage.Banner>
           )}
 
           {summary.draft > 0 && (
-            <div className={infoBannerClassName()}>
-              <div className="flex items-start gap-3">
-                <Receipt className={infoBannerIconClassName()} aria-hidden />
-                <div>
-                  <p className={infoBannerTitleClassName()}>Draft payroll awaiting approval</p>
-                  <p className={infoBannerTextClassName()}>
-                    {summary.draft} run{summary.draft === 1 ? "" : "s"} still in draft — review
-                    payslips and approve before disbursement.
-                  </p>
+            <HubListPage.Banner>
+              <div className={infoBannerClassName()}>
+                <div className="flex items-start gap-3">
+                  <Receipt className={infoBannerIconClassName()} aria-hidden />
+                  <div>
+                    <p className={infoBannerTitleClassName()}>Draft payroll awaiting approval</p>
+                    <p className={infoBannerTextClassName()}>
+                      {summary.draft} run{summary.draft === 1 ? "" : "s"} still in draft — review
+                      payslips and approve before disbursement.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </HubListPage.Banner>
           )}
 
-          {!isLoading && !isError && (
-            <div
-              className={inventorySummaryStripClassName()}
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <span className={cn("font-semibold tabular-nums", text.primary)}>
-                {summary.total > 0
-                  ? `${summary.total} run${summary.total === 1 ? "" : "s"} · ${summary.totalPayslips} payslip${summary.totalPayslips === 1 ? "" : "s"}`
-                  : "No payroll runs yet"}
-              </span>
-              {summary.draft > 0 && (
-                <button
-                  type="button"
-                  className={hrSummaryChipClassName(
-                    statusFilter === "DRAFT",
-                    metricValueClassName("amber"),
-                  )}
-                  onClick={() => toggleStatusFilter("DRAFT")}
-                >
-                  {summary.draft} draft
-                </button>
-              )}
-              {summary.approved > 0 && (
-                <button
-                  type="button"
-                  className={hrSummaryChipClassName(
-                    statusFilter === "APPROVED",
-                    metricValueClassName("emerald"),
-                  )}
-                  onClick={() => toggleStatusFilter("APPROVED")}
-                >
-                  {summary.approved} approved
-                </button>
-              )}
-              {summary.paid > 0 && (
-                <button
-                  type="button"
-                  className={hrSummaryChipClassName(
-                    statusFilter === "PAID",
-                    metricValueClassName("blue"),
-                  )}
-                  onClick={() => toggleStatusFilter("PAID")}
-                >
-                  {summary.paid} paid
-                </button>
-              )}
-              {summary.totalNet > 0 && (
-                <span className={cn("tabular-nums font-medium", text.secondary)}>
-                  {formatBaht(summary.totalNet)} total net
-                </span>
-              )}
-              {isFetching && !isLoading && (
-                <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                  <Loader2
-                    className={cn(hubLoadingSpinnerClassName(), "w-3.5 h-3.5")}
-                    aria-hidden
-                  />
-                  Updating…
-                </span>
-              )}
-            </div>
-          )}
+          <HubListPage.Error
+            message={isError ? getErrorMessage(error, "Failed to load payroll runs") : undefined}
+            onRetry={() => void refetch()}
+            loading={isFetching}
+          />
 
-          {!isLoading && !isError && (
-            <div
-              className={cn(
-                "flex flex-wrap items-center gap-x-4 gap-y-2 text-xs",
-                "pb-3 border-b border-[var(--table-row-border)]",
-              )}
-              aria-label="Payroll status legend"
-            >
-              {(
-                [
-                  ["DRAFT", "Draft"],
-                  ["APPROVED", "Approved"],
-                  ["PAID", "Paid"],
-                ] as const
-              ).map(([status, label]) => (
-                <span
-                  key={status}
-                  className={cn("inline-flex items-center gap-1.5 font-medium", text.secondary)}
-                >
-                  <span className={payrollLegendSwatchClassName(status)} aria-hidden />
-                  {label}
-                </span>
-              ))}
-              <Link
-                href="/hr/employees"
-                className={cn("inline-flex items-center gap-1 font-medium", inlineLinkClassName())}
-              >
-                <Users className="w-3.5 h-3.5" aria-hidden />
-                Employee directory
-              </Link>
-            </div>
-          )}
-
-          {isError && (
-            <QueryErrorBanner
-              message={getErrorMessage(error, "Failed to load payroll runs")}
-              onRetry={() => void refetch()}
-              loading={isFetching}
-            />
-          )}
-
-          <ListToolbar
+          <HubListPage.Toolbar
             branchName={branchName}
             showReset={hasActiveFilters}
             onReset={() => {
@@ -462,25 +348,50 @@ function PayrollPageContent() {
               clearEmployeeFilter();
             }}
             filters={
-              <Select
+              <ListFilterSelect
                 value={statusFilter}
-                onValueChange={(value) => value && setStatusFilter(value as PayrollStatusFilter)}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter payroll runs by status"
-                >
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="APPROVED">Approved</SelectItem>
-                  <SelectItem value="PAID">Paid</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setStatusFilter(value as PayrollStatusFilter)}
+                ariaLabel="Filter payroll runs by status"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "DRAFT", label: "Draft" },
+                  { value: "APPROVED", label: "Approved" },
+                  { value: "PAID", label: "Paid" },
+                ]}
+              />
             }
           />
+
+          <HubListPage.Count
+            isLoading={isLoading}
+            isError={isError}
+            isFetching={isFetching}
+            actions={
+              <Link
+                href="/hr/employees"
+                className={cn("inline-flex items-center gap-1 text-sm font-medium", inlineLinkClassName())}
+              >
+                <Users className="w-3.5 h-3.5" aria-hidden />
+                Employee directory
+              </Link>
+            }
+          >
+            {formatHubListCountWithFetching(
+              (() => {
+                const base = hasActiveFilters
+                  ? `${filteredPayrollRuns.length} of ${payrollRuns.length} runs`
+                  : summary.total > 0
+                    ? `${summary.total} run${summary.total === 1 ? "" : "s"} · ${summary.totalPayslips} payslip${summary.totalPayslips === 1 ? "" : "s"}`
+                    : "No payroll runs yet";
+                return summary.totalNet > 0 && !hasActiveFilters
+                  ? `${base} · ${formatBaht(summary.totalNet)} total net`
+                  : base;
+              })(),
+              isFetching,
+              isLoading,
+            )}
+          </HubListPage.Count>
 
           <DataTable
             loading={isLoading}
@@ -509,7 +420,7 @@ function PayrollPageContent() {
                   : `Generate payroll for ${currentPeriodLabel} to get started.`
             }
           />
-        </div>
+        </HubListPage>
       </div>
 
       <ConfirmDialog

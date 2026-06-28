@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useBranchOrders, useVoidOrder, useRefundOrder } from "@/hooks/domains/usePosQueries";
 import { HubCard } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { DataTable } from "@/components/shared/data-table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { ListToolbar } from "@/components/shared/list-toolbar";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge, orderStatusTone } from "@/components/shared/status-badge";
 import { Receipt, Ban, RotateCcw } from "lucide-react";
@@ -152,7 +153,14 @@ export default function PosOrdersPage() {
         hideTitle
         description="Void same-day orders or refund completed sales from previous days."
       >
-        <ListToolbar
+        <HubListPage>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load orders") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
+
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search by order #, queue, status…"
@@ -160,22 +168,15 @@ export default function PosOrdersPage() {
           showReset={hasActiveFilters}
           onReset={handleResetFilters}
           filters={
-            <select
+            <ListFilterSelect
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as OrderStatus | "ALL")}
-              className={cn(
-                "min-h-[44px] rounded-md border px-3 text-sm",
-                "border-[var(--border)] bg-[var(--table-container-bg)] text-[var(--foreground)]",
-              )}
-              aria-label="Filter by status"
-            >
-              <option value="ALL">All statuses</option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
+              onValueChange={(value) => setStatusFilter(value as OrderStatus | "ALL")}
+              ariaLabel="Filter by status"
+              options={[
+                { value: "ALL", label: "All statuses" },
+                ...STATUS_OPTIONS.map((status) => ({ value: status, label: status })),
+              ]}
+            />
           }
         />
         <DataTable
@@ -314,6 +315,7 @@ export default function PosOrdersPage() {
             },
           ]}
         />
+        </HubListPage>
       </HubCard>
 
       <ConfirmDialog

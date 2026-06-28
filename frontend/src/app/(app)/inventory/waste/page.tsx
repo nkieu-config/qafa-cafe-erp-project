@@ -27,9 +27,9 @@ import type { Ingredient, WasteLineItem, Branch, WasteLog } from "@/types/api";
 import { getErrorMessage } from "@/lib/errors";
 import { DataTable } from "@/components/shared/data-table";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterDate, ListFilterRow, ListFilterSelect } from "@/components/shared/list-filters";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -47,8 +47,6 @@ import {
   formRemoveButtonClassName,
   hubDangerActionClassName,
   inventorySectionPanelClassName,
-  inventorySummaryChipClassName,
-  inventorySummaryStripClassName,
   metricValueClassName,
   tableCellMutedClassName,
   text,
@@ -351,7 +349,6 @@ export default function WasteLogPage() {
         hideTitle
         icon={Trash2}
         accentHub="inventory"
-        description="Record aggregate waste by ingredient (not tied to a specific batch). For batch-level disposal with expiry tracking, use Batches & Expiry → expand a row → Report waste."
         branchScope={{ branchName }}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -388,14 +385,16 @@ export default function WasteLogPage() {
           )}
         </div>
 
-        {ingredientsError && (
-          <QueryErrorBanner
-            message={getErrorMessage(ingredientsErr, "Failed to load ingredients")}
-            onRetry={() => void refetchIngredients()}
-            loading={ingredientsFetching}
-            className="mb-4"
-          />
-        )}
+        <HubListPage.Error
+          message={
+            ingredientsError
+              ? getErrorMessage(ingredientsErr, "Failed to load ingredients")
+              : undefined
+          }
+          onRetry={() => void refetchIngredients()}
+          loading={ingredientsFetching}
+          className="mb-4"
+        />
 
         {!ingredientsLoading && !ingredientsError && ingredients.length === 0 && (
           <div
@@ -587,41 +586,16 @@ export default function WasteLogPage() {
           </p>
         </div>
 
-        {!logsLoading && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {wasteLogs.length} entr{wasteLogs.length === 1 ? "y" : "ies"}
-            </span>
-            {hasHistoryFilters && filteredLogs.length !== wasteLogs.length ? (
-              <span
-                className={inventorySummaryChipClassName(
-                  true,
-                  metricValueClassName("blue"),
-                )}
-              >
-                {filteredLogs.length} matching filters
-              </span>
-            ) : null}
-            {wasteLogs.length === 0 && (
-              <span className={text.muted}>No waste recorded yet</span>
-            )}
-            {logsFetching && !logsLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+        <HubListPage>
+        <HubListPage.Error
+          message={
+            logsError ? getErrorMessage(logsErr, "Failed to load waste logs") : undefined
+          }
+          onRetry={() => void refetchLogs()}
+          loading={logsFetching}
+        />
 
-        <ListToolbar
+        <HubListPage.Toolbar
           search={historySearch}
           onSearchChange={setHistorySearch}
           searchPlaceholder="Search reason, ingredient, or recorder…"
@@ -633,45 +607,45 @@ export default function WasteLogPage() {
             setDateTo("");
           }}
           filters={
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <Select
+            <ListFilterRow>
+              <ListFilterSelect
                 value={ingredientFilter}
-                onValueChange={(value) => {
-                  if (value != null) setIngredientFilter(value);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                  aria-label="Filter by ingredient"
-                >
-                  <SelectValue placeholder="All ingredients" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All ingredients</SelectItem>
-                  {historyIngredients.map((ing) => (
-                    <SelectItem key={ing.id} value={String(ing.id)}>
-                      {ing.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className={listToolbarFieldClassName("h-11 min-h-[44px]")}
-                aria-label="Filter from date"
+                onValueChange={setIngredientFilter}
+                ariaLabel="Filter by ingredient"
+                widthClassName="w-full sm:w-[200px]"
+                options={[
+                  { value: "ALL", label: "All ingredients" },
+                  ...historyIngredients.map((ing) => ({
+                    value: String(ing.id),
+                    label: ing.name,
+                  })),
+                ]}
               />
-              <Input
-                type="date"
+              <ListFilterDate
+                value={dateFrom}
+                onChange={setDateFrom}
+                ariaLabel="Filter from date"
+              />
+              <ListFilterDate
                 value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className={listToolbarFieldClassName("h-11 min-h-[44px]")}
-                aria-label="Filter to date"
+                onChange={setDateTo}
+                ariaLabel="Filter to date"
                 min={dateFrom || undefined}
               />
-            </div>
+            </ListFilterRow>
           }
+        />
+
+        <HubListPage.Count
+          isLoading={logsLoading}
+          isError={logsError}
+          isFetching={logsFetching}
+          hasActiveFilters={hasHistoryFilters}
+          filteredCount={filteredLogs.length}
+          totalCount={wasteLogs.length}
+          itemLabel="entry"
+          itemLabelPlural="entries"
+          emptyLabel="No waste recorded yet"
         />
 
         <DataTable
@@ -696,6 +670,7 @@ export default function WasteLogPage() {
             pageSizeOptions: ["10", "15", "25", "50"],
           }}
         />
+        </HubListPage>
       </div>
     </div>
   );

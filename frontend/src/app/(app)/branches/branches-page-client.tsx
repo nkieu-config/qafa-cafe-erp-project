@@ -7,20 +7,12 @@ import { useBranches, useCreateBranch, useUpdateBranch } from "@/hooks/domains/u
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { AnimatedPage } from "@/components/animated-page";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TableActionButton } from "@/components/shared/table-action-button";
-import { OrganizationHubLinks } from "@/components/organization/OrganizationHubLinks";
 import { BranchFormModal } from "@/components/organization/BranchFormModal";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   type BranchTypeFilter,
   branchTypeLabel,
@@ -33,20 +25,15 @@ import {
   branchCardAccentClassName,
   branchCardClassName,
   branchCardMetaClassName,
-  branchLegendSwatchClassName,
   emptyStatePanelClassName,
-  formSelectContentClassName,
   hubCtaClassName,
   hubLoadingSpinnerClassName,
   infoBannerClassName,
   infoBannerIconClassName,
   infoBannerTextClassName,
   infoBannerTitleClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
   organizationSectionPanelClassName,
-  organizationSummaryChipClassName,
   text,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -82,10 +69,6 @@ export default function BranchesPageClient({ embedded = false }: { embedded?: bo
   );
 
   const hasActiveFilters = search.trim().length > 0 || typeFilter !== "ALL";
-
-  const toggleTypeFilter = (next: BranchTypeFilter) => {
-    setTypeFilter((current) => (current === next ? "ALL" : next));
-  };
 
   const resetFilters = () => {
     setSearch("");
@@ -128,122 +111,73 @@ export default function BranchesPageClient({ embedded = false }: { embedded?: bo
       <HubPageHeader
         hideTitle
         accentHub="organization"
-        description="Manage franchise locations and central kitchens across the organization."
         actions={
-          <OrganizationHubLinks current="branches">
-            <Button
-              className={hubCtaClassName("organization", "font-bold min-h-[44px]")}
-              onClick={handleAddNew}
-            >
-              <Plus className="w-4 h-4 mr-2" aria-hidden />
-              Add branch
-            </Button>
-          </OrganizationHubLinks>
+          <Button
+            className={hubCtaClassName("organization", "font-bold min-h-[44px]")}
+            onClick={handleAddNew}
+          >
+            <Plus className="w-4 h-4 mr-2" aria-hidden />
+            Add branch
+          </Button>
         }
       />
 
-      <div className={organizationSectionPanelClassName()}>
+      <HubListPage className={organizationSectionPanelClassName()}>
         {!isLoading && !isError && summary.total === 0 && (
-          <div className={infoBannerClassName()}>
-            <div className="flex items-start gap-3">
-              <Building2 className={infoBannerIconClassName()} aria-hidden />
-              <div>
-                <p className={infoBannerTitleClassName()}>No branches yet</p>
-                <p className={infoBannerTextClassName()}>
-                  Create your first branch or central kitchen, then assign users in{" "}
-                  <span className="font-medium">Users &amp; Roles</span> and stock in Inventory.
-                </p>
+          <HubListPage.Banner>
+            <div className={infoBannerClassName()}>
+              <div className="flex items-start gap-3">
+                <Building2 className={infoBannerIconClassName()} aria-hidden />
+                <div>
+                  <p className={infoBannerTitleClassName()}>No branches yet</p>
+                  <p className={infoBannerTextClassName()}>
+                    Create your first branch or central kitchen, then assign users in{" "}
+                    <span className="font-medium">Users &amp; Roles</span> and stock in Inventory.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </HubListPage.Banner>
         )}
 
-        {!isLoading && !isError && summary.total > 0 && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} branch{summary.total === 1 ? "" : "es"}
-            </span>
-            {summary.centralKitchen > 0 && (
-              <button
-                type="button"
-                className={organizationSummaryChipClassName(
-                  typeFilter === "central",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleTypeFilter("central")}
-              >
-                {summary.centralKitchen} central kitchen
-                {summary.centralKitchen === 1 ? "" : "s"}
-              </button>
-            )}
-            {summary.franchise > 0 && (
-              <button
-                type="button"
-                className={organizationSummaryChipClassName(
-                  typeFilter === "franchise",
-                  text.muted,
-                )}
-                onClick={() => toggleTypeFilter("franchise")}
-              >
-                {summary.franchise} franchise
-                {summary.franchise === 1 ? "" : "s"}
-              </button>
-            )}
-          </div>
-        )}
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load branches.") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {!isLoading && !isError && summary.total > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--text-subtle)]">
-            <span className="font-medium uppercase tracking-wide">Legend</span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={branchLegendSwatchClassName("central")} aria-hidden />
-              Central kitchen (HQ)
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={branchLegendSwatchClassName("franchise")} aria-hidden />
-              Franchise location
-            </span>
-          </div>
-        )}
-
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load branches.")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search name, location, ID…"
           showReset={hasActiveFilters}
           onReset={resetFilters}
           filters={
-            <Select
+            <ListFilterSelect
               value={typeFilter}
-              onValueChange={(value) => value && setTypeFilter(value as BranchTypeFilter)}
-            >
-              <SelectTrigger
-                className={listToolbarFieldClassName("w-full sm:w-[180px]")}
-                aria-label="Filter by branch type"
-              >
-                <SelectValue placeholder="Type" />
-              </SelectTrigger>
-              <SelectContent className={formSelectContentClassName()}>
-                <SelectItem value="ALL">All types</SelectItem>
-                <SelectItem value="central">Central kitchen</SelectItem>
-                <SelectItem value="franchise">Franchise</SelectItem>
-              </SelectContent>
-            </Select>
+              onValueChange={(value) => setTypeFilter(value as BranchTypeFilter)}
+              ariaLabel="Filter by branch type"
+              widthClassName="w-full sm:w-[180px]"
+              options={[
+                { value: "ALL", label: "All types" },
+                { value: "central", label: "Central kitchen" },
+                { value: "franchise", label: "Franchise" },
+              ]}
+            />
           }
         />
 
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredBranches.length}
+          totalCount={branchList.length}
+          itemLabel="branch"
+        />
+
+        <HubListPage.Body>
         {isLoading ? (
           <div className="flex h-48 items-center justify-center">
             <Loader2 className={cn("w-8 h-8", hubLoadingSpinnerClassName())} aria-hidden />
@@ -313,7 +247,8 @@ export default function BranchesPageClient({ embedded = false }: { embedded?: bo
             ))}
           </div>
         )}
-      </div>
+        </HubListPage.Body>
+      </HubListPage>
 
       <BranchFormModal
         open={isModalOpen}

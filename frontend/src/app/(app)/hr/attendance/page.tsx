@@ -23,15 +23,15 @@ import {
 import { getErrorMessage } from "@/lib/errors";
 import { toast } from "sonner";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterDate, ListFilterRow, ListFilterSelect } from "@/components/shared/list-filters";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { HrHubLinks } from "@/components/hr/HrHubLinks";
 import { Button } from "@/components/ui/button";
 import type { Branch, Shift } from "@/types/api";
 import { formatDate, formatTime } from "@/lib/intl-date";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import {
   type AttendanceRecordRow,
   type AttendanceStatusFilter,
@@ -43,20 +43,14 @@ import {
 import {
   attendanceLateRowClassName,
   attendanceLateTimeClassName,
-  attendanceLegendSwatchClassName,
   attendanceOnTimeClassName,
   hubCtaClassName,
-  hubLoadingSpinnerClassName,
   hrSectionPanelClassName,
-  hrSummaryChipClassName,
   infoBannerClassName,
   infoBannerIconClassName,
   infoBannerTextClassName,
   infoBannerTitleClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   text,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -144,10 +138,6 @@ export default function AttendancePage() {
 
   const hasActiveFilters =
     statusFilter !== "ALL" || startDate.length > 0 || endDate.length > 0;
-
-  const toggleStatusFilter = (next: AttendanceStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
-  };
 
   const handleClockIn = async () => {
     if (!activeBranchId) {
@@ -273,185 +263,85 @@ export default function AttendancePage() {
         hideTitle
         icon={Clock}
         accentHub="hr"
-        description="Track your clock-in/out history. Late arrivals are flagged when you clock in more than 15 minutes after a scheduled shift."
         actions={
-          <HrHubLinks current="attendance" showOrgUsers={role === "SUPER_ADMIN"}>
-            {isClockedIn ? (
-              <Button
-                variant="destructive"
-                className={cn(hubCtaClassName("hr", "font-bold"), "shadow-sm")}
-                disabled={clockActionPending || loadingActive}
-                onClick={() => void handleClockOut()}
-              >
-                {clockOutMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
-                ) : (
-                  <StopCircle className="w-4 h-4 mr-2" aria-hidden />
-                )}
-                Clock out
-              </Button>
-            ) : (
-              <Button
-                className={hubCtaClassName("hr", "font-bold")}
-                disabled={needsBranchForClockIn || clockActionPending || loadingActive}
-                onClick={() => void handleClockIn()}
-              >
-                {clockInMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
-                ) : (
-                  <PlayCircle className="w-4 h-4 mr-2" aria-hidden />
-                )}
-                Clock in
-              </Button>
-            )}
-          </HrHubLinks>
+          isClockedIn ? (
+            <Button
+              variant="destructive"
+              className={cn(hubCtaClassName("hr", "font-bold"), "shadow-sm")}
+              disabled={clockActionPending || loadingActive}
+              onClick={() => void handleClockOut()}
+            >
+              {clockOutMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
+              ) : (
+                <StopCircle className="w-4 h-4 mr-2" aria-hidden />
+              )}
+              Clock out
+            </Button>
+          ) : (
+            <Button
+              className={hubCtaClassName("hr", "font-bold")}
+              disabled={needsBranchForClockIn || clockActionPending || loadingActive}
+              onClick={() => void handleClockIn()}
+            >
+              {clockInMutation.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
+              ) : (
+                <PlayCircle className="w-4 h-4 mr-2" aria-hidden />
+              )}
+              Clock in
+            </Button>
+          )
         }
       />
 
-      <div className={hrSectionPanelClassName()}>
+      <HubListPage className={hrSectionPanelClassName()}>
         {isClockedIn && activeClockIn && (
-          <div className={infoBannerClassName()}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3 min-w-0">
-                <Clock className={infoBannerIconClassName()} aria-hidden />
-                <div className="min-w-0">
-                  <p className={infoBannerTitleClassName()}>Currently clocked in</p>
-                  <p className={infoBannerTextClassName()}>
-                    Started {formatTime(activeClockIn.clockIn)} at{" "}
-                    {activeClockIn.branch?.name ?? branchName ?? "this branch"}
-                    {elapsed && (
-                      <>
-                        {" "}
-                        ·{" "}
-                        <span className="font-mono tabular-nums font-semibold text-[var(--status-info-fg)]">
-                          {elapsed}
-                        </span>{" "}
-                        elapsed
-                      </>
-                    )}
-                  </p>
+          <HubListPage.Banner>
+            <div className={infoBannerClassName()}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3 min-w-0">
+                  <Clock className={infoBannerIconClassName()} aria-hidden />
+                  <div className="min-w-0">
+                    <p className={infoBannerTitleClassName()}>Currently clocked in</p>
+                    <p className={infoBannerTextClassName()}>
+                      Started {formatTime(activeClockIn.clockIn)} at{" "}
+                      {activeClockIn.branch?.name ?? branchName ?? "this branch"}
+                      {elapsed && (
+                        <>
+                          {" "}
+                          ·{" "}
+                          <span className="font-mono tabular-nums font-semibold text-[var(--status-info-fg)]">
+                            {elapsed}
+                          </span>{" "}
+                          elapsed
+                        </>
+                      )}
+                    </p>
+                  </div>
                 </div>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="shrink-0 min-h-[44px] font-semibold"
+                  disabled={clockActionPending}
+                  onClick={() => void handleClockOut()}
+                >
+                  <StopCircle className="w-4 h-4 mr-2" aria-hidden />
+                  Clock out
+                </Button>
               </div>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="shrink-0 min-h-[44px] font-semibold"
-                disabled={clockActionPending}
-                onClick={() => void handleClockOut()}
-              >
-                <StopCircle className="w-4 h-4 mr-2" aria-hidden />
-                Clock out
-              </Button>
             </div>
-          </div>
+          </HubListPage.Banner>
         )}
 
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total > 0
-                ? `${summary.total} record${summary.total === 1 ? "" : "s"} · last 30 days`
-                : "No attendance records yet"}
-            </span>
-            {summary.active > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  statusFilter === "active",
-                  metricValueClassName("blue"),
-                )}
-                onClick={() => toggleStatusFilter("active")}
-              >
-                {summary.active} active
-              </button>
-            )}
-            {summary.late > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  statusFilter === "late",
-                  metricValueClassName("red"),
-                )}
-                onClick={() => toggleStatusFilter("late")}
-              >
-                {summary.late} late
-              </button>
-            )}
-            {summary.onTime > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  statusFilter === "on-time",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleStatusFilter("on-time")}
-              >
-                {summary.onTime} on time
-              </button>
-            )}
-            {summary.totalHours > 0 && (
-              <span className={cn("tabular-nums font-medium", text.secondary)}>
-                {summary.totalHours.toFixed(1)} hrs logged
-              </span>
-            )}
-            {(isFetching || fetchingActive) && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className={cn(hubLoadingSpinnerClassName(), "w-3.5 h-3.5")}
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load attendance records") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {!isLoading && !isError && (
-          <div
-            className={cn(
-              "flex flex-wrap items-center gap-x-4 gap-y-2 text-xs",
-              "pb-3 border-b border-[var(--table-row-border)]",
-            )}
-            aria-label="Attendance status legend"
-          >
-            {(
-              [
-                ["on-time", "On time"],
-                ["late", "Late"],
-                ["active", "Active session"],
-              ] as const
-            ).map(([variant, label]) => (
-              <span
-                key={variant}
-                className={cn("inline-flex items-center gap-1.5 font-medium", text.secondary)}
-              >
-                <span className={attendanceLegendSwatchClassName(variant)} aria-hidden />
-                {label}
-              </span>
-            ))}
-            <Link
-              href="/hr/shifts"
-              className={cn("inline-flex items-center gap-1 font-medium", inlineLinkClassName())}
-            >
-              <CalendarDays className="w-3.5 h-3.5" aria-hidden />
-              View shifts
-            </Link>
-          </div>
-        )}
-
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load attendance records")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           branchName={branchName}
           showReset={hasActiveFilters}
           onReset={() => {
@@ -460,24 +350,65 @@ export default function AttendancePage() {
             setEndDate("");
           }}
           filters={
-            <>
-              <input
-                type="date"
+            <ListFilterRow>
+              <ListFilterSelect
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as AttendanceStatusFilter)}
+                ariaLabel="Filter by attendance status"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "active", label: "Active session" },
+                  { value: "late", label: "Late" },
+                  { value: "on-time", label: "On time" },
+                ]}
+              />
+              <ListFilterDate
                 value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[160px]")}
-                aria-label="From date"
+                onChange={setStartDate}
+                ariaLabel="From date"
+                className="w-full sm:w-[160px]"
               />
-              <input
-                type="date"
+              <ListFilterDate
                 value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-                className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[160px]")}
-                aria-label="To date"
+                onChange={setEndDate}
+                ariaLabel="To date"
+                className="w-full sm:w-[160px]"
+                min={startDate || undefined}
               />
-            </>
+            </ListFilterRow>
           }
         />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching || fetchingActive}
+          actions={
+            <Link
+              href="/hr/shifts"
+              className={cn("inline-flex items-center gap-1 text-sm font-medium", inlineLinkClassName())}
+            >
+              <CalendarDays className="w-3.5 h-3.5" aria-hidden />
+              View shifts
+            </Link>
+          }
+        >
+          {formatHubListCountWithFetching(
+            (() => {
+              const base = hasActiveFilters
+                ? `${filteredAttendance.length} of ${attendance.length} records`
+                : summary.total > 0
+                  ? `${summary.total} record${summary.total === 1 ? "" : "s"} · last 30 days`
+                  : "No attendance records yet";
+              return summary.totalHours > 0 && !hasActiveFilters
+                ? `${base} · ${summary.totalHours.toFixed(1)} hrs logged`
+                : base;
+            })(),
+            isFetching || fetchingActive,
+            isLoading,
+          )}
+        </HubListPage.Count>
 
         <DataTable
           columns={columns}
@@ -496,7 +427,7 @@ export default function AttendancePage() {
             return isLate ? attendanceLateRowClassName() : "";
           }}
         />
-      </div>
+      </HubListPage>
     </div>
   );
 }

@@ -7,30 +7,21 @@ import type { ColumnsType } from "antd/es/table";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Briefcase,
   CalendarOff,
   CheckCircle,
   Clock,
-  Loader2,
   Plus,
   XCircle,
 } from "lucide-react";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { StatusBadge, leaveStatusTone } from "@/components/shared/status-badge";
 import { TableActionButton } from "@/components/shared/table-action-button";
-import { HrHubLinks } from "@/components/hr/HrHubLinks";
 import { RequestLeaveModal } from "@/components/hr/RequestLeaveModal";
 import type { Branch, LeaveRequest, LeaveType } from "@/types/api";
 import {
@@ -55,21 +46,14 @@ import {
 import { buildHrLeaveUrl, parseHrLeaveSearchParams } from "@/lib/hr-hub-url";
 import {
   expandedRowPanelClassName,
-  formSelectContentClassName,
   hrMetaBadgeClassName,
   hrSectionPanelClassName,
-  hrSummaryChipClassName,
   hubCtaClassName,
-  hubLoadingSpinnerClassName,
   infoBannerClassName,
   infoBannerIconClassName,
   infoBannerTextClassName,
   infoBannerTitleClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  leaveLegendSwatchClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   tableActionAccentClassName,
   tableCellMutedClassName,
   text,
@@ -145,10 +129,6 @@ export default function LeaveRequestsPage() {
     },
     [router],
   );
-
-  const toggleStatusFilter = (next: LeaveStatusFilter) => {
-    setStatusFilterAndUrl(statusFilter === next ? "ALL" : next);
-  };
 
   const handleCreateLeave = async (payload: {
     type: string;
@@ -341,141 +321,42 @@ export default function LeaveRequestsPage() {
           hideTitle
           icon={CalendarOff}
           accentHub="hr"
-          description={
-            isManagerOrAdmin
-              ? "Review and approve team leave requests. Pending items also appear in the sidebar badge."
-              : "Submit and track your leave requests. Approved leave is used for scheduling and payroll."
-          }
           actions={
-            <HrHubLinks current="leave" showOrgUsers={role === "SUPER_ADMIN"}>
-              <Button
-                className={hubCtaClassName("hr", "font-bold")}
-                onClick={() => setIsModalOpen(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" aria-hidden />
-                Request leave
-              </Button>
-            </HrHubLinks>
+            <Button
+              className={hubCtaClassName("hr", "font-bold")}
+              onClick={() => setIsModalOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" aria-hidden />
+              Request leave
+            </Button>
           }
         />
 
-        <div className={hrSectionPanelClassName()}>
+        <HubListPage className={hrSectionPanelClassName()}>
           {isManagerOrAdmin && summary.pending > 0 && initialStatus === "PENDING" && (
-            <div className={infoBannerClassName()}>
-              <div className="flex items-start gap-3">
-                <Briefcase className={infoBannerIconClassName()} aria-hidden />
-                <div>
-                  <p className={infoBannerTitleClassName()}>Leave awaiting approval</p>
-                  <p className={infoBannerTextClassName()}>
-                    {summary.pending} request{summary.pending === 1 ? "" : "s"}{" "}
-                    {summary.pending === 1 ? "needs" : "need"} your review at this branch.
-                  </p>
+            <HubListPage.Banner>
+              <div className={infoBannerClassName()}>
+                <div className="flex items-start gap-3">
+                  <Briefcase className={infoBannerIconClassName()} aria-hidden />
+                  <div>
+                    <p className={infoBannerTitleClassName()}>Leave awaiting approval</p>
+                    <p className={infoBannerTextClassName()}>
+                      {summary.pending} request{summary.pending === 1 ? "" : "s"}{" "}
+                      {summary.pending === 1 ? "needs" : "need"} your review at this branch.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </HubListPage.Banner>
           )}
 
-          {!isLoading && !isError && (
-            <div
-              className={inventorySummaryStripClassName()}
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <span className={cn("font-semibold tabular-nums", text.primary)}>
-                {summary.total > 0
-                  ? `${summary.total} request${summary.total === 1 ? "" : "s"}`
-                  : "No leave requests yet"}
-              </span>
-              {summary.pending > 0 && (
-                <button
-                  type="button"
-                  className={hrSummaryChipClassName(
-                    statusFilter === "PENDING",
-                    metricValueClassName("amber"),
-                  )}
-                  onClick={() => toggleStatusFilter("PENDING")}
-                >
-                  {summary.pending} pending
-                </button>
-              )}
-              {summary.approved > 0 && (
-                <button
-                  type="button"
-                  className={hrSummaryChipClassName(
-                    statusFilter === "APPROVED",
-                    metricValueClassName("emerald"),
-                  )}
-                  onClick={() => toggleStatusFilter("APPROVED")}
-                >
-                  {summary.approved} approved
-                </button>
-              )}
-              {summary.rejected > 0 && (
-                <button
-                  type="button"
-                  className={hrSummaryChipClassName(
-                    statusFilter === "REJECTED",
-                    metricValueClassName("red"),
-                  )}
-                  onClick={() => toggleStatusFilter("REJECTED")}
-                >
-                  {summary.rejected} rejected
-                </button>
-              )}
-              {isFetching && !isLoading && (
-                <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                  <Loader2
-                    className={cn(hubLoadingSpinnerClassName(), "w-3.5 h-3.5")}
-                    aria-hidden
-                  />
-                  Updating…
-                </span>
-              )}
-            </div>
-          )}
+          <HubListPage.Error
+            message={isError ? getErrorMessage(error, "Failed to load leave requests") : undefined}
+            onRetry={() => void refetch()}
+            loading={isFetching}
+          />
 
-          {!isLoading && !isError && (
-            <div
-              className={cn(
-                "flex flex-wrap items-center gap-x-4 gap-y-2 text-xs",
-                "pb-3 border-b border-[var(--table-row-border)]",
-              )}
-              aria-label="Leave status legend"
-            >
-              {(
-                [
-                  ["PENDING", "Pending"],
-                  ["APPROVED", "Approved"],
-                  ["REJECTED", "Rejected"],
-                ] as const
-              ).map(([status, label]) => (
-                <span
-                  key={status}
-                  className={cn("inline-flex items-center gap-1.5 font-medium", text.secondary)}
-                >
-                  <span className={leaveLegendSwatchClassName(status)} aria-hidden />
-                  {label}
-                </span>
-              ))}
-              <Link
-                href="/hr/attendance"
-                className={cn("inline-flex items-center gap-1 font-medium", inlineLinkClassName())}
-              >
-                <Clock className="w-3.5 h-3.5" aria-hidden />
-                View attendance
-              </Link>
-            </div>
-          )}
-
-          {isError && (
-            <QueryErrorBanner
-              message={getErrorMessage(error, "Failed to load leave requests")}
-              onRetry={() => void refetch()}
-              loading={isFetching}
-            />
-          )}
-
-          <ListToolbar
+          <HubListPage.Toolbar
             search={isManagerOrAdmin ? search : undefined}
             onSearchChange={isManagerOrAdmin ? setSearch : undefined}
             searchPlaceholder="Search staff or reason…"
@@ -487,23 +368,52 @@ export default function LeaveRequestsPage() {
               setSearch("");
             }}
             filters={
-              <Select
-                value={typeFilter}
-                onValueChange={(value) => value && setTypeFilter(value as LeaveTypeFilter)}
+              <>
+                <ListFilterSelect
+                  value={statusFilter}
+                  onValueChange={(value) => setStatusFilterAndUrl(value as LeaveStatusFilter)}
+                  ariaLabel="Filter by leave status"
+                  widthClassName="w-full sm:w-[180px]"
+                  options={[
+                    { value: "ALL", label: "All statuses" },
+                    { value: "PENDING", label: "Pending" },
+                    { value: "APPROVED", label: "Approved" },
+                    { value: "REJECTED", label: "Rejected" },
+                  ]}
+                />
+                <ListFilterSelect
+                  value={typeFilter}
+                  onValueChange={(value) => setTypeFilter(value as LeaveTypeFilter)}
+                  ariaLabel="Filter by leave type"
+                  widthClassName="w-full sm:w-[180px]"
+                  options={[
+                    { value: "ALL", label: "All types" },
+                    { value: "SICK", label: "Sick leave" },
+                    { value: "ANNUAL", label: "Annual leave" },
+                    { value: "UNPAID", label: "Unpaid leave" },
+                  ]}
+                />
+              </>
+            }
+          />
+
+          <HubListPage.Count
+            isLoading={isLoading}
+            isError={isError}
+            isFetching={isFetching}
+            hasActiveFilters={hasActiveFilters}
+            filteredCount={filteredLeaveRequests.length}
+            totalCount={leaveRequests.length}
+            itemLabel="request"
+            emptyLabel="No leave requests yet"
+            actions={
+              <Link
+                href="/hr/attendance"
+                className={cn("inline-flex items-center gap-1 text-sm font-medium", inlineLinkClassName())}
               >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by leave type"
-                >
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All types</SelectItem>
-                  <SelectItem value="SICK">Sick leave</SelectItem>
-                  <SelectItem value="ANNUAL">Annual leave</SelectItem>
-                  <SelectItem value="UNPAID">Unpaid leave</SelectItem>
-                </SelectContent>
-              </Select>
+                <Clock className="w-3.5 h-3.5" aria-hidden />
+                View attendance
+              </Link>
             }
           />
 
@@ -525,7 +435,7 @@ export default function LeaveRequestsPage() {
               rowExpandable: (record) => Boolean(record.reason?.trim()),
             }}
           />
-        </div>
+        </HubListPage>
       </div>
 
       <RequestLeaveModal

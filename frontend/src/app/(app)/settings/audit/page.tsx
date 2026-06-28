@@ -5,21 +5,13 @@ import { User, Activity, FileText, ChevronLeft, ChevronRight, Eye, History, Load
 import { useAuditLogs } from "@/hooks/domains/useReportsQueries";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { StatusBadge, auditActionTone } from "@/components/shared/status-badge";
 import { TableActionButton } from "@/components/shared/table-action-button";
-import { SettingsHubLinks } from "@/components/settings/SettingsHubLinks";
 import { AuditLogDetailSheet } from "@/components/settings/AuditLogDetailSheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -36,28 +28,21 @@ import {
   auditTargetTypeLabel,
   filterAuditLogs,
   formatAuditDetails,
-  summarizeAuditLogs,
   uniqueAuditTargetTypes,
 } from "@/lib/audit-filters";
 import { roleLabel } from "@/lib/employee-filters";
 import { formatDateTime } from "@/lib/intl-date";
 import { getErrorMessage } from "@/lib/errors";
 import {
-  auditLegendSwatchClassName,
   dataTableContainerClassName,
-  formSelectContentClassName,
   hubLoadingSpinnerClassName,
   infoBannerClassName,
   infoBannerIconClassName,
   infoBannerTextClassName,
   infoBannerTitleClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   nativeTableEmptyCellClassName,
   semanticTableClassName,
   settingsSectionPanelClassName,
-  settingsSummaryChipClassName,
   text,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -85,7 +70,7 @@ export default function AuditLogsPage() {
 
   const logs = logsData as AuditLogRow[];
   const targetTypes = useMemo(() => uniqueAuditTargetTypes(logs), [logs]);
-  const summary = useMemo(() => summarizeAuditLogs(logs), [logs]);
+  const entryCount = logs.length;
 
   const filteredLogs = useMemo(
     () =>
@@ -115,11 +100,6 @@ export default function AuditLogsPage() {
     }
   }, [page, totalPages]);
 
-  const toggleActionFilter = (next: AuditActionCategory) => {
-    setActionFilter((current) => (current === next ? "ALL" : next));
-    setPage(1);
-  };
-
   const resetFilters = () => {
     setSearch("");
     setActionFilter("ALL");
@@ -127,169 +107,46 @@ export default function AuditLogsPage() {
     setPage(1);
   };
 
+  const entryCountLabel = (count: number) =>
+    `${count} entr${count === 1 ? "y" : "ies"}`;
+
+  const formatLoadedSummary = () => {
+    const olderSuffix = mayHaveOlderEntries ? ` · latest ${fetchLimit} loaded` : "";
+    if (hasActiveFilters) {
+      return `${filteredLogs.length} of ${entryCount} entries${olderSuffix}`;
+    }
+    return `${entryCountLabel(entryCount)}${olderSuffix}`;
+  };
+
   return (
     <div className="space-y-6 max-w-6xl w-full">
-      <HubPageHeader
-        hideTitle
-        accentHub="settings"
-        description="Comprehensive log of critical system actions and data modifications."
-        actions={<SettingsHubLinks current="audit" />}
-      />
+      <HubPageHeader hideTitle accentHub="settings" />
 
-      <div className={settingsSectionPanelClassName()}>
-        {!loading && !isError && summary.total === 0 && (
-          <div className={infoBannerClassName()}>
-            <div className="flex items-start gap-3">
-              <History className={infoBannerIconClassName()} aria-hidden />
-              <div>
-                <p className={infoBannerTitleClassName()}>No audit entries yet</p>
-                <p className={infoBannerTextClassName()}>
-                  Critical actions such as purchase orders, stock transfers, settlements, and waste
-                  adjustments appear here once recorded by the system.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {!loading && !isError && summary.total > 0 && mayHaveOlderEntries && (
-          <div className={infoBannerClassName()}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3 min-w-0">
+      <HubListPage className={settingsSectionPanelClassName()}>
+        {!loading && !isError && entryCount === 0 && (
+          <HubListPage.Banner>
+            <div className={infoBannerClassName()}>
+              <div className="flex items-start gap-3">
                 <History className={infoBannerIconClassName()} aria-hidden />
                 <div>
-                  <p className={infoBannerTitleClassName()}>Showing recent history</p>
+                  <p className={infoBannerTitleClassName()}>No audit entries yet</p>
                   <p className={infoBannerTextClassName()}>
-                    Loaded the most recent {fetchLimit} entries. Load older records if you need to
-                    investigate further back.
+                    Critical actions such as purchase orders, stock transfers, settlements, and waste
+                    adjustments appear here once recorded by the system.
                   </p>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0 min-h-[44px] font-medium"
-                disabled={isFetching}
-                onClick={() => setFetchLimit((current) => current + FETCH_BATCH)}
-              >
-                {isFetching ? (
-                  <Loader2 className={cn("w-4 h-4 mr-2 animate-spin", hubLoadingSpinnerClassName())} aria-hidden />
-                ) : null}
-                Load older entries
-              </Button>
             </div>
-          </div>
+          </HubListPage.Banner>
         )}
 
-        {!loading && !isError && summary.total > 0 && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} entr{summary.total === 1 ? "y" : "ies"}
-              {mayHaveOlderEntries ? ` · latest ${fetchLimit} loaded` : " loaded"}
-            </span>
-            {summary.create > 0 && (
-              <button
-                type="button"
-                className={settingsSummaryChipClassName(
-                  actionFilter === "create",
-                  metricValueClassName("blue"),
-                )}
-                onClick={() => toggleActionFilter("create")}
-              >
-                {summary.create} create
-              </button>
-            )}
-            {summary.update > 0 && (
-              <button
-                type="button"
-                className={settingsSummaryChipClassName(
-                  actionFilter === "update",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleActionFilter("update")}
-              >
-                {summary.update} update
-              </button>
-            )}
-            {summary.approve > 0 && (
-              <button
-                type="button"
-                className={settingsSummaryChipClassName(
-                  actionFilter === "approve",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleActionFilter("approve")}
-              >
-                {summary.approve} approve
-              </button>
-            )}
-            {summary.delete > 0 && (
-              <button
-                type="button"
-                className={settingsSummaryChipClassName(
-                  actionFilter === "delete",
-                  metricValueClassName("red"),
-                )}
-                onClick={() => toggleActionFilter("delete")}
-              >
-                {summary.delete} delete
-              </button>
-            )}
-            {summary.other > 0 && (
-              <button
-                type="button"
-                className={settingsSummaryChipClassName(
-                  actionFilter === "other",
-                  text.muted,
-                )}
-                onClick={() => toggleActionFilter("other")}
-              >
-                {summary.other} other
-              </button>
-            )}
-          </div>
-        )}
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load audit logs.") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {!loading && !isError && summary.total > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--text-subtle)]">
-            <span className="font-medium uppercase tracking-wide">Legend</span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={auditLegendSwatchClassName("create")} aria-hidden />
-              Create
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={auditLegendSwatchClassName("update")} aria-hidden />
-              Update
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={auditLegendSwatchClassName("approve")} aria-hidden />
-              Approve
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={auditLegendSwatchClassName("delete")} aria-hidden />
-              Delete / reject
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={auditLegendSwatchClassName("other")} aria-hidden />
-              Other
-            </span>
-          </div>
-        )}
-
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load audit logs.")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={(value) => {
             setSearch(value);
@@ -300,59 +157,74 @@ export default function AuditLogsPage() {
           onReset={resetFilters}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={actionFilter}
                 onValueChange={(value) => {
-                  if (value) {
-                    setActionFilter(value as AuditActionCategory);
-                    setPage(1);
-                  }
+                  setActionFilter(value as AuditActionCategory);
+                  setPage(1);
                 }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("w-full sm:w-[160px]")}
-                  aria-label="Filter by action type"
-                >
-                  <SelectValue placeholder="Action type" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All actions</SelectItem>
-                  <SelectItem value="create">Create</SelectItem>
-                  <SelectItem value="update">Update</SelectItem>
-                  <SelectItem value="approve">Approve</SelectItem>
-                  <SelectItem value="delete">Delete / reject</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+                ariaLabel="Filter by action type"
+                widthClassName="w-full sm:w-[160px]"
+                options={[
+                  { value: "ALL", label: "All actions" },
+                  { value: "create", label: "Create" },
+                  { value: "update", label: "Update" },
+                  { value: "approve", label: "Approve" },
+                  { value: "delete", label: "Delete / reject" },
+                  { value: "other", label: "Other" },
+                ]}
+              />
               {targetTypes.length > 1 && (
-                <Select
+                <ListFilterSelect
                   value={targetTypeFilter}
                   onValueChange={(value) => {
-                    if (value) {
-                      setTargetTypeFilter(value as AuditTargetTypeFilter);
-                      setPage(1);
-                    }
+                    setTargetTypeFilter(value as AuditTargetTypeFilter);
+                    setPage(1);
                   }}
-                >
-                  <SelectTrigger
-                    className={listToolbarFieldClassName("w-full sm:w-[180px]")}
-                    aria-label="Filter by target module"
-                  >
-                    <SelectValue placeholder="Module" />
-                  </SelectTrigger>
-                  <SelectContent className={formSelectContentClassName()}>
-                    <SelectItem value="ALL">All modules</SelectItem>
-                    {targetTypes.map((targetType) => (
-                      <SelectItem key={targetType} value={targetType}>
-                        {auditTargetTypeLabel(targetType)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  ariaLabel="Filter by target module"
+                  widthClassName="w-full sm:w-[180px]"
+                  options={[
+                    { value: "ALL", label: "All modules" },
+                    ...targetTypes.map((targetType) => ({
+                      value: targetType,
+                      label: auditTargetTypeLabel(targetType),
+                    })),
+                  ]}
+                />
               )}
             </>
           }
         />
+
+        {entryCount > 0 && (
+          <HubListPage.Count
+            isLoading={loading}
+            isError={isError}
+            isFetching={isFetching}
+            actions={
+              mayHaveOlderEntries ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 min-h-[44px] font-medium"
+                  disabled={isFetching}
+                  onClick={() => setFetchLimit((current) => current + FETCH_BATCH)}
+                >
+                  {isFetching ? (
+                    <Loader2
+                      className={cn("w-4 h-4 mr-2 animate-spin", hubLoadingSpinnerClassName())}
+                      aria-hidden
+                    />
+                  ) : null}
+                  Load older entries
+                </Button>
+              ) : undefined
+            }
+          >
+            {formatLoadedSummary()}
+          </HubListPage.Count>
+        )}
 
         <div className={dataTableContainerClassName()}>
           <div className={semanticTableClassName()}>
@@ -482,7 +354,7 @@ export default function AuditLogsPage() {
             </div>
           </div>
         )}
-      </div>
+      </HubListPage>
 
       <AuditLogDetailSheet
         log={selectedLog}

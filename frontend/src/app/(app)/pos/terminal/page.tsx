@@ -7,7 +7,7 @@ import { useSettings } from '@/hooks/domains/useSettingsQueries';
 import { useBranches } from '@/hooks/domains/useGeneralQueries';
 import { useAuth } from "@/context/AuthContext";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,7 +74,7 @@ export default function POSPage() {
       ? (branches as Branch[]).find((b) => b.id === activeBranchId)?.name
       : user?.branch ?? "Branch";
   const { data: settings } = useSettings();
-  const { data: productsData, isLoading: loading, isError: productsError, error: productsErr, refetch: refetchProducts } = useProducts();
+  const { data: productsData, isLoading: loading, isError: productsError, error: productsErr, refetch: refetchProducts, isFetching: productsFetching } = useProducts();
   const products = filterActive<Product>((productsData || []) as Product[]);
   const [productSearch, setProductSearch] = useState("");
   const debouncedProductSearch = useDebouncedValue(productSearch.trim().toLowerCase(), 200);
@@ -361,12 +361,13 @@ export default function POSPage() {
     <div className="flex h-full flex-col lg:flex-row gap-4 lg:gap-6 w-full min-h-0">
       {/* Products Grid */}
       <div className="flex-1 min-h-0 overflow-y-auto pr-0 lg:pr-2 pb-10 space-y-4">
-        {productsError && (
-          <QueryErrorBanner
-            message={getErrorMessage(productsErr, "Failed to load menu items")}
-            onRetry={() => void refetchProducts()}
-          />
-        )}
+        <HubListPage.Error
+          message={
+            productsError ? getErrorMessage(productsErr, "Failed to load menu items") : undefined
+          }
+          onRetry={() => void refetchProducts()}
+          loading={productsFetching}
+        />
         <div className="sticky top-0 z-10 space-y-3 rounded-xl border border-[var(--pos-panel-border)] bg-[var(--pos-panel-bg)] p-3 shadow-sm">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-subtle)] pointer-events-none" aria-hidden />

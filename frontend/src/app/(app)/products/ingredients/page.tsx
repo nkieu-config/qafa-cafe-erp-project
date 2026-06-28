@@ -15,25 +15,17 @@ import {
   Edit,
   Trash2,
   Leaf,
-  Loader2,
   ArrowDownToLine,
   Building2,
 } from "lucide-react";
 import { IngredientFormModal } from "@/components/products/IngredientFormModal";
-import { ProductsHubLinks } from "@/components/products/ProductsHubLinks";
 import { DataTable } from "@/components/shared/data-table";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { getErrorMessage } from "@/lib/errors";
 import { formatDate } from "@/lib/intl-date";
@@ -48,15 +40,10 @@ import {
 } from "@/lib/ingredient-filters";
 import { parseProductsIngredientsSearchParams } from "@/lib/products-hub-url";
 import {
-  formSelectContentClassName,
   hubCtaClassName,
-  inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
   productsCategoryBadgeClassName,
   productsSectionPanelClassName,
-  productsSummaryChipClassName,
   tableCellMutedClassName,
   text,
 } from "@/lib/theme";
@@ -131,14 +118,6 @@ export default function IngredientsPage() {
     setSelectedIngredient(null);
     setIsModalOpen(true);
   }, []);
-
-  const toggleStatusFilter = (next: IngredientStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
-  };
-
-  const toggleCostFilter = () => {
-    setCostFilter((current) => (current === "missing-cost" ? "ALL" : "missing-cost"));
-  };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
@@ -269,98 +248,32 @@ export default function IngredientsPage() {
         hideTitle
         icon={Leaf}
         accentHub="products"
-        description="Manage all raw materials used in your recipes."
         actions={
-          <ProductsHubLinks
-            current="ingredients"
-            contextual={
-              <>
-                <ButtonLink href="/inventory/stock-in" variant="outline" className="font-medium">
-                  <ArrowDownToLine className="w-4 h-4 mr-2" aria-hidden />
-                  Receive Stock
-                </ButtonLink>
-                <ButtonLink href="/procurement/suppliers" variant="outline" className="font-medium">
-                  <Building2 className="w-4 h-4 mr-2" aria-hidden />
-                  Suppliers
-                </ButtonLink>
-              </>
-            }
-          >
+          <>
+            <ButtonLink href="/inventory/stock-in" variant="outline" className="font-medium">
+              <ArrowDownToLine className="w-4 h-4 mr-2" aria-hidden />
+              Receive Stock
+            </ButtonLink>
+            <ButtonLink href="/procurement/suppliers" variant="outline" className="font-medium">
+              <Building2 className="w-4 h-4 mr-2" aria-hidden />
+              Suppliers
+            </ButtonLink>
             <Button onClick={handleAddNew} className={hubCtaClassName("products", "font-bold")}>
               <Plus className="w-4 h-4 mr-2" aria-hidden />
               Add Ingredient
             </Button>
-          </ProductsHubLinks>
+          </>
         }
       />
 
-      <div className={productsSectionPanelClassName()}>
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} ingredient{summary.total === 1 ? "" : "s"}
-            </span>
-            {summary.active > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  statusFilter === "active",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleStatusFilter("active")}
-              >
-                {summary.active} active
-              </button>
-            )}
-            {summary.inactive > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  statusFilter === "inactive",
-                  text.muted,
-                )}
-                onClick={() => toggleStatusFilter("inactive")}
-              >
-                {summary.inactive} inactive
-              </button>
-            )}
-            {summary.missingCost > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  costFilter === "missing-cost",
-                  metricValueClassName("amber"),
-                )}
-                onClick={toggleCostFilter}
-              >
-                {summary.missingCost} missing cost
-              </button>
-            )}
-            {summary.total === 0 && (
-              <span className={text.muted}>
-                No ingredients yet — used in{" "}
-                <Link href="/products" className={inlineLinkClassName()}>
-                  menu recipes
-                </Link>
-              </span>
-            )}
-            {isFetching && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+      <HubListPage className={productsSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load ingredients") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search ingredients…"
@@ -372,43 +285,40 @@ export default function IngredientsPage() {
           }}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={statusFilter}
-                onValueChange={(value) => {
-                  if (value != null) setStatusFilter(value as IngredientStatusFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by status"
-                >
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
+                onValueChange={(value) => setStatusFilter(value as IngredientStatusFilter)}
+                ariaLabel="Filter by status"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "active", label: "Active" },
+                  { value: "inactive", label: "Inactive" },
+                ]}
+              />
+              <ListFilterSelect
                 value={costFilter}
-                onValueChange={(value) => {
-                  if (value != null) setCostFilter(value as IngredientCostFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                  aria-label="Filter by cost data"
-                >
-                  <SelectValue placeholder="All cost levels" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All cost levels</SelectItem>
-                  <SelectItem value="missing-cost">Missing cost</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setCostFilter(value as IngredientCostFilter)}
+                ariaLabel="Filter by cost data"
+                widthClassName="w-full sm:w-[200px]"
+                options={[
+                  { value: "ALL", label: "All cost levels" },
+                  { value: "missing-cost", label: "Missing cost" },
+                ]}
+              />
             </>
           }
+        />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredIngredients.length}
+          totalCount={summary.total}
+          itemLabel="ingredient"
+          emptyLabel="No ingredients yet"
         />
 
         <DataTable
@@ -432,7 +342,7 @@ export default function IngredientsPage() {
           }}
           hideBorders
         />
-      </div>
+      </HubListPage>
 
       <IngredientFormModal
         isOpen={isModalOpen}

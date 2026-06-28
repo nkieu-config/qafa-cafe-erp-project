@@ -23,13 +23,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -51,12 +44,12 @@ import { toast } from "sonner";
 import { HubPageHeader } from "@/components/shared/hub-card";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { DataTable } from "@/components/shared/data-table";
-import { ProcurementHubLinks } from "@/components/procurement/ProcurementHubLinks";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { CreatePOModal } from "@/components/procurement/CreatePOModal";
 import { formatDateTime } from "@/lib/intl-date";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
-import { ListToolbar } from "@/components/shared/list-toolbar";
 import { getErrorMessage } from "@/lib/errors";
 import { formatBaht } from "@/lib/money";
 import {
@@ -77,20 +70,16 @@ import {
   expandedRowPanelClassName,
   formFieldInsetClassName,
   formLineDateFieldClassName,
-  formSelectContentClassName,
   hubCtaClassName,
   infoBannerClassName,
   infoBannerIconClassName,
   infoBannerTextClassName,
   infoBannerTitleClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
   procurementMetaBadgeClassName,
   procurementSectionPanelClassName,
   procurementDialogContentClassName,
-  procurementSummaryChipClassName,
   receiveLineClassName,
   tableActionAccentClassName,
   tableCellMutedClassName,
@@ -190,14 +179,6 @@ export default function ProcurementOrdersPage() {
     supplierFilter != null;
 
   const canApprove = user?.role === "SUPER_ADMIN" || user?.role === "MANAGER";
-
-  const toggleStatusFilter = (next: POStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
-  };
-
-  const toggleHighlightFilter = () => {
-    setHighlightFilter((current) => (current === "auto-draft" ? "ALL" : "auto-draft"));
-  };
 
   const handleApprove = async (poId: number) => {
     try {
@@ -493,116 +474,43 @@ export default function ProcurementOrdersPage() {
         hideTitle
         icon={Truck}
         accentHub="procurement"
-        description="Create and track supplier orders. Use Receive to add approved PO lines into inventory — for ad-hoc receipts without a PO, use Receive Stock (GRN)."
         actions={
-          <ProcurementHubLinks current="orders">
-            <Button
-              className={hubCtaClassName("procurement", "font-bold")}
-              onClick={() => setIsModalOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" aria-hidden />
-              Create PO
-            </Button>
-          </ProcurementHubLinks>
+          <Button
+            className={hubCtaClassName("procurement", "font-bold")}
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" aria-hidden />
+            Create PO
+          </Button>
         }
       />
 
-      <div className={procurementSectionPanelClassName()}>
+      <HubListPage className={procurementSectionPanelClassName()}>
         {summary.autoDraft > 0 && (
-          <div className={infoBannerClassName()}>
-            <div className="flex items-start gap-3">
-              <AlertTriangle className={infoBannerIconClassName()} aria-hidden />
-              <div>
-                <p className={infoBannerTitleClassName()}>
-                  {summary.autoDraft} auto-reorder draft{summary.autoDraft > 1 ? "s" : ""} ready
-                </p>
-                <p className={infoBannerTextClassName()}>
-                  Created when stock fell below minimum. Review and submit for manager approval.
-                </p>
+          <HubListPage.Banner>
+            <div className={infoBannerClassName()}>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className={infoBannerIconClassName()} aria-hidden />
+                <div>
+                  <p className={infoBannerTitleClassName()}>
+                    {summary.autoDraft} auto-reorder draft{summary.autoDraft > 1 ? "s" : ""} ready
+                  </p>
+                  <p className={infoBannerTextClassName()}>
+                    Created when stock fell below minimum. Review and submit for manager approval.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </HubListPage.Banner>
         )}
 
-        {!loading && !posError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} purchase order{summary.total === 1 ? "" : "s"}
-            </span>
-            {summary.pending > 0 && (
-              <button
-                type="button"
-                className={procurementSummaryChipClassName(
-                  statusFilter === "PENDING",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleStatusFilter("PENDING")}
-              >
-                {summary.pending} pending
-              </button>
-            )}
-            {summary.autoDraft > 0 && (
-              <button
-                type="button"
-                className={procurementSummaryChipClassName(
-                  highlightFilter === "auto-draft",
-                  metricValueClassName("blue"),
-                )}
-                onClick={toggleHighlightFilter}
-              >
-                {summary.autoDraft} auto drafts
-              </button>
-            )}
-            {summary.approved > 0 && (
-              <button
-                type="button"
-                className={procurementSummaryChipClassName(
-                  statusFilter === "APPROVED",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleStatusFilter("APPROVED")}
-              >
-                {summary.approved} awaiting receive
-              </button>
-            )}
-            {summary.received > 0 && (
-              <button
-                type="button"
-                className={procurementSummaryChipClassName(
-                  statusFilter === "RECEIVED",
-                  text.muted,
-                )}
-                onClick={() => toggleStatusFilter("RECEIVED")}
-              >
-                {summary.received} received
-              </button>
-            )}
-            {summary.total === 0 && (
-              <span className={text.muted}>
-                No purchase orders yet —{" "}
-                <Link href="/procurement/suppliers" className={inlineLinkClassName()}>
-                  add suppliers
-                </Link>{" "}
-                or create a PO
-              </span>
-            )}
-            {posFetching && !loading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+        <HubListPage.Error
+          message={posError ? getErrorMessage(posErr, "Failed to load purchase orders") : undefined}
+          onRetry={() => void refetchPos()}
+          loading={posFetching}
+        />
 
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search PO #, supplier, status…"
@@ -616,52 +524,58 @@ export default function ProcurementOrdersPage() {
           }}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={statusFilter}
-                onValueChange={(value) => {
-                  if (value != null) setStatusFilter(value as POStatusFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by PO status"
-                >
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="APPROVED">Approved</SelectItem>
-                  <SelectItem value="RECEIVED">Received</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setStatusFilter(value as POStatusFilter)}
+                ariaLabel="Filter by PO status"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "DRAFT", label: "Draft" },
+                  { value: "PENDING", label: "Pending" },
+                  { value: "APPROVED", label: "Approved" },
+                  { value: "RECEIVED", label: "Received" },
+                ]}
+              />
+              <ListFilterSelect
+                value={highlightFilter}
+                onValueChange={(value) => setHighlightFilter(value as POHighlightFilter)}
+                ariaLabel="Filter by order type"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All types" },
+                  { value: "auto-draft", label: "Auto-reorder drafts" },
+                ]}
+              />
               {suppliers.length > 0 && (
-                <Select
+                <ListFilterSelect
                   value={supplierFilter != null ? String(supplierFilter) : "ALL"}
                   onValueChange={(value) => {
-                    if (value == null) return;
                     setSupplierFilter(value === "ALL" ? null : Number(value));
                   }}
-                >
-                  <SelectTrigger
-                    className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                    aria-label="Filter by supplier"
-                  >
-                    <SelectValue placeholder="All suppliers" />
-                  </SelectTrigger>
-                  <SelectContent className={formSelectContentClassName()}>
-                    <SelectItem value="ALL">All suppliers</SelectItem>
-                    {suppliers.map((supplier: Supplier) => (
-                      <SelectItem key={supplier.id} value={String(supplier.id)}>
-                        {supplier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  ariaLabel="Filter by supplier"
+                  widthClassName="w-full sm:w-[200px]"
+                  options={[
+                    { value: "ALL", label: "All suppliers" },
+                    ...suppliers.map((supplier: Supplier) => ({
+                      value: String(supplier.id),
+                      label: supplier.name,
+                    })),
+                  ]}
+                />
               )}
             </>
           }
+        />
+
+        <HubListPage.Count
+          isLoading={loading}
+          isError={posError}
+          isFetching={posFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredPos.length}
+          totalCount={summary.total}
+          itemLabel="purchase order"
         />
 
         <DataTable
@@ -688,7 +602,7 @@ export default function ProcurementOrdersPage() {
           }}
           hideBorders
         />
-      </div>
+      </HubListPage>
 
       <CreatePOModal
         open={isModalOpen}

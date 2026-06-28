@@ -34,6 +34,37 @@ export function hubCardIconFor(hubId: HubId, className?: string) {
   return cn(hubCardIconClass(hubId), className);
 }
 
+const hubSummaryToneVar: Record<HubId, { subtle: string; border: string }> = {
+  inventory: { subtle: "--tone-inventory-subtle", border: "--tone-inventory-border" },
+  procurement: { subtle: "--tone-procurement-subtle", border: "--tone-procurement-border" },
+  hr: { subtle: "--tone-hr-subtle", border: "--tone-hr-border" },
+  products: { subtle: "--tone-products-subtle", border: "--tone-products-border" },
+  kitchen: { subtle: "--tone-kitchen-subtle", border: "--tone-kitchen-border" },
+  crm: { subtle: "--tone-crm-subtle", border: "--tone-crm-border" },
+  finance: { subtle: "--tone-finance-subtle", border: "--tone-finance-border" },
+  assets: { subtle: "--tone-assets-subtle", border: "--tone-assets-border" },
+  pos: { subtle: "--tone-pos-subtle", border: "--tone-pos-border" },
+  settings: { subtle: "--tone-settings-subtle", border: "--tone-settings-border" },
+  organization: { subtle: "--tone-organization-subtle", border: "--tone-organization-border" },
+};
+
+/** Hub-aware inline summary chip (count line badges, optional filter toggles). */
+export function summaryChipClassName(hubId: HubId, active = false, className?: string) {
+  const tone = hubSummaryToneVar[hubId];
+  return cn(
+    "rounded-md px-2 py-0.5 font-medium tabular-nums transition-colors",
+    active
+      ? `bg-[var(${tone.subtle})] ring-1 ring-[var(${tone.border})]`
+      : `hover:bg-[var(${tone.subtle})] cursor-pointer`,
+    className,
+  );
+}
+
+/** @deprecated Use summaryChipClassName("kitchen", ...) */
+export function kitchenSummaryChipClassName(active = false, className?: string) {
+  return summaryChipClassName("kitchen", active, className);
+}
+
 export function tableActionAccentClassName(tone: MetricTone, className?: string) {
   return cn(metricValueClassName(tone), "font-bold", className);
 }
@@ -334,15 +365,6 @@ function shiftBarStatusKey(status: string): ShiftBarStatus {
   return "scheduled";
 }
 
-/** Small color chip for Gantt legend — not for timeline bars (no absolute positioning). */
-export function shiftLegendSwatchClassName(status: string, className?: string) {
-  return cn(
-    "inline-block h-3 w-3 shrink-0 rounded-sm border",
-    shiftBarClass[shiftBarStatusKey(status)],
-    className,
-  );
-}
-
 export function shiftBarClassName(status: string, className?: string) {
   return cn(
     "absolute top-1 bottom-1 rounded-md border text-[10px] font-black",
@@ -372,57 +394,6 @@ export function attendanceLateTimeClassName(className?: string) {
   return cn("font-mono font-bold", metricValueClassName("red"), className);
 }
 
-export function attendanceLegendSwatchClassName(
-  variant: "on-time" | "late" | "active",
-  className?: string,
-) {
-  const tone =
-    variant === "late"
-      ? "bg-[var(--status-danger-fg)]"
-      : variant === "active"
-        ? "bg-[var(--status-info-fg)]"
-        : "bg-[var(--status-success-fg)]";
-  return cn(
-    "inline-block h-3 w-3 shrink-0 rounded-sm border border-[var(--table-row-border)]",
-    tone,
-    className,
-  );
-}
-
-export function leaveLegendSwatchClassName(
-  status: "PENDING" | "APPROVED" | "REJECTED",
-  className?: string,
-) {
-  const tone =
-    status === "APPROVED"
-      ? "bg-[var(--status-success-fg)]"
-      : status === "REJECTED"
-        ? "bg-[var(--status-danger-fg)]"
-        : "bg-[var(--status-warning-fg)]";
-  return cn(
-    "inline-block h-3 w-3 shrink-0 rounded-sm border border-[var(--table-row-border)]",
-    tone,
-    className,
-  );
-}
-
-export function payrollLegendSwatchClassName(
-  status: "DRAFT" | "APPROVED" | "PAID",
-  className?: string,
-) {
-  const tone =
-    status === "APPROVED"
-      ? "bg-[var(--status-success-fg)]"
-      : status === "PAID"
-        ? "bg-[var(--status-info-fg)]"
-        : "bg-[var(--status-warning-fg)]";
-  return cn(
-    "inline-block h-3 w-3 shrink-0 rounded-sm border border-[var(--table-row-border)]",
-    tone,
-    className,
-  );
-}
-
 export function payrollExpandedPanelClassName(className?: string) {
   return expandedRowPanelClassName(className);
 }
@@ -439,30 +410,10 @@ export function crmSectionPanelClassName(className?: string) {
   );
 }
 
-export function crmSummaryChipClassName(active = false, className?: string) {
-  return cn(
-    "rounded-md px-2 py-0.5 font-medium tabular-nums transition-colors",
-    active
-      ? "bg-[var(--tone-crm-subtle)] ring-1 ring-[var(--tone-crm-border)]"
-      : "hover:bg-[var(--tone-crm-subtle)] cursor-pointer",
-    className,
-  );
-}
-
 export function productsSectionPanelClassName(className?: string) {
   return cn(
     "rounded-xl shadow-sm border p-4 sm:p-6 space-y-4",
     "bg-[var(--table-container-bg)] border-[var(--table-container-border)]",
-    className,
-  );
-}
-
-export function productsSummaryChipClassName(active = false, className?: string) {
-  return cn(
-    "rounded-md px-2 py-0.5 font-medium tabular-nums transition-colors",
-    active
-      ? "bg-[var(--tone-products-subtle)] ring-1 ring-[var(--tone-products-border)]"
-      : "hover:bg-[var(--tone-products-subtle)] cursor-pointer",
     className,
   );
 }
@@ -491,16 +442,6 @@ export function procurementSectionPanelClassName(className?: string) {
   );
 }
 
-export function procurementSummaryChipClassName(active = false, className?: string) {
-  return cn(
-    "rounded-md px-2 py-0.5 font-medium tabular-nums transition-colors",
-    active
-      ? "bg-[var(--tone-procurement-subtle)] ring-1 ring-[var(--tone-procurement-border)]"
-      : "hover:bg-[var(--tone-procurement-subtle)] cursor-pointer",
-    className,
-  );
-}
-
 export function procurementMetaBadgeClassName(className?: string) {
   return cn(
     "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium uppercase tracking-wide",
@@ -525,16 +466,6 @@ export function kitchenSectionPanelClassName(className?: string) {
   );
 }
 
-export function kitchenSummaryChipClassName(active = false, className?: string) {
-  return cn(
-    "rounded-md px-2 py-0.5 font-medium tabular-nums transition-colors",
-    active
-      ? "bg-[var(--tone-kitchen-subtle)] ring-1 ring-[var(--tone-kitchen-border)]"
-      : "hover:bg-[var(--tone-kitchen-subtle)] cursor-pointer",
-    className,
-  );
-}
-
 export function kitchenMetaBadgeClassName(className?: string) {
   return cn(
     "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium uppercase tracking-wide",
@@ -555,16 +486,6 @@ export function hrSectionPanelClassName(className?: string) {
   return cn(
     "rounded-xl shadow-sm border p-4 sm:p-6 space-y-4",
     "bg-[var(--table-container-bg)] border-[var(--table-container-border)]",
-    className,
-  );
-}
-
-export function hrSummaryChipClassName(active = false, className?: string) {
-  return cn(
-    "rounded-md px-2 py-0.5 font-medium tabular-nums transition-colors",
-    active
-      ? "bg-[var(--tone-hr-subtle)] ring-1 ring-[var(--tone-hr-border)]"
-      : "hover:bg-[var(--tone-hr-subtle)] cursor-pointer",
     className,
   );
 }

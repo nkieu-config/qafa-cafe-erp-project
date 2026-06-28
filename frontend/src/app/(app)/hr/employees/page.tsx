@@ -7,17 +7,16 @@ import { useAuth } from "@/context/AuthContext";
 import { useHrUsers, useUpdateHourlyRate } from "@/hooks/domains/useHrQueries";
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { Avatar } from "antd";
-import { Loader2, Plus, Users, Edit3, UserSquare2 } from "lucide-react";
+import { Plus, Users, Edit3 } from "lucide-react";
 import { getErrorMessage } from "@/lib/errors";
 import { toast } from "sonner";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge, employeeRoleTone } from "@/components/shared/status-badge";
-import { HrHubLinks } from "@/components/hr/HrHubLinks";
 import { EditCompensationModal } from "@/components/hr/EditCompensationModal";
 import { ButtonLink } from "@/components/ui/button-link";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -29,36 +28,20 @@ import {
   type EmploymentTypeFilter,
   employeeHasMissingRate,
   filterEmployees,
-  summarizeEmployees,
 } from "@/lib/employee-filters";
 import { buildHrPayrollUrl } from "@/lib/hr-hub-url";
 import {
   expandedRowPanelClassName,
-  formSelectContentClassName,
   hrAvatarClassName,
   hrSectionPanelClassName,
-  hrSummaryChipClassName,
   hubCtaClassName,
-  infoBannerClassName,
-  infoBannerIconClassName,
-  infoBannerTextClassName,
-  infoBannerTitleClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
   tableActionAccentClassName,
   tableCellMutedClassName,
   text,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 export default function EmployeeDirectoryPage() {
   const { user, activeBranchId } = useAuth();
@@ -92,8 +75,6 @@ export default function EmployeeDirectoryPage() {
 
   const employees = usersData ?? [];
 
-  const summary = useMemo(() => summarizeEmployees(employees), [employees]);
-
   const filteredEmployees = useMemo(
     () =>
       filterEmployees(employees, {
@@ -110,18 +91,6 @@ export default function EmployeeDirectoryPage() {
     roleFilter !== "ALL" ||
     employmentTypeFilter !== "ALL" ||
     rateFilter !== "ALL";
-
-  const toggleRoleFilter = (next: EmployeeRoleFilter) => {
-    setRoleFilter((current) => (current === next ? "ALL" : next));
-  };
-
-  const toggleEmploymentFilter = (next: EmploymentTypeFilter) => {
-    setEmploymentTypeFilter((current) => (current === next ? "ALL" : next));
-  };
-
-  const toggleRateFilter = () => {
-    setRateFilter((current) => (current === "missing-rate" ? "ALL" : "missing-rate"));
-  };
 
   const handleEditRate = useCallback((record: User) => {
     setSelectedUser(record);
@@ -293,131 +262,24 @@ export default function EmployeeDirectoryPage() {
         hideTitle
         icon={Users}
         accentHub="hr"
-        description="View staff details and manage compensation rates. Login accounts are managed separately."
         actions={
-          <HrHubLinks current="employees" showOrgUsers={role === "SUPER_ADMIN"}>
-            {role === "SUPER_ADMIN" && (
-              <ButtonLink href="/organization/users" className={hubCtaClassName("hr", "font-bold")}>
-                <Plus className="w-4 h-4 mr-2" aria-hidden />
-                Add user
-              </ButtonLink>
-            )}
-          </HrHubLinks>
+          role === "SUPER_ADMIN" ? (
+            <ButtonLink href="/organization/users" className={hubCtaClassName("hr", "font-bold")}>
+              <Plus className="w-4 h-4 mr-2" aria-hidden />
+              Add user
+            </ButtonLink>
+          ) : undefined
         }
       />
 
-      <div className={hrSectionPanelClassName()}>
-        {role === "SUPER_ADMIN" && (
-          <div className={infoBannerClassName()}>
-            <div className="flex items-start gap-3">
-              <UserSquare2 className={infoBannerIconClassName()} aria-hidden />
-              <div>
-                <p className={infoBannerTitleClassName()}>Login accounts are managed separately</p>
-                <p className={infoBannerTextClassName()}>
-                  Create accounts, assign roles, or reset passwords in{" "}
-                  <Link href="/organization/users" className={inlineLinkClassName()}>
-                    Organization → Users &amp; Roles
-                  </Link>
-                  .
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+      <HubListPage className={hrSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load employees") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} employee{summary.total === 1 ? "" : "s"}
-            </span>
-            {summary.managers > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  roleFilter === "MANAGER",
-                  metricValueClassName("purple"),
-                )}
-                onClick={() => toggleRoleFilter("MANAGER")}
-              >
-                {summary.managers} manager{summary.managers === 1 ? "" : "s"}
-              </button>
-            )}
-            {summary.staff > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  roleFilter === "STAFF",
-                  metricValueClassName("blue"),
-                )}
-                onClick={() => toggleRoleFilter("STAFF")}
-              >
-                {summary.staff} staff
-              </button>
-            )}
-            {summary.fullTime > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  employmentTypeFilter === "FULL_TIME",
-                  text.secondary,
-                )}
-                onClick={() => toggleEmploymentFilter("FULL_TIME")}
-              >
-                {summary.fullTime} full-time
-              </button>
-            )}
-            {summary.partTime > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  employmentTypeFilter === "PART_TIME",
-                  text.muted,
-                )}
-                onClick={() => toggleEmploymentFilter("PART_TIME")}
-              >
-                {summary.partTime} part-time
-              </button>
-            )}
-            {summary.missingRate > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  rateFilter === "missing-rate",
-                  metricValueClassName("amber"),
-                )}
-                onClick={toggleRateFilter}
-              >
-                {summary.missingRate} missing rate
-              </button>
-            )}
-            {summary.total === 0 && (
-              <span className={text.muted}>No employees for this branch yet</span>
-            )}
-            {isFetching && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
-
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load employees")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search name, email, role…"
@@ -431,45 +293,52 @@ export default function EmployeeDirectoryPage() {
           }}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={roleFilter}
-                onValueChange={(value) => {
-                  if (value != null) setRoleFilter(value as EmployeeRoleFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by role"
-                >
-                  <SelectValue placeholder="All roles" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All roles</SelectItem>
-                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                  <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="STAFF">Staff</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
+                onValueChange={(value) => setRoleFilter(value as EmployeeRoleFilter)}
+                ariaLabel="Filter by role"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All roles" },
+                  { value: "SUPER_ADMIN", label: "Super Admin" },
+                  { value: "MANAGER", label: "Manager" },
+                  { value: "STAFF", label: "Staff" },
+                ]}
+              />
+              <ListFilterSelect
                 value={employmentTypeFilter}
-                onValueChange={(value) => {
-                  if (value != null) setEmploymentTypeFilter(value as EmploymentTypeFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by employment type"
-                >
-                  <SelectValue placeholder="All types" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All types</SelectItem>
-                  <SelectItem value="FULL_TIME">Full time</SelectItem>
-                  <SelectItem value="PART_TIME">Part time</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setEmploymentTypeFilter(value as EmploymentTypeFilter)}
+                ariaLabel="Filter by employment type"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All types" },
+                  { value: "FULL_TIME", label: "Full time" },
+                  { value: "PART_TIME", label: "Part time" },
+                ]}
+              />
+              <ListFilterSelect
+                value={rateFilter}
+                onValueChange={(value) => setRateFilter(value as EmployeeRateFilter)}
+                ariaLabel="Filter by hourly rate"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All rates" },
+                  { value: "missing-rate", label: "Missing rate" },
+                ]}
+              />
             </>
           }
+        />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredEmployees.length}
+          totalCount={employees.length}
+          itemLabel="employee"
+          emptyLabel="No employees for this branch yet"
         />
 
         <DataTable
@@ -492,7 +361,7 @@ export default function EmployeeDirectoryPage() {
             rowExpandable: () => true,
           }}
         />
-      </div>
+      </HubListPage>
 
       <EditCompensationModal
         open={isModalOpen}

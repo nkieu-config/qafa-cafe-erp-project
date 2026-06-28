@@ -7,10 +7,8 @@ import { useProductionBOMs } from "@/hooks/domains/useAccountingQueries";
 import { useIngredients } from "@/hooks/domains/useProductQueries";
 import { ListTree, Loader2, Plus } from "lucide-react";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
-import { KitchenHubLinks } from "@/components/kitchen/KitchenHubLinks";
 import { BOMModalForm } from "@/components/kitchen/BOMModalForm";
 import { CentralKitchenBanner } from "@/components/kitchen/central-kitchen-banner";
 import { Button } from "@/components/ui/button";
@@ -25,10 +23,9 @@ import {
   hubCardIconFor,
   hubCtaClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
   kitchenMetaBadgeClassName,
   kitchenSectionPanelClassName,
-  kitchenSummaryChipClassName,
+  summaryChipClassName,
   metricValueClassName,
   text,
 } from "@/lib/theme";
@@ -155,41 +152,48 @@ export default function BOMPage() {
         hideTitle
         icon={ListTree}
         accentHub="kitchen"
-        description="Define raw ingredients and quantities for each finished product produced in the central kitchen."
         actions={
-          <KitchenHubLinks current="boms">
-            <Button
-              className={hubCtaClassName("kitchen", "font-bold")}
-              onClick={() => setIsModalOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" aria-hidden />
-              Create BOM
-            </Button>
-          </KitchenHubLinks>
+          <Button
+            className={hubCtaClassName("kitchen", "font-bold")}
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" aria-hidden />
+            Create BOM
+          </Button>
         }
       />
 
       <CentralKitchenBanner message="Production BOMs are managed at the central kitchen branch." />
 
-      <div className={kitchenSectionPanelClassName()}>
-        {!loading && !bomsError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
+      <HubListPage className={kitchenSectionPanelClassName()}>
+        <HubListPage.Error
+          message={bomsError ? getErrorMessage(bomsErr, "Failed to load production BOMs") : undefined}
+          onRetry={() => void refetchBoms()}
+          loading={bomsFetching}
+        />
+
+        <HubListPage.Toolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search target or raw ingredient…"
+          showReset={search.trim().length > 0}
+          onReset={() => setSearch("")}
+        />
+
+        <HubListPage.Count isLoading={loading} isError={bomsError} isFetching={bomsFetching}>
+          <span className="inline-flex flex-wrap items-center gap-2">
             <span className={cn("font-semibold tabular-nums", text.primary)}>
               {summary.targets} BOM target{summary.targets === 1 ? "" : "s"}
             </span>
             {summary.rawLines > 0 && (
-              <span className={kitchenSummaryChipClassName(false, text.secondary)}>
+              <span className={summaryChipClassName("kitchen", false, text.secondary)}>
                 {summary.rawLines} raw line{summary.rawLines === 1 ? "" : "s"}
               </span>
             )}
             {summary.missingCostLines > 0 && (
               <Link
                 href={buildProductsIngredientsUrl({ cost: "missing-cost" })}
-                className={kitchenSummaryChipClassName(false, metricValueClassName("amber"))}
+                className={summaryChipClassName("kitchen", false, metricValueClassName("amber"))}
               >
                 {summary.missingCostLines} missing cost
               </Link>
@@ -212,24 +216,8 @@ export default function BOMPage() {
                 Updating…
               </span>
             )}
-          </div>
-        )}
-
-        <ListToolbar
-          search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder="Search target or raw ingredient…"
-          showReset={search.trim().length > 0}
-          onReset={() => setSearch("")}
-        />
-
-        {bomsError && (
-          <QueryErrorBanner
-            message={getErrorMessage(bomsErr, "Failed to load production BOMs")}
-            onRetry={() => void refetchBoms()}
-            loading={bomsFetching}
-          />
-        )}
+          </span>
+        </HubListPage.Count>
 
         {!loading && !bomsError && filteredGroups.length === 0 ? (
           <div className="py-16 text-center">
@@ -271,7 +259,7 @@ export default function BOMPage() {
             errorMessage={getErrorMessage(bomsErr, "Failed to load production BOMs")}
           />
         )}
-      </div>
+      </HubListPage>
 
       <BOMModalForm
         isOpen={isModalOpen}

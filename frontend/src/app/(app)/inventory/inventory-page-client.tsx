@@ -5,35 +5,24 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useBranchInventory } from "@/hooks/domains/useInventoryQueries";
 import { useAuth } from "@/context/AuthContext";
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
-import { PackageOpen, AlertTriangle, ArrowDownToLine, ClipboardCheck, Loader2 } from "lucide-react";
+import { PackageOpen, AlertTriangle, ArrowDownToLine, ClipboardCheck } from "lucide-react";
 import { DataTable } from "@/components/shared/data-table";
 import { StockTransfersPanel } from "@/components/inventory/StockTransfersPanel";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { ButtonLink } from "@/components/ui/button-link";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { getErrorMessage } from "@/lib/errors";
 import {
   hubCtaClassName,
   inventorySectionPanelClassName,
-  inventorySummaryChipClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  formSelectContentClassName,
   stockLevel,
   stockLevelLabel,
   stockLevelStatusTone,
-  stockLevelValueClassName,
   tableCellMutedClassName,
   text,
 } from "@/lib/theme";
@@ -131,7 +120,6 @@ export default function InventoryBalancePage() {
         hideTitle
         icon={PackageOpen}
         accentHub="inventory"
-        description="Current aggregate stock for all raw ingredients at this branch."
         branchScope={{ branchName }}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -150,53 +138,14 @@ export default function InventoryBalancePage() {
       />
 
       <div className="space-y-6">
-        <div className={inventorySectionPanelClassName()}>
-        {!isLoading && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {stockSummary.total} ingredient{stockSummary.total === 1 ? "" : "s"}
-            </span>
-            {stockSummary.low > 0 ? (
-              <button
-                type="button"
-                className={inventorySummaryChipClassName(
-                  stockFilter === "low",
-                  stockLevelValueClassName("low"),
-                )}
-                onClick={() => setStockFilter(stockFilter === "low" ? "ALL" : "low")}
-              >
-                {stockSummary.low} low stock
-              </button>
-            ) : null}
-            {stockSummary.out > 0 ? (
-              <button
-                type="button"
-                className={inventorySummaryChipClassName(
-                  stockFilter === "out",
-                  stockLevelValueClassName("out"),
-                )}
-                onClick={() => setStockFilter(stockFilter === "out" ? "ALL" : "out")}
-              >
-                {stockSummary.out} out of stock
-              </button>
-            ) : null}
-            {stockSummary.low === 0 && stockSummary.out === 0 && (
-              <span className={text.muted}>All items in stock</span>
-            )}
-            {isFetching && !isLoading && (
-              <span className={`inline-flex items-center gap-1.5 ${text.muted}`}>
-                <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" aria-hidden />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+        <HubListPage className={inventorySectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load inventory") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search ingredients…"
@@ -206,27 +155,31 @@ export default function InventoryBalancePage() {
             setStockFilter("ALL");
           }}
           filters={
-            <Select
+            <ListFilterSelect
               value={stockFilter}
-              onValueChange={(value) => {
-                if (value != null) setStockFilter(value as StockFilter);
-              }}
-            >
-              <SelectTrigger
-                className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[220px]")}
-                aria-label="Filter by stock level"
-              >
-                <SelectValue placeholder="All levels" />
-              </SelectTrigger>
-              <SelectContent className={formSelectContentClassName()}>
-                <SelectItem value="ALL">All levels</SelectItem>
-                <SelectItem value="ok">In stock</SelectItem>
-                <SelectItem value="attention">Needs attention (low &amp; out)</SelectItem>
-                <SelectItem value="low">Low stock only</SelectItem>
-                <SelectItem value="out">Out of stock only</SelectItem>
-              </SelectContent>
-            </Select>
+              onValueChange={(value) => setStockFilter(value as StockFilter)}
+              ariaLabel="Filter by stock level"
+              widthClassName="w-full sm:w-[220px]"
+              options={[
+                { value: "ALL", label: "All levels" },
+                { value: "ok", label: "In stock" },
+                { value: "attention", label: "Needs attention (low & out)" },
+                { value: "low", label: "Low stock only" },
+                { value: "out", label: "Out of stock only" },
+              ]}
+            />
           }
+        />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredInventory.length}
+          totalCount={stockSummary.total}
+          itemLabel="ingredient"
+          emptyLabel="No inventory records yet"
         />
 
         <DataTable
@@ -339,7 +292,7 @@ export default function InventoryBalancePage() {
             pageSizeOptions: ["10", "15", "25", "50"],
           }}
         />
-        </div>
+        </HubListPage>
 
         <div className={inventorySectionPanelClassName()}>
           <StockTransfersPanel

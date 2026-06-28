@@ -13,22 +13,15 @@ import {
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { StatusBadge, equipmentStatusTone } from "@/components/shared/status-badge";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { RegisterEquipmentModal } from "@/components/assets/RegisterEquipmentModal";
 import { LogMaintenanceModal } from "@/components/assets/LogMaintenanceModal";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   EQUIPMENT_TYPE_OPTIONS,
   type EquipmentHighlightFilter,
@@ -46,21 +39,15 @@ import { formatDate } from "@/lib/intl-date";
 import type { Branch, Equipment, EquipmentStatus, EquipmentType } from "@/types/api";
 import {
   assetsSectionPanelClassName,
-  assetsSummaryChipClassName,
-  equipmentLegendSwatchClassName,
   equipmentMaintenanceDateClassName,
   equipmentMaintenanceDueRowClassName,
   equipmentMaintenanceOverdueRowClassName,
-  formSelectContentClassName,
   hubCtaClassName,
   hubLoadingSpinnerClassName,
   infoBannerClassName,
   infoBannerIconClassName,
   infoBannerTextClassName,
   infoBannerTitleClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   tableCellMutedClassName,
   text,
 } from "@/lib/theme";
@@ -112,14 +99,6 @@ export default function AssetsPage() {
     statusFilter !== "ALL" ||
     typeFilter !== "ALL" ||
     highlightFilter !== "ALL";
-
-  const toggleStatusFilter = (next: EquipmentStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
-  };
-
-  const toggleHighlightFilter = () => {
-    setHighlightFilter((current) => (current === "due-soon" ? "ALL" : "due-soon"));
-  };
 
   const resetFilters = () => {
     setSearch("");
@@ -258,7 +237,6 @@ export default function AssetsPage() {
       <HubPageHeader
         hideTitle
         accentHub="assets"
-        description="Track machines, appliances, and schedule preventative maintenance."
         actions={
           <Button
             className={hubCtaClassName("assets", "font-bold min-h-[44px]")}
@@ -270,115 +248,31 @@ export default function AssetsPage() {
         }
       />
 
-      <div className={assetsSectionPanelClassName()}>
+      <HubListPage className={assetsSectionPanelClassName()}>
         {!isLoading && !isError && summary.dueSoon > 0 && (
-          <div className={infoBannerClassName()}>
-            <div className="flex items-start gap-3">
-              <AlertTriangle className={infoBannerIconClassName()} aria-hidden />
-              <div>
-                <p className={infoBannerTitleClassName()}>Maintenance attention needed</p>
-                <p className={infoBannerTextClassName()}>
-                  {summary.dueSoon} active asset{summary.dueSoon === 1 ? " is" : "s are"} overdue
-                  or due within 7 days. Schedule service to avoid downtime.
-                </p>
+          <HubListPage.Banner>
+            <div className={infoBannerClassName()}>
+              <div className="flex items-start gap-3">
+                <AlertTriangle className={infoBannerIconClassName()} aria-hidden />
+                <div>
+                  <p className={infoBannerTitleClassName()}>Maintenance attention needed</p>
+                  <p className={infoBannerTextClassName()}>
+                    {summary.dueSoon} active asset{summary.dueSoon === 1 ? " is" : "s are"} overdue
+                    or due within 7 days. Schedule service to avoid downtime.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </HubListPage.Banner>
         )}
 
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total > 0
-                ? `${summary.total} asset${summary.total === 1 ? "" : "s"}`
-                : "No equipment yet"}
-            </span>
-            {summary.active > 0 && (
-              <button
-                type="button"
-                className={assetsSummaryChipClassName(
-                  statusFilter === "ACTIVE",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleStatusFilter("ACTIVE")}
-              >
-                {summary.active} active
-              </button>
-            )}
-            {summary.maintenance > 0 && (
-              <button
-                type="button"
-                className={assetsSummaryChipClassName(
-                  statusFilter === "MAINTENANCE",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleStatusFilter("MAINTENANCE")}
-              >
-                {summary.maintenance} in service
-              </button>
-            )}
-            {summary.broken > 0 && (
-              <button
-                type="button"
-                className={assetsSummaryChipClassName(
-                  statusFilter === "BROKEN",
-                  metricValueClassName("red"),
-                )}
-                onClick={() => toggleStatusFilter("BROKEN")}
-              >
-                {summary.broken} broken
-              </button>
-            )}
-            {summary.dueSoon > 0 && (
-              <button
-                type="button"
-                className={assetsSummaryChipClassName(
-                  highlightFilter === "due-soon",
-                  metricValueClassName("amber"),
-                )}
-                onClick={toggleHighlightFilter}
-              >
-                {summary.dueSoon} due soon
-              </button>
-            )}
-          </div>
-        )}
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load equipment.") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {!isLoading && !isError && summary.total > 0 && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[var(--text-subtle)]">
-            <span className="font-medium uppercase tracking-wide">Legend</span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={equipmentLegendSwatchClassName("active")} aria-hidden />
-              Active
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={equipmentLegendSwatchClassName("maintenance")} aria-hidden />
-              In maintenance
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={equipmentLegendSwatchClassName("broken")} aria-hidden />
-              Broken
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className={equipmentLegendSwatchClassName("due-soon")} aria-hidden />
-              Due within 7 days
-            </span>
-          </div>
-        )}
-
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load equipment.")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search name, serial, type…"
@@ -387,51 +281,58 @@ export default function AssetsPage() {
           onReset={resetFilters}
           filters={
             <>
-              <Select
+              <ListFilterSelect
                 value={statusFilter}
-                onValueChange={(value) =>
-                  value && setStatusFilter(value as EquipmentStatusFilter)
-                }
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("w-full sm:w-[160px]")}
-                  aria-label="Filter by status"
-                >
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="MAINTENANCE">In maintenance</SelectItem>
-                  <SelectItem value="BROKEN">Broken</SelectItem>
-                  <SelectItem value="RETIRED">Retired</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
+                onValueChange={(value) => setStatusFilter(value as EquipmentStatusFilter)}
+                ariaLabel="Filter by status"
+                widthClassName="w-full sm:w-[160px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  { value: "ACTIVE", label: "Active" },
+                  { value: "MAINTENANCE", label: "In maintenance" },
+                  { value: "BROKEN", label: "Broken" },
+                  { value: "RETIRED", label: "Retired" },
+                ]}
+              />
+              <ListFilterSelect
                 value={typeFilter}
-                onValueChange={(value) =>
-                  value && setTypeFilter(value as EquipmentTypeFilter)
-                }
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("w-full sm:w-[180px]")}
-                  aria-label="Filter by type"
-                >
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All types</SelectItem>
-                  {EQUIPMENT_TYPE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setTypeFilter(value as EquipmentTypeFilter)}
+                ariaLabel="Filter by type"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All types" },
+                  ...EQUIPMENT_TYPE_OPTIONS.map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                  })),
+                ]}
+              />
+              <ListFilterSelect
+                value={highlightFilter}
+                onValueChange={(value) => setHighlightFilter(value as EquipmentHighlightFilter)}
+                ariaLabel="Filter by maintenance schedule"
+                widthClassName="w-full sm:w-[160px]"
+                options={[
+                  { value: "ALL", label: "All schedules" },
+                  { value: "due-soon", label: "Due within 7 days" },
+                ]}
+              />
             </>
           }
         />
 
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredEquipment.length}
+          totalCount={summary.total}
+          itemLabel="asset"
+          emptyLabel="No equipment yet"
+        />
+
+        <HubListPage.Body>
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className={cn("w-8 h-8", hubLoadingSpinnerClassName())} aria-hidden />
@@ -450,7 +351,8 @@ export default function AssetsPage() {
             }
           />
         )}
-      </div>
+        </HubListPage.Body>
+      </HubListPage>
 
       <RegisterEquipmentModal
         open={registerOpen}

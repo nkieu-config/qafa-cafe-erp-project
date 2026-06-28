@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import { Coffee } from 'lucide-react';
 import type { ReceiptOrder } from '@/types/api';
+import { formatDateTime } from '@/lib/intl-date';
 import { formatMoney } from '@/lib/money';
 import { formatQueueNumber } from '@/lib/queue';
 import { inclusiveTaxAmount } from '@/lib/vat';
@@ -24,10 +25,7 @@ export const Receipt = forwardRef<
     const taxId = settings?.taxId || '010556XXXXXX0';
     const footer = settings?.receiptFooter || 'Thank You For Visiting!';
 
-    const date = new Date().toLocaleString('th-TH', { 
-      year: 'numeric', month: '2-digit', day: '2-digit', 
-      hour: '2-digit', minute: '2-digit' 
-    });
+    const date = formatDateTime(new Date());
 
     return (
       <div 

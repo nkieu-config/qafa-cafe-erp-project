@@ -18,22 +18,14 @@ import {
 import { getErrorMessage } from "@/lib/errors";
 import { toast } from "sonner";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterDate, ListFilterSelect } from "@/components/shared/list-filters";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
-import { ListToolbar } from "@/components/shared/list-toolbar";
 import { RoleGuard } from "@/components/RoleGuard";
 import { AccessDeniedState } from "@/components/shared/access-denied-state";
-import { HrHubLinks } from "@/components/hr/HrHubLinks";
 import { CreateShiftModal } from "@/components/hr/CreateShiftModal";
 import { ShiftGanttTimeline } from "@/components/hr/ShiftGanttTimeline";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { Branch, ShiftStatus, User } from "@/types/api";
 import {
   filterShifts,
@@ -44,19 +36,14 @@ import {
 } from "@/lib/shift-filters";
 import { parseHrShiftsSearchParams } from "@/lib/hr-hub-url";
 import { formatDate } from "@/lib/intl-date";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import {
-  formSelectContentClassName,
   ganttPanelClassName,
   hubCardIconFor,
   hubCtaClassName,
   hrSectionPanelClassName,
-  hrSummaryChipClassName,
   hubLoadingSpinnerClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
-  shiftLegendSwatchClassName,
   text,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -130,10 +117,6 @@ function ShiftsPageContent() {
 
   const hasActiveFilters = statusFilter !== "ALL" || employeeFilterId != null;
 
-  const toggleStatusFilter = (next: ShiftStatusFilter) => {
-    setStatusFilter((current) => (current === next ? "ALL" : next));
-  };
-
   const shiftDateLabel = formatDate(selectedDateObj);
 
   const handleCreateShift = async (payload: {
@@ -163,135 +146,25 @@ function ShiftsPageContent() {
         hideTitle
         icon={CalendarDays}
         accentHub="hr"
-        description="Manage time-block shift schedules. Shifts drive attendance late detection and payroll hours."
         actions={
-          <HrHubLinks current="shifts" showOrgUsers={role === "SUPER_ADMIN"}>
-            <Button
-              className={hubCtaClassName("hr", "font-bold")}
-              onClick={() => setIsModalOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" aria-hidden />
-              Schedule shift
-            </Button>
-          </HrHubLinks>
+          <Button
+            className={hubCtaClassName("hr", "font-bold")}
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" aria-hidden />
+            Schedule shift
+          </Button>
         }
       />
 
-      <div className={hrSectionPanelClassName()}>
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total > 0
-                ? `${summary.total} shift${summary.total === 1 ? "" : "s"} · ${shiftDateLabel}`
-                : `${shiftDateLabel} — no shifts scheduled`}
-            </span>
-            {summary.scheduled > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  statusFilter === "SCHEDULED",
-                  metricValueClassName("blue"),
-                )}
-                onClick={() => toggleStatusFilter("SCHEDULED")}
-              >
-                {summary.scheduled} scheduled
-              </button>
-            )}
-            {summary.completed > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  statusFilter === "COMPLETED",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleStatusFilter("COMPLETED")}
-              >
-                {summary.completed} completed
-              </button>
-            )}
-            {summary.absent > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  statusFilter === "ABSENT",
-                  metricValueClassName("red"),
-                )}
-                onClick={() => toggleStatusFilter("ABSENT")}
-              >
-                {summary.absent} absent
-              </button>
-            )}
-            {summary.cancelled > 0 && (
-              <button
-                type="button"
-                className={hrSummaryChipClassName(
-                  statusFilter === "CANCELLED",
-                  text.muted,
-                )}
-                onClick={() => toggleStatusFilter("CANCELLED")}
-              >
-                {summary.cancelled} cancelled
-              </button>
-            )}
-            {isFetching && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+      <HubListPage className={hrSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load shifts") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {!isLoading && !isError && (
-          <div
-            className={cn(
-              "flex flex-wrap items-center gap-x-4 gap-y-2 text-xs",
-              "pb-3 border-b border-[var(--table-row-border)]",
-            )}
-            aria-label="Shift status legend"
-          >
-            {(
-              [
-                ["SCHEDULED", "Scheduled"],
-                ["COMPLETED", "Completed"],
-                ["ABSENT", "Absent"],
-                ["CANCELLED", "Cancelled"],
-              ] as const
-            ).map(([status, label]) => (
-              <span
-                key={status}
-                className={cn("inline-flex items-center gap-1.5 font-medium", text.secondary)}
-              >
-                <span className={shiftLegendSwatchClassName(status)} aria-hidden />
-                {label}
-              </span>
-            ))}
-            <Link
-              href="/hr/attendance"
-              className={cn("inline-flex items-center gap-1 font-medium", inlineLinkClassName())}
-            >
-              <Clock className="w-3.5 h-3.5" aria-hidden />
-              View attendance
-            </Link>
-          </div>
-        )}
-
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load shifts")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           branchName={branchName}
           showReset={hasActiveFilters}
           onReset={() => {
@@ -313,12 +186,11 @@ function ShiftsPageContent() {
                 >
                   <ChevronLeft className="w-4 h-4" aria-hidden />
                 </Button>
-                <input
-                  type="date"
+                <ListFilterDate
                   value={selectedDate}
-                  onChange={(event) => setSelectedDate(event.target.value)}
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[160px]")}
-                  aria-label="Shift date"
+                  onChange={setSelectedDate}
+                  ariaLabel="Shift date"
+                  className="w-full sm:w-[160px]"
                 />
                 <Button
                   type="button"
@@ -333,56 +205,66 @@ function ShiftsPageContent() {
                   <ChevronRight className="w-4 h-4" aria-hidden />
                 </Button>
               </div>
-              <Select
+              <ListFilterSelect
                 value={statusFilter}
-                onValueChange={(value) => {
-                  if (value != null) setStatusFilter(value as ShiftStatusFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                  aria-label="Filter by shift status"
-                >
-                  <SelectValue placeholder="All statuses" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All statuses</SelectItem>
-                  {( ["SCHEDULED", "COMPLETED", "ABSENT", "CANCELLED"] as ShiftStatus[]).map(
-                    (status) => (
-                      <SelectItem key={status} value={status}>
-                        {status.charAt(0) + status.slice(1).toLowerCase()}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setStatusFilter(value as ShiftStatusFilter)}
+                ariaLabel="Filter by shift status"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All statuses" },
+                  ...(["SCHEDULED", "COMPLETED", "ABSENT", "CANCELLED"] as ShiftStatus[]).map(
+                    (status) => ({
+                      value: status,
+                      label: status.charAt(0) + status.slice(1).toLowerCase(),
+                    }),
+                  ),
+                ]}
+              />
               {employees.length > 0 && (
-                <Select
+                <ListFilterSelect
                   value={employeeFilterId != null ? String(employeeFilterId) : "ALL"}
                   onValueChange={(value) => {
-                    if (value == null) return;
                     setEmployeeFilterId(value === "ALL" ? null : Number(value));
                   }}
-                >
-                  <SelectTrigger
-                    className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                    aria-label="Filter by employee"
-                  >
-                    <SelectValue placeholder="All employees" />
-                  </SelectTrigger>
-                  <SelectContent className={formSelectContentClassName()}>
-                    <SelectItem value="ALL">All employees</SelectItem>
-                    {employees.map((employee: User) => (
-                      <SelectItem key={employee.id} value={String(employee.id)}>
-                        {employee.name ?? employee.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  ariaLabel="Filter by employee"
+                  widthClassName="w-full sm:w-[200px]"
+                  options={[
+                    { value: "ALL", label: "All employees" },
+                    ...employees.map((employee: User) => ({
+                      value: String(employee.id),
+                      label: employee.name ?? employee.email,
+                    })),
+                  ]}
+                />
               )}
             </>
           }
         />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          actions={
+            <Link
+              href="/hr/attendance"
+              className={cn("inline-flex items-center gap-1 text-sm font-medium", inlineLinkClassName())}
+            >
+              <Clock className="w-3.5 h-3.5" aria-hidden />
+              View attendance
+            </Link>
+          }
+        >
+          {formatHubListCountWithFetching(
+            hasActiveFilters
+              ? `${filteredShifts.length} of ${(shiftsData as ShiftWithUser[]).length} shifts · ${shiftDateLabel}`
+              : summary.total > 0
+                ? `${summary.total} shift${summary.total === 1 ? "" : "s"} · ${shiftDateLabel}`
+                : `${shiftDateLabel} — no shifts scheduled`,
+            isFetching,
+            isLoading,
+          )}
+        </HubListPage.Count>
 
         <div className={ganttPanelClassName()}>
           {isLoading ? (
@@ -415,7 +297,7 @@ function ShiftsPageContent() {
             <ShiftGanttTimeline rows={ganttRows} />
           ) : null}
         </div>
-      </div>
+      </HubListPage>
 
       <CreateShiftModal
         open={isModalOpen}

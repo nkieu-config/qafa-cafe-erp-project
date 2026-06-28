@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useBranchDetails, useReportWaste } from "@/hooks/domains/useInventoryQueries";
 import { useAuth } from "@/context/AuthContext";
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
-import { PackageOpen, Trash2, ArrowDownToLine, LayoutGrid, Loader2 } from "lucide-react";
+import { PackageOpen, Trash2, ArrowDownToLine, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { ButtonLink } from "@/components/ui/button-link";
 import {
@@ -13,11 +13,9 @@ import {
   expiryDateTextClassName,
   expiryUrgencyLabel,
   expiryUrgencyStatusTone,
-  expirySummaryChipClassName,
   formSelectContentClassName,
   hubCtaClassName,
   inventorySectionPanelClassName,
-  inventorySummaryStripClassName,
   listToolbarFieldClassName,
   stockLevel,
   stockLevelLabel,
@@ -34,7 +32,8 @@ import {
 } from "@/lib/inventory-alerts";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { getErrorMessage } from "@/lib/errors";
 import { DataTable } from "@/components/shared/data-table";
 import { TableActionButton } from "@/components/shared/table-action-button";
@@ -50,6 +49,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import { cn } from "@/lib/utils";
 import type { ColumnsType } from "antd/es/table";
 import type { Ingredient, InventoryBatch, PurchaseOrder, Supplier, BranchInventory, Branch, Role } from "@/types/api";
@@ -364,7 +364,6 @@ export default function InventoryBatchesPage() {
         hideTitle
         icon={PackageOpen}
         accentHub="inventory"
-        description="Track batch-level stock and expiry. Report waste on a specific batch here — for aggregate waste by ingredient, use the Waste Logs tab. Receive new stock via GRN (managers only)."
         branchScope={{ branchName }}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -400,52 +399,16 @@ export default function InventoryBatchesPage() {
           <ExpiryHeatmapPanel batches={batches} />
         </div>
 
-        <div className={cn("lg:col-span-2", inventorySectionPanelClassName())}>
-          {!loadingBranch && (
-            <div
-              className={inventorySummaryStripClassName()}
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <span className={cn("font-semibold tabular-nums", text.primary)}>
-                {batchSummary.total} batch{batchSummary.total === 1 ? "" : "es"}
-              </span>
-              {batchSummary.expiring > 0 ? (
-                <button
-                  type="button"
-                  className={expirySummaryChipClassName("expiring", expiryFilter === "expiring")}
-                  onClick={() =>
-                    setExpiryFilter(expiryFilter === "expiring" ? "ALL" : "expiring")
-                  }
-                >
-                  {batchSummary.expiring} expiring within 7 days
-                </button>
-              ) : null}
-              {batchSummary.expired > 0 ? (
-                <button
-                  type="button"
-                  className={expirySummaryChipClassName("expired", expiryFilter === "expired")}
-                  onClick={() => setExpiryFilter(expiryFilter === "expired" ? "ALL" : "expired")}
-                >
-                  {batchSummary.expired} expired
-                </button>
-              ) : null}
-              {batchSummary.expiring === 0 && batchSummary.expired === 0 && (
-                <span className={text.muted}>No batches expiring within 7 days</span>
-              )}
-              {branchFetching && !loadingBranch && (
-                <span className={`inline-flex items-center gap-1.5 ${text.muted}`}>
-                  <Loader2
-                    className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                    aria-hidden
-                  />
-                  Updating…
-                </span>
-              )}
-            </div>
-          )}
+        <HubListPage className={cn("lg:col-span-2", inventorySectionPanelClassName())}>
+          <HubListPage.Error
+            message={
+              branchError ? getErrorMessage(branchErr, "Failed to load inventory") : undefined
+            }
+            onRetry={() => void refetchBranch()}
+            loading={branchFetching}
+          />
 
-          <ListToolbar
+          <HubListPage.Toolbar
             search={search}
             onSearchChange={setSearch}
             searchPlaceholder="Search ingredients…"
@@ -455,26 +418,39 @@ export default function InventoryBatchesPage() {
               setExpiryFilter("ALL");
             }}
             filters={
-              <Select
+              <ListFilterSelect
                 value={expiryFilter}
-                onValueChange={(value) => {
-                  if (value != null) setExpiryFilter(value as ExpiryFilter);
-                }}
-              >
-                <SelectTrigger
-                  className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[220px]")}
-                  aria-label="Filter by expiry"
-                >
-                  <SelectValue placeholder="All batches" />
-                </SelectTrigger>
-                <SelectContent className={formSelectContentClassName()}>
-                  <SelectItem value="ALL">All batches</SelectItem>
-                  <SelectItem value="expiring">Expiring within 7 days</SelectItem>
-                  <SelectItem value="expired">Expired only</SelectItem>
-                </SelectContent>
-              </Select>
+                onValueChange={(value) => setExpiryFilter(value as ExpiryFilter)}
+                ariaLabel="Filter by expiry"
+                widthClassName="w-full sm:w-[220px]"
+                options={[
+                  { value: "ALL", label: "All batches" },
+                  { value: "expiring", label: "Expiring within 7 days" },
+                  { value: "expired", label: "Expired only" },
+                ]}
+              />
             }
           />
+
+          <HubListPage.Count
+            isLoading={loadingBranch}
+            isError={branchError}
+            isFetching={branchFetching}
+            hasActiveFilters={hasActiveFilters}
+            filteredCount={filteredInventories.length}
+            totalCount={inventories.length}
+            itemLabel="ingredient"
+          >
+            {!hasActiveFilters
+              ? formatHubListCountWithFetching(
+                  batchSummary.total === 0
+                    ? "No batches yet"
+                    : `${batchSummary.total} batch${batchSummary.total === 1 ? "" : "es"}${batchSummary.expiring + batchSummary.expired > 0 ? ` · ${batchSummary.expiring} expiring · ${batchSummary.expired} expired` : ""}`,
+                  branchFetching,
+                  loadingBranch,
+                )
+              : undefined}
+          </HubListPage.Count>
 
           <DataTable
             loading={loadingBranch}
@@ -499,7 +475,7 @@ export default function InventoryBatchesPage() {
               pageSizeOptions: ["5", "10", "15", "25"],
             }}
           />
-        </div>
+        </HubListPage>
       </div>
     </div>
   );

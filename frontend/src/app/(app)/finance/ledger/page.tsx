@@ -8,22 +8,15 @@ import { seedAccounts } from "@/lib/api";
 import { BookOpen, FileText, Landmark, Loader2, Play, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { DataTable } from "@/components/shared/data-table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { FinanceHubLinks } from "@/components/finance/FinanceHubLinks";
 import { JournalLinesPanel } from "@/components/finance/JournalLinesPanel";
 import { getErrorMessage } from "@/lib/errors";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import { StatusBadge, journalStatusTone } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatDate } from "@/lib/intl-date";
 import { formatBaht } from "@/lib/money";
 import type { Branch, JournalEntry } from "@/types/api";
@@ -44,19 +37,12 @@ import {
   financeMetricIconClassName,
   financeSectionPanelClassName,
   financeSectionTitleClassName,
-  financeSummaryChipClassName,
-  formSelectContentClassName,
   hubCtaClassName,
-  hubLoadingSpinnerClassName,
   infoBannerClassName,
   infoBannerIconClassName,
   infoBannerTextClassName,
   infoBannerTitleClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  journalLegendSwatchClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   text,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -98,6 +84,7 @@ export default function GeneralLedgerPage() {
   } = useJournalEntries(selectedBranch);
 
   const hasError = chartError || entriesError;
+  const isLoading = isChartLoading || isEntriesLoading;
   const isFetching = chartFetching || entriesFetching;
   const errorMessage = getErrorMessage(chartErr ?? entriesErr, "Failed to load ledger data");
 
@@ -192,156 +179,60 @@ export default function GeneralLedgerPage() {
         hideTitle
         icon={BookOpen}
         accentHub="finance"
-        description="Profit and loss trends plus double-entry journal activity for the selected branch scope."
         actions={
-          <FinanceHubLinks current="ledger">
-            {showSeedAction && (
-              <Button
-                className={hubCtaClassName("finance", "font-bold")}
-                disabled={isSeeding}
-                onClick={() => setShowSeedConfirm(true)}
-              >
-                {isSeeding ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
-                    Seeding…
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 mr-2" aria-hidden />
-                    Seed accounts
-                  </>
-                )}
-              </Button>
-            )}
-          </FinanceHubLinks>
+          showSeedAction ? (
+            <Button
+              className={hubCtaClassName("finance", "font-bold")}
+              disabled={isSeeding}
+              onClick={() => setShowSeedConfirm(true)}
+            >
+              {isSeeding ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
+                  Seeding…
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" aria-hidden />
+                  Seed accounts
+                </>
+              )}
+            </Button>
+          ) : undefined
         }
       />
 
-      <div className={financeSectionPanelClassName("space-y-4")}>
+      <HubListPage className={financeSectionPanelClassName()}>
         {showSeedAction && (
-          <div className={infoBannerClassName()}>
-            <div className="flex items-start gap-3">
-              <Landmark className={infoBannerIconClassName()} aria-hidden />
-              <div>
-                <p className={infoBannerTitleClassName()}>Chart of accounts not initialized</p>
-                <p className={infoBannerTextClassName()}>
-                  Seed standard accounting codes to start posting journal entries, or review the{" "}
-                  <Link href="/finance/accounts" className={inlineLinkClassName()}>
-                    chart of accounts
-                  </Link>
-                  .
-                </p>
+          <HubListPage.Banner>
+            <div className={infoBannerClassName()}>
+              <div className="flex items-start gap-3">
+                <Landmark className={infoBannerIconClassName()} aria-hidden />
+                <div>
+                  <p className={infoBannerTitleClassName()}>Chart of accounts not initialized</p>
+                  <p className={infoBannerTextClassName()}>
+                    Seed standard accounting codes to start posting journal entries, or review the{" "}
+                    <Link href="/finance/accounts" className={inlineLinkClassName()}>
+                      chart of accounts
+                    </Link>
+                    .
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          </HubListPage.Banner>
         )}
 
-        {!isChartLoading && !isEntriesLoading && !hasError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {entrySummary.total > 0
-                ? `${entrySummary.total} journal entr${entrySummary.total === 1 ? "y" : "ies"}`
-                : "No journal entries yet"}
-            </span>
-            {entrySummary.posted > 0 && (
-              <button
-                type="button"
-                className={financeSummaryChipClassName(
-                  statusFilter === "POSTED",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() =>
-                  setStatusFilter((current) => (current === "POSTED" ? "ALL" : "POSTED"))
-                }
-              >
-                {entrySummary.posted} posted
-              </button>
-            )}
-            {entrySummary.draft > 0 && (
-              <button
-                type="button"
-                className={financeSummaryChipClassName(
-                  statusFilter === "DRAFT",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() =>
-                  setStatusFilter((current) => (current === "DRAFT" ? "ALL" : "DRAFT"))
-                }
-              >
-                {entrySummary.draft} draft
-              </button>
-            )}
-            {chartSummary.months > 0 && (
-              <>
-                <span className={cn("tabular-nums font-medium", metricValueClassName("emerald"))}>
-                  {formatBaht(chartSummary.totalRevenue)} revenue
-                </span>
-                <span className={cn("tabular-nums font-medium", metricValueClassName("red"))}>
-                  {formatBaht(chartSummary.totalExpense)} expenses
-                </span>
-              </>
-            )}
-            {isFetching && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className={cn(hubLoadingSpinnerClassName(), "w-3.5 h-3.5")}
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+        <HubListPage.Error
+          message={hasError ? errorMessage : undefined}
+          onRetry={() => {
+            void refetchChart();
+            void refetchEntries();
+          }}
+          loading={isFetching}
+        />
 
-        {!isChartLoading && !isEntriesLoading && !hasError && (
-          <div
-            className={cn(
-              "flex flex-wrap items-center gap-x-4 gap-y-2 text-xs",
-              "pb-3 border-b border-[var(--table-row-border)]",
-            )}
-            aria-label="Journal status legend"
-          >
-            {(
-              [
-                ["DRAFT", "Draft"],
-                ["POSTED", "Posted"],
-              ] as const
-            ).map(([status, label]) => (
-              <span
-                key={status}
-                className={cn("inline-flex items-center gap-1.5 font-medium", text.secondary)}
-              >
-                <span className={journalLegendSwatchClassName(status)} aria-hidden />
-                {label}
-              </span>
-            ))}
-            <Link
-              href="/finance/overview"
-              className={cn("inline-flex items-center gap-1 font-medium", inlineLinkClassName())}
-            >
-              <Wallet className="w-3.5 h-3.5" aria-hidden />
-              Finance overview
-            </Link>
-          </div>
-        )}
-
-        {hasError && (
-          <QueryErrorBanner
-            message={errorMessage}
-            onRetry={() => {
-              void refetchChart();
-              void refetchEntries();
-            }}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           branchName={branchName}
           allBranches={showAllBranches}
           search={search}
@@ -353,24 +244,49 @@ export default function GeneralLedgerPage() {
             setSearch("");
           }}
           filters={
-            <Select
+            <ListFilterSelect
               value={statusFilter}
-              onValueChange={(value) => value && setStatusFilter(value as JournalStatusFilter)}
-            >
-              <SelectTrigger
-                className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                aria-label="Filter journal entries by status"
-              >
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent className={formSelectContentClassName()}>
-                <SelectItem value="ALL">All statuses</SelectItem>
-                <SelectItem value="POSTED">Posted</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-              </SelectContent>
-            </Select>
+              onValueChange={(value) => setStatusFilter(value as JournalStatusFilter)}
+              ariaLabel="Filter journal entries by status"
+              widthClassName="w-full sm:w-[180px]"
+              options={[
+                { value: "ALL", label: "All statuses" },
+                { value: "POSTED", label: "Posted" },
+                { value: "DRAFT", label: "Draft" },
+              ]}
+            />
           }
         />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={hasError}
+          isFetching={isFetching}
+          actions={
+            <Link
+              href="/finance/overview"
+              className={cn("inline-flex items-center gap-1 text-sm font-medium", inlineLinkClassName())}
+            >
+              <Wallet className="w-3.5 h-3.5" aria-hidden />
+              Finance overview
+            </Link>
+          }
+        >
+          {formatHubListCountWithFetching(
+            (() => {
+              const base = hasActiveFilters
+                ? `${filteredEntries.length} of ${entries.length} journal entries`
+                : entrySummary.total > 0
+                  ? `${entrySummary.total} journal entr${entrySummary.total === 1 ? "y" : "ies"}`
+                  : "No journal entries yet";
+              return chartSummary.months > 0 && !hasActiveFilters
+                ? `${base} · ${formatBaht(chartSummary.totalRevenue)} revenue · ${formatBaht(chartSummary.totalExpense)} expenses`
+                : base;
+            })(),
+            isFetching,
+            isLoading,
+          )}
+        </HubListPage.Count>
 
         <div className={financeSectionPanelClassName("border border-[var(--table-container-border)] bg-[var(--table-container-bg)]")}>
           <h2 className={financeSectionTitleClassName("mb-4")}>
@@ -404,7 +320,7 @@ export default function GeneralLedgerPage() {
             }
           />
         </div>
-      </div>
+      </HubListPage>
 
       <ConfirmDialog
         open={showSeedConfirm}

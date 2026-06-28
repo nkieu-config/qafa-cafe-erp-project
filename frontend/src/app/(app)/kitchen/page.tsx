@@ -14,9 +14,8 @@ import { useIngredients } from "@/hooks/domains/useProductQueries";
 import { ChefHat, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
-import { KitchenHubLinks } from "@/components/kitchen/KitchenHubLinks";
 import { CreateProductionOrderModal } from "@/components/kitchen/CreateProductionOrderModal";
 import { CentralKitchenBranchNotice } from "@/components/kitchen/central-kitchen-banner";
 import { Button } from "@/components/ui/button";
@@ -30,13 +29,8 @@ import { summarizeProductionOrders } from "@/lib/production-order-filters";
 import {
   hubCtaClassName,
   hubLoadingSpinnerClassName,
-  inventorySummaryStripClassName,
   kitchenSectionPanelClassName,
-  kitchenSummaryChipClassName,
-  metricValueClassName,
-  text,
 } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 
 const KitchenKanbanBoard = dynamic(
   () => import("@/components/kitchen/KitchenKanbanBoard").then((m) => m.KitchenKanbanBoard),
@@ -162,73 +156,41 @@ export default function CentralKitchenPage() {
         hideTitle
         icon={ChefHat}
         accentHub="kitchen"
-        description="Drag and drop orders to update status. Orders refresh every 10 seconds."
         actions={
-          <KitchenHubLinks current="production">
-            {isCentralKitchen ? (
-              <Button
-                className={hubCtaClassName("kitchen", "font-bold")}
-                onClick={() => setIsModalOpen(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" aria-hidden />
-                New order
-              </Button>
-            ) : null}
-          </KitchenHubLinks>
+          isCentralKitchen ? (
+            <Button
+              className={hubCtaClassName("kitchen", "font-bold")}
+              onClick={() => setIsModalOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" aria-hidden />
+              New order
+            </Button>
+          ) : undefined
         }
       />
 
       {!isCentralKitchen ? (
         <CentralKitchenBranchNotice mode="blocking" />
       ) : (
-        <div className={kitchenSectionPanelClassName()}>
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} production order{summary.total === 1 ? "" : "s"}
-            </span>
-            {summary.planned > 0 && (
-              <span className={kitchenSummaryChipClassName(false, metricValueClassName("blue"))}>
-                {summary.planned} planned
-              </span>
-            )}
-            {summary.inProgress > 0 && (
-              <span className={kitchenSummaryChipClassName(false, metricValueClassName("amber"))}>
-                {summary.inProgress} in progress
-              </span>
-            )}
-            {summary.completed > 0 && (
-              <span className={kitchenSummaryChipClassName(false, metricValueClassName("emerald"))}>
-                {summary.completed} completed
-              </span>
-            )}
-            {summary.total === 0 && (
-              <span className={text.muted}>No orders yet — create one to start production</span>
-            )}
-            {isFetching && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+        <HubListPage className={kitchenSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load production orders") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load production orders")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+        >
+          {summary.total === 0
+            ? "No production orders yet"
+            : `${summary.total} production order${summary.total === 1 ? "" : "s"} · ${summary.planned} planned · ${summary.inProgress} in progress · ${summary.completed} completed`}
+          {isFetching && !isLoading && " · Updating…"}
+        </HubListPage.Count>
 
+        <HubListPage.Body>
         {isLoading && orders.length === 0 ? (
           <div className="py-20 flex justify-center">
             <Loader2 className={hubLoadingSpinnerClassName()} aria-hidden />
@@ -244,7 +206,8 @@ export default function CentralKitchenPage() {
             onDragEnd={handleDragEnd}
           />
         ) : null}
-        </div>
+        </HubListPage.Body>
+        </HubListPage>
       )}
 
       {isCentralKitchen && (

@@ -11,23 +11,16 @@ import {
   usePurchaseOrders,
 } from "@/hooks/domains/useProcurementQueries";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { DataTable } from "@/components/shared/data-table";
-import { ListToolbar } from "@/components/shared/list-toolbar";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { RoleGuard } from "@/components/RoleGuard";
 import { AccessDeniedState } from "@/components/shared/access-denied-state";
-import { ProcurementHubLinks } from "@/components/procurement/ProcurementHubLinks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -51,15 +44,10 @@ import { toast } from "sonner";
 import type { Supplier } from "@/types/api";
 import {
   formFieldInsetClassName,
-  formSelectContentClassName,
   hubCtaClassName,
   inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
-  metricValueClassName,
   procurementDialogContentClassName,
   procurementSectionPanelClassName,
-  procurementSummaryChipClassName,
   tableCellMutedClassName,
   text,
 } from "@/lib/theme";
@@ -145,10 +133,6 @@ function SuppliersPageContent() {
     setEditing(null);
     resetForm();
   }, [resetForm]);
-
-  const toggleContactFilter = (next: SupplierContactFilter) => {
-    setContactFilter((current) => (current === next ? "ALL" : next));
-  };
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -285,75 +269,25 @@ function SuppliersPageContent() {
         hideTitle
         icon={Building2}
         accentHub="procurement"
-        description="Manage vendor contacts for purchase orders."
         actions={
-          <ProcurementHubLinks current="suppliers">
-            <Button
-              onClick={openCreate}
-              className={hubCtaClassName("procurement", "font-bold")}
-            >
-              <Plus className="w-4 h-4 mr-2" aria-hidden />
-              Add Supplier
-            </Button>
-          </ProcurementHubLinks>
+          <Button
+            onClick={openCreate}
+            className={hubCtaClassName("procurement", "font-bold")}
+          >
+            <Plus className="w-4 h-4 mr-2" aria-hidden />
+            Add Supplier
+          </Button>
         }
       />
 
-      <div className={procurementSectionPanelClassName()}>
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.total} supplier{summary.total === 1 ? "" : "s"}
-            </span>
-            {summary.missingEmail > 0 && (
-              <button
-                type="button"
-                className={procurementSummaryChipClassName(
-                  contactFilter === "missing-email",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleContactFilter("missing-email")}
-              >
-                {summary.missingEmail} missing email
-              </button>
-            )}
-            {summary.missingPhone > 0 && (
-              <button
-                type="button"
-                className={procurementSummaryChipClassName(
-                  contactFilter === "missing-phone",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleContactFilter("missing-phone")}
-              >
-                {summary.missingPhone} missing phone
-              </button>
-            )}
-            {summary.total === 0 && (
-              <span className={text.muted}>
-                No suppliers yet — used in{" "}
-                <Link href="/procurement/orders" className={inlineLinkClassName()}>
-                  purchase orders
-                </Link>
-              </span>
-            )}
-            {isFetching && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+      <HubListPage className={procurementSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load suppliers") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search suppliers…"
@@ -363,25 +297,28 @@ function SuppliersPageContent() {
             setContactFilter("ALL");
           }}
           filters={
-            <Select
+            <ListFilterSelect
               value={contactFilter}
-              onValueChange={(value) => {
-                if (value != null) setContactFilter(value as SupplierContactFilter);
-              }}
-            >
-              <SelectTrigger
-                className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                aria-label="Filter by contact data"
-              >
-                <SelectValue placeholder="All contact levels" />
-              </SelectTrigger>
-              <SelectContent className={formSelectContentClassName()}>
-                <SelectItem value="ALL">All contact levels</SelectItem>
-                <SelectItem value="missing-email">Missing email</SelectItem>
-                <SelectItem value="missing-phone">Missing phone</SelectItem>
-              </SelectContent>
-            </Select>
+              onValueChange={(value) => setContactFilter(value as SupplierContactFilter)}
+              ariaLabel="Filter by contact data"
+              widthClassName="w-full sm:w-[200px]"
+              options={[
+                { value: "ALL", label: "All contact levels" },
+                { value: "missing-email", label: "Missing email" },
+                { value: "missing-phone", label: "Missing phone" },
+              ]}
+            />
           }
+        />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredSuppliers.length}
+          totalCount={summary.total}
+          itemLabel="supplier"
         />
 
         <DataTable
@@ -405,7 +342,7 @@ function SuppliersPageContent() {
           }}
           hideBorders
         />
-      </div>
+      </HubListPage>
 
       <Dialog
         open={open}

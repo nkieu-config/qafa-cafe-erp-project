@@ -6,19 +6,12 @@ import { useCustomers, useCustomer360, useCreateCustomer } from "@/hooks/domains
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { DataTable } from "@/components/shared/data-table";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { HubPageHeader } from "@/components/shared/hub-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   UserPlus,
   Star,
@@ -58,13 +51,9 @@ import {
   customerTierIconClassName,
   customerTierTone,
   formFieldInsetClassName,
-  formSelectContentClassName,
   hubCardIconFor,
   hubCtaClassName,
   hubLoadingSpinnerClassName,
-  inventorySummaryChipClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
   statusToneClassName,
   text,
@@ -226,7 +215,6 @@ export default function CustomersPage() {
         hideTitle
         icon={Users}
         accentHub="crm"
-        description="Manage members, tiers, and loyalty points."
         actions={
           <Dialog open={registerOpen} onOpenChange={setRegisterOpen}>
             <DialogTrigger
@@ -281,91 +269,14 @@ export default function CustomersPage() {
         }
       />
 
-      <div className={crmSectionPanelClassName()}>
-        {!loading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {tierSummary.total} member{tierSummary.total === 1 ? "" : "s"}
-            </span>
-            {tierSummary.platinum > 0 && (
-              <button
-                type="button"
-                className={inventorySummaryChipClassName(
-                  tierFilter === "PLATINUM",
-                  metricValueClassName("purple"),
-                )}
-                onClick={() =>
-                  setTierFilter(tierFilter === "PLATINUM" ? "ALL" : "PLATINUM")
-                }
-              >
-                {tierSummary.platinum} platinum
-              </button>
-            )}
-            {tierSummary.gold > 0 && (
-              <button
-                type="button"
-                className={inventorySummaryChipClassName(
-                  tierFilter === "GOLD",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => setTierFilter(tierFilter === "GOLD" ? "ALL" : "GOLD")}
-              >
-                {tierSummary.gold} gold
-              </button>
-            )}
-            {tierSummary.silver > 0 && (
-              <button
-                type="button"
-                className={inventorySummaryChipClassName(
-                  tierFilter === "SILVER",
-                  text.muted,
-                )}
-                onClick={() =>
-                  setTierFilter(tierFilter === "SILVER" ? "ALL" : "SILVER")
-                }
-              >
-                {tierSummary.silver} silver
-              </button>
-            )}
-            {tierSummary.regular > 0 && (
-              <button
-                type="button"
-                className={inventorySummaryChipClassName(
-                  tierFilter === "REGULAR",
-                  metricValueClassName("blue"),
-                )}
-                onClick={() =>
-                  setTierFilter(tierFilter === "REGULAR" ? "ALL" : "REGULAR")
-                }
-              >
-                {tierSummary.regular} regular
-              </button>
-            )}
-            {isFetching && !loading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
+      <HubListPage className={crmSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load customers") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load customers")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search by name or phone…"
@@ -375,27 +286,31 @@ export default function CustomersPage() {
             setTierFilter("ALL");
           }}
           filters={
-            <Select
+            <ListFilterSelect
               value={tierFilter}
-              onValueChange={(value) => {
-                if (value != null) setTierFilter(value as TierFilter);
-              }}
-            >
-              <SelectTrigger
-                className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                aria-label="Filter by tier"
-              >
-                <SelectValue placeholder="All tiers" />
-              </SelectTrigger>
-              <SelectContent className={formSelectContentClassName()}>
-                <SelectItem value="ALL">All tiers</SelectItem>
-                <SelectItem value="PLATINUM">Platinum</SelectItem>
-                <SelectItem value="GOLD">Gold</SelectItem>
-                <SelectItem value="SILVER">Silver</SelectItem>
-                <SelectItem value="REGULAR">Regular</SelectItem>
-              </SelectContent>
-            </Select>
+              onValueChange={(value) => setTierFilter(value as TierFilter)}
+              ariaLabel="Filter by tier"
+              widthClassName="w-full sm:w-[180px]"
+              options={[
+                { value: "ALL", label: "All tiers" },
+                { value: "PLATINUM", label: "Platinum" },
+                { value: "GOLD", label: "Gold" },
+                { value: "SILVER", label: "Silver" },
+                { value: "REGULAR", label: "Regular" },
+              ]}
+            />
           }
+        />
+
+        <HubListPage.Count
+          isLoading={loading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredCustomers.length}
+          totalCount={tierSummary.total}
+          itemLabel="member"
+          emptyLabel="No members yet"
         />
 
         <DataTable
@@ -429,7 +344,7 @@ export default function CustomersPage() {
               "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           })}
         />
-      </div>
+      </HubListPage>
 
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent

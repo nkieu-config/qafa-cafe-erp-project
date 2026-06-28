@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { ColumnsType } from "antd/es/table";
-import Link from "next/link";
 import {
   SlidersHorizontal,
   Plus,
@@ -15,12 +14,11 @@ import { toast } from "sonner";
 import { DataTable } from "@/components/shared/data-table";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { HubPageHeader } from "@/components/shared/hub-card";
-import { ListToolbar } from "@/components/shared/list-toolbar";
-import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterSelect } from "@/components/shared/list-filters";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { Button } from "@/components/ui/button";
 import { ButtonLink } from "@/components/ui/button-link";
-import { ProductsHubLinks } from "@/components/products/ProductsHubLinks";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +50,7 @@ import { useIngredients, useProducts } from "@/hooks/domains/useProductQueries";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { ModifierGroup, ModifierOption, Ingredient, Product } from "@/types/api";
 import { getErrorMessage } from "@/lib/errors";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import { formatBaht, toNumber } from "@/lib/money";
 import {
   buildModifierCategoryOptions,
@@ -70,15 +69,11 @@ import {
   formSelectContentClassName,
   hubCtaClassName,
   hubLoadingSpinnerClassName,
-  inlineLinkClassName,
-  inventorySummaryStripClassName,
-  listToolbarFieldClassName,
   metricValueClassName,
   modifierGroupPanelClassName,
   productsCategoryBadgeClassName,
   productsDialogContentClassName,
   productsSectionPanelClassName,
-  productsSummaryChipClassName,
   tableCellMutedClassName,
   text,
 } from "@/lib/theme";
@@ -278,10 +273,6 @@ export default function ModifiersPage() {
     setOptionDialogOpen(true);
   }, []);
 
-  const toggleHighlightFilter = (next: ModifierHighlightFilter) => {
-    setHighlightFilter((current) => (current === next ? "ALL" : next));
-  };
-
   const handleSaveGroup = async () => {
     if (!groupName.trim()) {
       toast.error("Group name is required");
@@ -467,17 +458,12 @@ export default function ModifiersPage() {
         hideTitle
         icon={SlidersHorizontal}
         accentHub="products"
-        description="Configure POS modifiers, price adjustments, and ingredient swaps (e.g. oat milk)."
         actions={
-          <ProductsHubLinks
-            current="modifiers"
-            contextual={
-              <ButtonLink href="/pos/terminal" variant="outline" className="font-medium">
-                <Monitor className="w-4 h-4 mr-2" aria-hidden />
-                POS Terminal
-              </ButtonLink>
-            }
-          >
+          <>
+            <ButtonLink href="/pos/terminal" variant="outline" className="font-medium">
+              <Monitor className="w-4 h-4 mr-2" aria-hidden />
+              POS Terminal
+            </ButtonLink>
             <Button
               onClick={openCreateGroup}
               className={hubCtaClassName("products", "font-bold")}
@@ -485,79 +471,18 @@ export default function ModifiersPage() {
               <Plus className="w-4 h-4 mr-2" aria-hidden />
               New Group
             </Button>
-          </ProductsHubLinks>
+          </>
         }
       />
 
-      <div className={productsSectionPanelClassName()}>
-        {isError && (
-          <QueryErrorBanner
-            message={getErrorMessage(error, "Failed to load modifier groups")}
-            onRetry={() => void refetch()}
-            loading={isFetching}
-          />
-        )}
+      <HubListPage className={productsSectionPanelClassName()}>
+        <HubListPage.Error
+          message={isError ? getErrorMessage(error, "Failed to load modifier groups") : undefined}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
 
-        {!isLoading && !isError && (
-          <div
-            className={inventorySummaryStripClassName()}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className={cn("font-semibold tabular-nums", text.primary)}>
-              {summary.totalGroups} group{summary.totalGroups === 1 ? "" : "s"}
-            </span>
-            {summary.totalOptions > 0 && (
-              <span className={productsCategoryBadgeClassName()}>
-                {summary.totalOptions} option{summary.totalOptions === 1 ? "" : "s"}
-              </span>
-            )}
-            {summary.emptyGroups > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  highlightFilter === "empty",
-                  metricValueClassName("amber"),
-                )}
-                onClick={() => toggleHighlightFilter("empty")}
-              >
-                {summary.emptyGroups} empty group{summary.emptyGroups === 1 ? "" : "s"}
-              </button>
-            )}
-            {summary.withSwap > 0 && (
-              <button
-                type="button"
-                className={productsSummaryChipClassName(
-                  highlightFilter === "with-swap",
-                  metricValueClassName("emerald"),
-                )}
-                onClick={() => toggleHighlightFilter("with-swap")}
-              >
-                {summary.withSwap} with swap
-              </button>
-            )}
-            {summary.totalGroups === 0 && (
-              <span className={text.muted}>
-                No modifier groups yet — attach to{" "}
-                <Link href="/products" className={inlineLinkClassName()}>
-                  menu items
-                </Link>{" "}
-                by category
-              </span>
-            )}
-            {isFetching && !isLoading && (
-              <span className={cn("inline-flex items-center gap-1.5", text.muted)}>
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                  aria-hidden
-                />
-                Updating…
-              </span>
-            )}
-          </div>
-        )}
-
-        <ListToolbar
+        <HubListPage.Toolbar
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search groups and options…"
@@ -568,29 +493,50 @@ export default function ModifiersPage() {
             setHighlightFilter("ALL");
           }}
           filters={
-            <Select
-              value={categoryFilter}
-              onValueChange={(value) => {
-                if (value != null) setCategoryFilter(value as ModifierCategoryFilter);
-              }}
-            >
-              <SelectTrigger
-                className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[200px]")}
-                aria-label="Filter by menu category"
-              >
-                <SelectValue placeholder="All categories" />
-              </SelectTrigger>
-              <SelectContent className={formSelectContentClassName()}>
-                <SelectItem value="ALL">All categories</SelectItem>
-                {toolbarCategories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <>
+              <ListFilterSelect
+                value={categoryFilter}
+                onValueChange={(value) => setCategoryFilter(value as ModifierCategoryFilter)}
+                ariaLabel="Filter by menu category"
+                widthClassName="w-full sm:w-[200px]"
+                options={[
+                  { value: "ALL", label: "All categories" },
+                  ...toolbarCategories.map((cat) => ({ value: cat, label: cat })),
+                ]}
+              />
+              <ListFilterSelect
+                value={highlightFilter}
+                onValueChange={(value) => setHighlightFilter(value as ModifierHighlightFilter)}
+                ariaLabel="Filter by group type"
+                widthClassName="w-full sm:w-[180px]"
+                options={[
+                  { value: "ALL", label: "All groups" },
+                  { value: "empty", label: "Empty groups" },
+                  { value: "with-swap", label: "With swap" },
+                ]}
+              />
+            </>
           }
         />
+
+        <HubListPage.Count
+          isLoading={isLoading}
+          isError={isError}
+          isFetching={isFetching}
+          hasActiveFilters={hasActiveFilters}
+          filteredCount={filteredGroups.length}
+          totalCount={summary.totalGroups}
+          itemLabel="group"
+          emptyLabel="No modifier groups yet"
+        >
+          {!hasActiveFilters && summary.totalGroups > 0
+            ? formatHubListCountWithFetching(
+                `${summary.totalGroups} group${summary.totalGroups === 1 ? "" : "s"} · ${summary.totalOptions} option${summary.totalOptions === 1 ? "" : "s"}`,
+                isFetching,
+                isLoading,
+              )
+            : undefined}
+        </HubListPage.Count>
 
         {isLoading ? (
           <div
@@ -680,7 +626,7 @@ export default function ModifiersPage() {
             </div>
           ))
         )}
-      </div>
+      </HubListPage>
 
       <Dialog
         open={groupDialogOpen}

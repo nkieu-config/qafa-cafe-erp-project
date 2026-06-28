@@ -35,7 +35,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge, transferStatusTone } from "@/components/shared/status-badge";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
-import { ListToolbar } from "@/components/shared/list-toolbar";
+import { HubListPage } from "@/components/shared/hub-list-page";
+import { ListFilterRow, ListFilterSelect } from "@/components/shared/list-filters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,18 +48,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getErrorMessage } from "@/lib/errors";
+import { formatHubListCountWithFetching } from "@/lib/format-hub-list-count";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
   compactPanelLinkClassName,
   formFieldInsetClassName,
   formSelectContentClassName,
   formSourceBannerClassName,
-  listToolbarFieldClassName,
   hubCtaClassName,
   inventoryHubIconClassName,
-  inventorySummaryChipClassName,
-  inventorySummaryStripClassName,
-  metricValueClassName,
   text,
 } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -543,125 +541,84 @@ export const StockTransfersPanel = forwardRef<
       )}
 
       {variant === "page" && (
-        <div className="space-y-4">
-          {!loadingTransfers && (
-            <div
-              className={inventorySummaryStripClassName()}
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <span className={cn("font-semibold tabular-nums", text.primary)}>
-                {transferSummary.total} transfer{transferSummary.total === 1 ? "" : "s"}
-              </span>
-              {transferSummary.pending > 0 ? (
-                <button
-                  type="button"
-                  className={inventorySummaryChipClassName(
-                    statusFilter === "PENDING",
-                    metricValueClassName("amber"),
-                  )}
-                  onClick={() =>
-                    handleStatusFilterChange(statusFilter === "PENDING" ? "ALL" : "PENDING")
-                  }
-                >
-                  {transferSummary.pending} pending
-                </button>
-              ) : null}
-              {transferSummary.incoming > 0 ? (
-                <button
-                  type="button"
-                  className={inventorySummaryChipClassName(
-                    directionFilter === "incoming",
-                    metricValueClassName("blue"),
-                  )}
-                  onClick={() =>
-                    handleDirectionFilterChange(
-                      directionFilter === "incoming" ? "ALL" : "incoming",
-                    )
-                  }
-                >
-                  {transferSummary.incoming} incoming
-                </button>
-              ) : null}
-              {transferSummary.outgoing > 0 ? (
-                <button
-                  type="button"
-                  className={inventorySummaryChipClassName(
-                    directionFilter === "outgoing",
-                    metricValueClassName("slate"),
-                  )}
-                  onClick={() =>
-                    handleDirectionFilterChange(
-                      directionFilter === "outgoing" ? "ALL" : "outgoing",
-                    )
-                  }
-                >
-                  {transferSummary.outgoing} outgoing
-                </button>
-              ) : null}
-              {transferSummary.pending === 0 && (
-                <span className={text.muted}>No pending transfers</span>
-              )}
-              {transfersFetching && !loadingTransfers && (
-                <span className={`inline-flex items-center gap-1.5 ${text.muted}`}>
-                  <Loader2
-                    className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none"
-                    aria-hidden
-                  />
-                  Updating…
-                </span>
-              )}
-            </div>
-          )}
+        <HubListPage>
+          <HubListPage.Error
+            message={
+              transfersError
+                ? getErrorMessage(transfersErr, "Failed to load stock transfers")
+                : undefined
+            }
+            onRetry={() => void refetchTransfers()}
+            loading={transfersFetching}
+          />
 
-          <ListToolbar
+          <HubListPage.Toolbar
             search={search}
             onSearchChange={setSearch}
             searchPlaceholder="Search ingredient, branch, or requester…"
             showReset={hasActiveFilters}
             onReset={resetFilters}
             filters={
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <Select
+              <ListFilterRow>
+                <ListFilterSelect
                   value={statusFilter}
-                  onValueChange={(value) => {
-                    if (value != null) handleStatusFilterChange(value as StatusFilter);
-                  }}
-                >
-                  <SelectTrigger
-                    className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                    aria-label="Filter transfers by status"
-                  >
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent className={formSelectContentClassName()}>
-                    <SelectItem value="ALL">All statuses</SelectItem>
-                    <SelectItem value="PENDING">Pending only</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
+                  onValueChange={handleStatusFilterChange}
+                  ariaLabel="Filter transfers by status"
+                  options={[
+                    { value: "ALL", label: "All statuses" },
+                    { value: "PENDING", label: "Pending only" },
+                  ]}
+                />
+                <ListFilterSelect
                   value={directionFilter}
-                  onValueChange={(value) => {
-                    if (value != null) handleDirectionFilterChange(value as DirectionFilter);
-                  }}
-                >
-                  <SelectTrigger
-                    className={listToolbarFieldClassName("min-h-[44px] w-full sm:w-[180px]")}
-                    aria-label="Filter transfers by direction"
-                  >
-                    <SelectValue placeholder="All directions" />
-                  </SelectTrigger>
-                  <SelectContent className={formSelectContentClassName()}>
-                    <SelectItem value="ALL">All directions</SelectItem>
-                    <SelectItem value="incoming">Incoming</SelectItem>
-                    <SelectItem value="outgoing">Outgoing</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  onValueChange={handleDirectionFilterChange}
+                  ariaLabel="Filter transfers by direction"
+                  options={[
+                    { value: "ALL", label: "All directions" },
+                    { value: "incoming", label: "Incoming" },
+                    { value: "outgoing", label: "Outgoing" },
+                  ]}
+                />
+              </ListFilterRow>
             }
           />
-          {table}
-        </div>
+
+          <HubListPage.Count
+            isLoading={loadingTransfers}
+            isError={transfersError}
+            isFetching={transfersFetching}
+            hasActiveFilters={hasActiveFilters}
+            filteredCount={visibleTransfers.length}
+            totalCount={transferSummary.total}
+            itemLabel="transfer"
+          >
+            {formatHubListCountWithFetching(
+              (() => {
+                if (hasActiveFilters) {
+                  return `${visibleTransfers.length} of ${transferSummary.total} transfer${transferSummary.total === 1 ? "" : "s"}`;
+                }
+                if (transferSummary.total === 0) return "No transfers yet";
+                const parts = [
+                  `${transferSummary.total} transfer${transferSummary.total === 1 ? "" : "s"}`,
+                ];
+                if (transferSummary.pending > 0) {
+                  parts.push(`${transferSummary.pending} pending`);
+                }
+                if (transferSummary.incoming > 0) {
+                  parts.push(`${transferSummary.incoming} incoming`);
+                }
+                if (transferSummary.outgoing > 0) {
+                  parts.push(`${transferSummary.outgoing} outgoing`);
+                }
+                return parts.join(" · ");
+              })(),
+              transfersFetching,
+              loadingTransfers,
+            )}
+          </HubListPage.Count>
+
+          <HubListPage.Body>{table}</HubListPage.Body>
+        </HubListPage>
       )}
 
       <FormModal
