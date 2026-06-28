@@ -11,8 +11,10 @@ import {
   Tooltip,
   Cell,
 } from "recharts";
-import { getChartPalette } from "@/lib/theme";
+import { Award } from "lucide-react";
+import { dashboardChartEmptyClass, getChartPalette, text } from "@/lib/theme";
 import { useChartTheme } from "@/hooks/useChartTheme";
+import { cn } from "@/lib/utils";
 
 type TopProduct = { name: string; totalQuantity: number };
 
@@ -23,6 +25,16 @@ export function TopProductsChart({ data }: { data: TopProduct[] }) {
   useEffect(() => {
     setColors(getChartPalette());
   }, [chartTheme]);
+
+  if (data.length === 0) {
+    return (
+      <div className={dashboardChartEmptyClass("h-full min-h-[280px]")}>
+        <Award className="w-10 h-10 text-[var(--text-subtle)]" aria-hidden />
+        <p className={cn("text-sm font-semibold", text.primary)}>No sales recorded today</p>
+        <p className={cn("text-sm", text.muted)}>Best sellers will appear once items are sold.</p>
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">

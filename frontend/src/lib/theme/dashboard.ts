@@ -14,8 +14,8 @@ const widgetGradient: Record<DashboardWidgetVariant, string> = {
   sales: "bg-gradient-to-br from-[var(--surface-elevated)] to-[var(--widget-sales-bg-to)]",
   branch: "bg-gradient-to-br from-[var(--surface-elevated)] to-[var(--widget-branch-bg-to)]",
   alerts: "bg-gradient-to-br from-[var(--surface-elevated)] to-[var(--widget-alerts-bg-to)]",
-  products: "",
-  chart: "",
+  products: "bg-gradient-to-br from-[var(--surface-elevated)] to-[var(--widget-products-bg-to)]",
+  chart: "bg-gradient-to-br from-[var(--surface-elevated)] to-[var(--widget-chart-bg-to)]",
 };
 
 const widgetLabel: Record<DashboardWidgetVariant, string> = {
@@ -39,7 +39,7 @@ export function dashboardWidgetCardClass(
   className?: string,
 ) {
   return cn(
-    "glass-card h-full",
+    "dashboard-widget glass-card h-full ring-0 shadow-none",
     widgetBorder[variant],
     widgetGradient[variant],
     variant === "sales" && "shadow-[var(--widget-sales-shadow)]",
@@ -100,7 +100,36 @@ export function dashboardAlertsEmptyClass() {
 }
 
 export function dashboardSkeletonClass(className?: string) {
-  return cn("animate-pulse rounded-xl bg-[var(--widget-skeleton)]", className);
+  return cn(
+    "animate-pulse motion-reduce:animate-none rounded-xl bg-[var(--widget-skeleton)]",
+    className,
+  );
+}
+
+export function dashboardChartEmptyClass(className?: string) {
+  return cn(
+    "flex h-full min-h-[200px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed p-8 text-center",
+    "border-[var(--table-container-border)] bg-[var(--table-container-bg)]",
+    className,
+  );
+}
+
+export function dashboardAlertsFooterClass() {
+  return cn(
+    "border-t shrink-0 p-3 flex flex-wrap gap-2 justify-end",
+    "border-[var(--widget-alerts-divider)]",
+  );
+}
+
+export function dashboardAlertsFooterLinkClass() {
+  return cn(
+    "text-sm font-semibold underline-offset-4 hover:underline",
+    "text-[var(--widget-alerts-header)]",
+  );
+}
+
+export function dashboardErrorMessageClass(className?: string) {
+  return cn("text-sm font-medium text-[var(--status-danger-fg)]", className);
 }
 
 export function dashboardErrorPanelClass(className?: string) {
@@ -119,10 +148,11 @@ export function dashboardDragActiveClass(isDragging: boolean) {
 
 export function dashboardDragHandleClass() {
   return cn(
-    "absolute top-4 right-4 z-20 p-2 cursor-grab active:cursor-grabbing transition-opacity",
-    "opacity-0 group-hover:opacity-100 backdrop-blur rounded-md border shadow-sm",
+    "dashboard-drag-handle absolute top-4 right-4 z-20 p-2 cursor-grab active:cursor-grabbing transition-opacity",
+    "backdrop-blur rounded-md border shadow-sm touch-manipulation",
     "text-[var(--widget-drag-handle-fg)] bg-[var(--widget-drag-handle-bg)]",
     "hover:bg-[var(--widget-drag-handle-hover)] border-border",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--widget-drag-ring)]",
   );
 }
 

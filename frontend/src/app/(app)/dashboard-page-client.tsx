@@ -21,9 +21,9 @@ import { SalesChartWidget } from "@/components/dashboard/widgets/SalesChartWidge
 import { WidgetErrorBoundary } from "@/components/dashboard/widgets/WidgetErrorBoundary";
 import {
   StatWidgetSkeleton,
-  AlertsWidgetSkeleton,
   ChartWidgetSkeleton,
 } from "@/components/dashboard/widgets/WidgetSkeletons";
+import { DashboardLayoutSkeleton } from "@/components/dashboard/dashboard-layout-skeleton";
 
 const DashboardSortableGridLazy = dynamic(
   () => import("@/components/dashboard/DashboardSortableGrid").then((m) => m.DashboardSortableGrid),
@@ -81,7 +81,7 @@ function WidgetBoundary({
 }
 
 function AnalyticsDashboardContent() {
-  const { activeBranchId } = useAuth();
+  const { activeBranchId, user } = useAuth();
   const analyticsBranch = activeBranchId != null ? String(activeBranchId) : "ALL";
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -137,7 +137,8 @@ function AnalyticsDashboardContent() {
   );
 
   const getWidgetClassName = useCallback(
-    (id: string) => (id === "topProducts" || id === "salesChart" ? "xl:col-span-2" : ""),
+    (id: string) =>
+      id === "topProducts" || id === "salesChart" ? "lg:col-span-2 2xl:col-span-2" : "",
     [],
   );
 
@@ -156,16 +157,14 @@ function AnalyticsDashboardContent() {
           return (
             <WidgetBoundary onReset={reset}>
               <Suspense fallback={<StatWidgetSkeleton />}>
-                <TopBranchWidget branchId={analyticsBranch} />
+                <TopBranchWidget branchId={analyticsBranch} branchName={branchName} />
               </Suspense>
             </WidgetBoundary>
           );
         case "lowStock":
           return (
             <WidgetBoundary onReset={reset}>
-              <Suspense fallback={<AlertsWidgetSkeleton />}>
-                <LowStockWidget branchId={analyticsBranch} />
-              </Suspense>
+              <LowStockWidget branchId={analyticsBranch} />
             </WidgetBoundary>
           );
         case "topProducts":
@@ -188,8 +187,13 @@ function AnalyticsDashboardContent() {
           return null;
       }
     },
-    [analyticsBranch],
+    [analyticsBranch, branchName],
   );
+
+  const dashboardDescription =
+    user?.role === "SUPER_ADMIN"
+      ? "Drag the handle on each widget to customize layout. Data reflects the branch selected in the top bar."
+      : "Drag the handle at the top-right of each widget to customize layout.";
 
   return (
     <AnimatedPage className="w-full h-full flex flex-col">
@@ -197,7 +201,7 @@ function AnalyticsDashboardContent() {
         title="Dashboard"
         icon={LayoutDashboard}
         iconClassName={dashboardShellIconClassName()}
-        description="Drag widgets from the top right corner to customize layout."
+        description={dashboardDescription}
         branchScope={{
           branchName,
           allBranches: activeBranchId == null,
@@ -215,11 +219,7 @@ function AnalyticsDashboardContent() {
           )}
         </QueryErrorResetBoundary>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <StatWidgetSkeleton />
-          <StatWidgetSkeleton />
-          <AlertsWidgetSkeleton />
-        </div>
+        <DashboardLayoutSkeleton />
       )}
       </PageChrome>
     </AnimatedPage>
@@ -232,10 +232,7 @@ export default function AnalyticsDashboard() {
       fallback={
         <div className="space-y-6">
           <div className={dashboardSkeletonClass("h-20")} />
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <StatWidgetSkeleton />
-            <StatWidgetSkeleton />
-          </div>
+          <DashboardLayoutSkeleton />
         </div>
       }
     >

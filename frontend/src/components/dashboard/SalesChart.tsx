@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import {
   Area,
   AreaChart,
@@ -12,17 +12,26 @@ import {
 } from "recharts";
 import type { SalesTrendPoint } from "@/types/api";
 import { format, parseISO } from "date-fns";
-import { dashboardSkeletonClass } from "@/lib/theme";
+import { BarChart3 } from "lucide-react";
+import { dashboardChartEmptyClass, dashboardSkeletonClass, text } from "@/lib/theme";
 import { useChartTheme } from "@/hooks/useChartTheme";
+import { cn } from "@/lib/utils";
 
 interface SalesChartProps {
   data?: SalesTrendPoint[];
   loading?: boolean;
 }
 
+function formatRevenueAxis(value: number) {
+  if (value >= 1000) return `฿${value / 1000}k`;
+  if (value > 0) return `฿${Math.round(value)}`;
+  return "฿0";
+}
+
 export function SalesChart({ data = [], loading }: SalesChartProps) {
   const [isMounted, setIsMounted] = useState(false);
   const chartTheme = useChartTheme();
+  const gradientId = useId().replace(/:/g, "");
 
   useEffect(() => {
     setIsMounted(true);
@@ -38,6 +47,16 @@ export function SalesChart({ data = [], loading }: SalesChartProps) {
     return <div className={dashboardSkeletonClass("h-[350px] w-full")} />;
   }
 
+  if (chartData.length === 0) {
+    return (
+      <div className={dashboardChartEmptyClass("h-[350px]")}>
+        <BarChart3 className="w-10 h-10 text-[var(--text-subtle)]" aria-hidden />
+        <p className={cn("text-sm font-semibold", text.primary)}>No revenue data yet</p>
+        <p className={cn("text-sm", text.muted)}>Sales trends will appear once orders are recorded.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-[350px] w-full min-h-[350px] min-w-0">
       <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={350}>
@@ -51,7 +70,7 @@ export function SalesChart({ data = [], loading }: SalesChartProps) {
           }}
         >
           <defs>
-            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={chartTheme.revenue} stopOpacity={0.3} />
               <stop offset="95%" stopColor={chartTheme.revenue} stopOpacity={0} />
             </linearGradient>
@@ -68,7 +87,7 @@ export function SalesChart({ data = [], loading }: SalesChartProps) {
             axisLine={false}
             tickLine={false}
             tick={{ fill: chartTheme.axis, fontSize: 12 }}
-            tickFormatter={(value) => `฿${value / 1000}k`}
+            tickFormatter={formatRevenueAxis}
             dx={-10}
           />
           <Tooltip
@@ -92,7 +111,7 @@ export function SalesChart({ data = [], loading }: SalesChartProps) {
             stroke={chartTheme.revenue}
             strokeWidth={3}
             fillOpacity={1}
-            fill="url(#colorRevenue)"
+            fill={`url(#${gradientId})`}
           />
         </AreaChart>
       </ResponsiveContainer>

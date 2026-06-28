@@ -255,9 +255,11 @@
 
   --widget-products-border: var(--tone-products-border);
   --widget-products-title: var(--tone-products-fg);
+  --widget-products-bg-to: color-mix(in oklch, var(--chart-5) 10%, var(--card));
 
   --widget-chart-border: var(--tone-purple-border);
   --widget-chart-title: var(--tone-purple-fg);
+  --widget-chart-bg-to: color-mix(in oklch, var(--metric-purple) 10%, var(--card));
 
   --widget-skeleton: var(--muted);
   --widget-error-bg: var(--status-danger-bg);
@@ -454,6 +456,16 @@
   --sidebar-brand-gradient-to: var(--muted-foreground);
 
   --widget-sales-shadow: var(--shadow-sm);
+
+  --widget-sales-bg-to: color-mix(in oklch, var(--brand) 18%, var(--card));
+  --widget-branch-bg-to: color-mix(in oklch, var(--metric-blue) 18%, var(--card));
+  --widget-alerts-bg-to: color-mix(in oklch, var(--metric-red) 14%, var(--card));
+  --widget-alerts-low-row: color-mix(in oklch, var(--metric-red) 16%, var(--card));
+  --widget-alerts-expiry-row: color-mix(in oklch, var(--metric-amber) 16%, var(--card));
+  --widget-products-border: color-mix(in oklch, var(--chart-5) 45%, transparent);
+  --widget-products-bg-to: color-mix(in oklch, var(--chart-5) 14%, var(--card));
+  --widget-chart-border: color-mix(in oklch, var(--metric-purple) 45%, transparent);
+  --widget-chart-bg-to: color-mix(in oklch, var(--metric-purple) 14%, var(--card));
 
   --widget-alerts-low-value: color-mix(in oklch, var(--metric-red) 75%, var(--foreground));
   --widget-alerts-low-meta: color-mix(in oklch, var(--metric-red) 55%, var(--muted-foreground));

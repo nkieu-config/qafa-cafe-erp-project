@@ -22,6 +22,14 @@ import { CSS } from "@dnd-kit/utilities";
 import { dashboardDragActiveClass, dashboardDragHandleClass } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
+export const DASHBOARD_WIDGET_LABELS: Record<string, string> = {
+  sales: "Today's Sales",
+  topBranch: "Branch performance",
+  lowStock: "Inventory Alerts",
+  topProducts: "Top 5 Best Sellers",
+  salesChart: "Revenue Overview",
+};
+
 function SortableWidget({
   id,
   children,
@@ -32,6 +40,7 @@ function SortableWidget({
   className?: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const label = DASHBOARD_WIDGET_LABELS[id] ?? "Dashboard widget";
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -45,8 +54,13 @@ function SortableWidget({
       style={style}
       className={cn("relative group", className, dashboardDragActiveClass(isDragging))}
     >
-      <div {...attributes} {...listeners} className={dashboardDragHandleClass()}>
-        <GripHorizontal className="w-5 h-5" />
+      <div
+        {...attributes}
+        {...listeners}
+        className={dashboardDragHandleClass()}
+        aria-label={`Drag to reorder ${label}`}
+      >
+        <GripHorizontal className="w-5 h-5" aria-hidden />
       </div>
       {children}
     </div>
@@ -83,7 +97,7 @@ export function DashboardSortableGrid({
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
       <SortableContext items={widgetOrder} strategy={rectSortingStrategy}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6 auto-rows-[minmax(200px,auto)]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-[minmax(200px,auto)]">
           {widgetOrder.map((id) => (
             <SortableWidget key={id} id={id} className={getWidgetClassName?.(id)}>
               {renderWidget(id)}

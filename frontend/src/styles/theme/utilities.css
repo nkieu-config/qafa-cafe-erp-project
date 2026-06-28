@@ -10,7 +10,31 @@
     background: var(--glass-card-bg);
     border: 1px solid var(--glass-card-border);
     box-shadow: var(--shadow-lg), var(--glass-card-shadow);
-    @apply backdrop-blur-sm transition-[box-shadow,transform] duration-300 hover:shadow-xl hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-lg;
+    @apply backdrop-blur-sm transition-[box-shadow,transform] duration-300 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-lg;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .glass-card:not(.dashboard-widget):hover {
+      @apply shadow-xl -translate-y-1;
+    }
+  }
+
+  .dashboard-widget {
+    @apply ring-0;
+  }
+
+  .dashboard-drag-handle {
+    opacity: 0.4;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .group:hover .dashboard-drag-handle {
+      opacity: 1;
+    }
+  }
+
+  .dashboard-drag-handle:focus-visible {
+    opacity: 1;
   }
 
   .dark .glass-panel,
