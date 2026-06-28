@@ -56,7 +56,10 @@ export default function InventoryBalancePage() {
   const filteredInventory = useMemo(() => {
     return inventory.filter((record: InventoryRow) => {
       const level = stockLevel(record.stock, record.minStock);
-      const matchesLevel = stockFilter === "ALL" || level === stockFilter;
+      const matchesLevel =
+        stockFilter === "ALL" ||
+        level === stockFilter ||
+        (stockFilter === "low" && level === "out");
       const name = record.ingredient?.name?.toLowerCase() ?? "";
       const matchesSearch = !debouncedSearch || name.includes(debouncedSearch);
       return matchesLevel && matchesSearch;

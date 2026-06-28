@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useAuditLogs } from "@/hooks/domains/useReportsQueries";
 import { User, Activity, FileText, History, ChevronLeft, ChevronRight } from "lucide-react";
 import { HubCard } from "@/components/shared/hub-card";
+import { ListToolbar } from "@/components/shared/list-toolbar";
+import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { StatusBadge, auditActionTone } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import type { AuditLog, User as ApiUser } from "@/types/api";
 import { formatDateTime } from "@/lib/intl-date";
+import { getErrorMessage } from "@/lib/errors";
 import {
   dataTableContainerClassName,
   nativeTableEmptyCellClassName,
@@ -28,16 +31,43 @@ import { cn } from "@/lib/utils";
 const PAGE_SIZE = 15;
 
 export default function AuditLogsPage() {
-  const { data: logsData = [], isLoading: loading } = useAuditLogs(100, 0);
+  const {
+    data: logsData = [],
+    isLoading: loading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useAuditLogs(100, 0);
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
 
-  const totalPages = Math.max(1, Math.ceil(logsData.length / PAGE_SIZE));
+  const filteredLogs = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return logsData;
+    return logsData.filter((log: AuditLog & { user: ApiUser }) => {
+      const haystack = [
+        log.action,
+        log.targetType,
+        log.details,
+        log.user?.name,
+        log.user?.email,
+        log.user?.role,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [logsData, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
 
   const pageLogs = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
-    return logsData.slice(start, start + PAGE_SIZE);
-  }, [logsData, currentPage]);
+    return filteredLogs.slice(start, start + PAGE_SIZE);
+  }, [filteredLogs, currentPage]);
 
   return (
     <HubCard
@@ -45,6 +75,29 @@ export default function AuditLogsPage() {
       icon={History}
       description="Comprehensive log of critical system actions and data modifications."
     >
+      {isError && (
+        <QueryErrorBanner
+          message={getErrorMessage(error, "Failed to load audit logs")}
+          onRetry={() => void refetch()}
+          loading={isFetching}
+        />
+      )}
+
+      <ListToolbar
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        searchPlaceholder="Search action, user, module…"
+        showReset={search.trim().length > 0}
+        onReset={() => {
+          setSearch("");
+          setPage(1);
+        }}
+        allBranches
+      />
+
       <div className={dataTableContainerClassName()}>
         <div className={semanticTableClassName()}>
         <Table>
@@ -111,10 +164,10 @@ export default function AuditLogsPage() {
         </div>
       </div>
 
-      {!loading && logsData.length > PAGE_SIZE && (
+      {!loading && filteredLogs.length > PAGE_SIZE && (
         <div className="flex items-center justify-between pt-4">
           <p className={cn("text-sm", text.muted)}>
-            Page {currentPage} of {totalPages} ({logsData.length} entries)
+            Page {currentPage} of {totalPages} ({filteredLogs.length} entries)
           </p>
           <div className="flex gap-2">
             <Button

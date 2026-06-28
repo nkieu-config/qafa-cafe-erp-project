@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatedPage } from "@/components/animated-page";
 import { HubPageHeader } from "@/components/shared/hub-card";
 import { useAuth } from "@/context/AuthContext";
@@ -29,10 +29,12 @@ import {
   kdsStartButtonClassName,
   kdsTicketClassName,
   kdsTicketFooterClassName,
+  kdsTicketGridClassName,
   kdsTicketHeaderClassName,
   type KdsTicketUrgency,
   text,
 } from "@/lib/theme";
+import { cn } from "@/lib/utils";
 
 function ConnectionBadge({ isConnected }: { isConnected: boolean }) {
   if (isConnected) {
@@ -58,6 +60,11 @@ function ticketUrgency(waitMinutes: number): KdsTicketUrgency {
   return "on-time";
 }
 
+function getWaitTimeMinutes(createdAt: string) {
+  const diff = new Date().getTime() - new Date(createdAt).getTime();
+  return Math.floor(diff / 60000);
+}
+
 export default function KdsPage() {
   const { activeBranchId } = useAuth();
   const { isConnected } = useSocket();
@@ -74,6 +81,16 @@ export default function KdsPage() {
   const updateStatusMutation = useUpdateKdsOrderStatus(activeBranchId ?? undefined);
   useKdsSocketSync(activeBranchId ?? undefined);
 
+  const queueStats = useMemo(() => {
+    let late = 0;
+    let preparing = 0;
+    for (const order of orders) {
+      if (order.status === "PREPARING") preparing += 1;
+      if (getWaitTimeMinutes(order.createdAt) >= 10) late += 1;
+    }
+    return { total: orders.length, late, preparing };
+  }, [orders]);
+
   const handleUpdateStatus = async (orderId: number, status: string) => {
     setUpdatingOrderId(orderId);
     try {
@@ -85,11 +102,6 @@ export default function KdsPage() {
     }
   };
 
-  const getWaitTimeMinutes = (createdAt: string) => {
-    const diff = new Date().getTime() - new Date(createdAt).getTime();
-    return Math.floor(diff / 60000);
-  };
-
   if (!activeBranchId) {
     return (
       <AnimatedPage className="h-full flex flex-col space-y-4">
@@ -97,7 +109,7 @@ export default function KdsPage() {
           title="Kitchen Display System (KDS)"
           icon={MonitorPlay}
           description="Real-time order queue"
-          titleLevel="h1"
+          hideTitle
         />
         <BranchEmptyState description="Select a branch in the top bar to view the kitchen display." />
       </AnimatedPage>
@@ -107,14 +119,36 @@ export default function KdsPage() {
   const fetchError = isError ? getErrorMessage(error, "Failed to load kitchen orders") : null;
 
   return (
-    <AnimatedPage className="h-full flex flex-col space-y-4">
+    <AnimatedPage className="h-full flex flex-col gap-4 min-h-0">
       <HubPageHeader
         title="Kitchen Display System (KDS)"
         icon={MonitorPlay}
         description="Real-time order queue"
-        titleLevel="h1"
+        hideTitle
         actions={<ConnectionBadge isConnected={isConnected} />}
       />
+
+      {!isLoading && orders.length > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <span className={cn("font-semibold tabular-nums", text.primary)}>
+            {queueStats.total} order{queueStats.total === 1 ? "" : "s"} in queue
+          </span>
+          {queueStats.preparing > 0 && (
+            <span className={text.muted}>
+              {queueStats.preparing} preparing
+            </span>
+          )}
+          {queueStats.late > 0 && (
+            <span className="font-medium text-[var(--status-danger-fg)]">
+              {queueStats.late} overdue (10+ min)
+            </span>
+          )}
+        </div>
+      )}
 
       {fetchError && (
         <div className={kdsErrorBannerClassName()}>
@@ -131,7 +165,7 @@ export default function KdsPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-x-auto pb-4">
+      <div className="flex-1 min-h-0 overflow-y-auto pb-4">
         {isLoading ? (
           <div className="flex h-64 items-center justify-center" role="status" aria-live="polite">
             <Loader2 className={`w-10 h-10 animate-spin motion-reduce:animate-none ${kdsLoadingClassName()}`} aria-hidden="true" />
@@ -139,12 +173,12 @@ export default function KdsPage() {
           </div>
         ) : orders.length === 0 ? (
           <div className={kdsEmptyStateClassName()}>
-            <ChefHat className={`w-12 h-12 mx-auto mb-4 text-[var(--kds-empty-icon)]`} />
+            <ChefHat className="w-12 h-12 mx-auto mb-4 text-[var(--kds-empty-icon)]" />
             <p className={`font-semibold ${text.primary}`}>No pending orders</p>
             <p className={`text-sm mt-2 ${text.muted}`}>Kitchen is clear — new orders will appear here automatically.</p>
           </div>
         ) : (
-          <div className="flex gap-4 h-full items-start">
+          <div className={kdsTicketGridClassName()}>
             {orders.map((order) => {
               const waitTime = getWaitTimeMinutes(order.createdAt);
               const urgency = ticketUrgency(waitTime);
@@ -154,25 +188,25 @@ export default function KdsPage() {
                 <div key={order.id} className={kdsTicketClassName(urgency)}>
                   <div className={kdsTicketHeaderClassName(urgency)}>
                     <div>
-                      <div className="font-black text-4xl tracking-wider tabular-nums">#{formatQueueNumber(order.queueNumber)}</div>
+                      <div className="font-black text-3xl sm:text-4xl tracking-wider tabular-nums">#{formatQueueNumber(order.queueNumber)}</div>
                       <div className="text-xs opacity-80 font-mono mt-0.5">Order ref {order.id}</div>
                       <div className="text-sm opacity-90 font-medium flex items-center gap-2 mt-1">
                         {order.status === "PREPARING" ? "กำลังทำ (Preparing)" : "รอคิว (Pending)"}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 font-mono text-xl font-bold bg-black/20 px-3 py-2 rounded-lg shadow-inner">
-                      <Clock className="w-6 h-6" aria-hidden="true" />
+                    <div className="flex items-center gap-2 font-mono text-lg sm:text-xl font-bold bg-black/20 px-3 py-2 rounded-lg shadow-inner">
+                      <Clock className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true" />
                       {waitTime} min
                     </div>
                   </div>
 
-                  <div className="p-5 flex-1 overflow-y-auto space-y-4">
+                  <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-4 min-h-0">
                     {order.items?.map((item: OrderItem) => (
                       <div key={item.id} className={kdsItemDividerClassName()}>
                         <div className="flex gap-3 items-start">
                           <span className={kdsItemQtyClassName()}>{item.quantity}x</span>
-                          <div className="flex flex-col">
-                            <span className={`${text.primary} font-black text-2xl leading-tight`}>{item.product?.name}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className={`${text.primary} font-black text-xl sm:text-2xl leading-tight`}>{item.product?.name}</span>
                             {item.notes && (
                               <div className={kdsItemNoteClassName()}>
                                 + {item.notes}
@@ -191,7 +225,7 @@ export default function KdsPage() {
                         onClick={() => void handleUpdateStatus(order.id, "PREPARING")}
                         disabled={isUpdating}
                       >
-                        <Play className="w-8 h-8 mr-2" /> START
+                        <Play className="w-6 h-6 sm:w-8 sm:h-8 mr-2" /> START
                       </Button>
                     )}
                     <Button
@@ -199,7 +233,7 @@ export default function KdsPage() {
                       onClick={() => void handleUpdateStatus(order.id, "COMPLETED")}
                       disabled={isUpdating}
                     >
-                      <CheckCircle2 className="w-8 h-8 mr-2" /> DONE
+                      <CheckCircle2 className="w-6 h-6 sm:w-8 sm:h-8 mr-2" /> DONE
                     </Button>
                   </div>
                 </div>

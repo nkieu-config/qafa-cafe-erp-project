@@ -35,7 +35,9 @@ import {
   text,
 } from "@/lib/theme";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
+import { QueryErrorBanner } from "@/components/shared/query-error-banner";
 import { HubPageHeader } from "@/components/shared/hub-card";
+import { getErrorMessage } from "@/lib/errors";
 import { DataTable } from "@/components/shared/data-table";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -50,7 +52,7 @@ type BatchWithSupplier = InventoryBatch & { purchaseOrder?: PurchaseOrder & { su
 export default function InventoryPage() {
   const { activeBranchId } = useAuth();
 
-  const { data: branchDetails, isLoading: loadingBranch } = useBranchDetails(activeBranchId ?? undefined);
+  const { data: branchDetails, isLoading: loadingBranch, isError: branchError, error: branchErr, refetch: refetchBranch, isFetching: branchFetching } = useBranchDetails(activeBranchId ?? undefined);
   const inventories: InventoryWithIngredient[] = branchDetails?.inventories || [];
   const batches: BatchWithSupplier[] = branchDetails?.inventoryBatches || [];
 
@@ -310,6 +312,14 @@ export default function InventoryPage() {
 
   return (
     <div className="w-full space-y-6">
+      {branchError && (
+        <QueryErrorBanner
+          message={getErrorMessage(branchErr, "Failed to load batch inventory")}
+          onRetry={() => void refetchBranch()}
+          loading={branchFetching}
+        />
+      )}
+
       <HubPageHeader
         title="Stock & Batches"
         icon={PackageOpen}
@@ -449,6 +459,10 @@ export default function InventoryPage() {
             </h2>
             <DataTable 
               loading={loading}
+              isError={branchError}
+              errorMessage={getErrorMessage(branchErr, "Failed to load inventory")}
+              onRetry={() => void refetchBranch()}
+              retryLoading={branchFetching}
               columns={inventoryColumns} 
               dataSource={inventories} 
               rowKey="id"

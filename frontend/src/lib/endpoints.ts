@@ -170,4 +170,8 @@ export const API_ENDPOINTS = {
     get: '/settings',
     update: '/settings',
   },
+  navCounts: (branchId?: number | null) =>
+    branchId != null
+      ? `/nav-counts?branchId=${branchId}`
+      : '/nav-counts',
 } as const;

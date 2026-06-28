@@ -17,11 +17,13 @@ import {
 import { toast } from "sonner";
 import { Trash2, Plus, History } from "lucide-react";
 import { filterActive, updateLineItem } from "@/lib/form";
-import type { Ingredient, WasteLineItem } from "@/types/api";
+import type { Ingredient, WasteLineItem, Branch } from "@/types/api";
 import { getErrorMessage } from "@/lib/errors";
 import { DataTable } from "@/components/shared/data-table";
 import { HubCard } from "@/components/shared/hub-card";
+import { ListToolbar } from "@/components/shared/list-toolbar";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
+import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { formatDateTime } from "@/lib/intl-date";
 import {
   formLineRowClassName,
@@ -46,7 +48,17 @@ export default function WasteLogPage() {
   const { data: ingredientsData } = useIngredients();
   const ingredients = filterActive((ingredientsData || []) as Ingredient[]);
 
-  const { data: wasteLogs = [], isLoading: logsLoading } = useWasteLogs(branchId);
+  const { data: branches = [] } = useBranches();
+  const branchName = (branches as Branch[]).find((b) => b.id === branchId)?.name;
+
+  const {
+    data: wasteLogs = [],
+    isLoading: logsLoading,
+    isError: logsError,
+    error: logsErr,
+    refetch: refetchLogs,
+    isFetching: logsFetching,
+  } = useWasteLogs(branchId);
   const recordWasteMutation = useRecordWaste();
 
   const [items, setItems] = useState<WasteLineItem[]>([emptyLine()]);
@@ -217,8 +229,13 @@ export default function WasteLogPage() {
         icon={History}
         description="Recent waste entries for this branch."
       >
+        <ListToolbar branchName={branchName} />
         <DataTable
           loading={logsLoading}
+          isError={logsError}
+          errorMessage={getErrorMessage(logsErr, "Failed to load waste logs")}
+          onRetry={() => void refetchLogs()}
+          retryLoading={logsFetching}
           rowKey="id"
           dataSource={wasteLogs}
           columns={[

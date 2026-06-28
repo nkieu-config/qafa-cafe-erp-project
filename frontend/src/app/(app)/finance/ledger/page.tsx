@@ -6,19 +6,19 @@ import { seedAccounts } from "@/lib/api"
 import { Table, Spin } from "antd"
 import { FileText, Play } from "lucide-react"
 import { toast } from "sonner"
-import { HubPageHeader } from "@/components/shared/hub-card"
+import { HubCard, HubPageHeader } from "@/components/shared/hub-card"
+import { ListToolbar } from "@/components/shared/list-toolbar"
 import { QueryErrorBanner } from "@/components/shared/query-error-banner"
+import { DataTable } from "@/components/shared/data-table"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
-import { dataTableEmptyTextClassName } from "@/lib/theme"
 import { getErrorMessage } from "@/lib/errors"
 import { StatusBadge, journalStatusTone } from "@/components/shared/status-badge"
 import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/intl-date"
-import type { JournalEntry } from "@/types/api"
+import type { Branch, JournalEntry } from "@/types/api"
 import {
   antTableShellClassName,
   antTableSummaryRowClassName,
-  dataTableContainerClassName,
   financeMetricIconClassName,
   hubInfoActionClassName,
   ledgerCreditClassName,
@@ -28,6 +28,7 @@ import {
 } from "@/lib/theme"
 
 import { useAuth } from "@/context/AuthContext"
+import { useBranches } from "@/hooks/domains/useGeneralQueries"
 import { useLedger, useJournalEntries } from '@/hooks/domains/useAccountingQueries';
 
 const LedgerTrendChart = dynamic(
@@ -44,13 +45,31 @@ const LedgerTrendChart = dynamic(
 
 export default function GeneralLedgerPage() {
   const { activeBranchId } = useAuth()
+  const { data: branches = [] } = useBranches()
+  const branchIdNum = activeBranchId ? Number(activeBranchId) : undefined
+  const branchName = (branches as Branch[]).find((b) => b.id === branchIdNum)?.name
+  const showAllBranches = !branchIdNum
   const selectedBranch = activeBranchId ? String(activeBranchId) : "ALL"
   const [isSeeding, setIsSeeding] = useState(false)
   const [showSeedConfirm, setShowSeedConfirm] = useState(false)
 
-  const { data: chartData = [], isLoading: isChartLoading, isError: chartError, error: chartErr, refetch: refetchChart } = useLedger(selectedBranch)
-  const { data: entries = [], isLoading: isEntriesLoading, isError: entriesError, error: entriesErr, refetch: refetchEntries } = useJournalEntries(selectedBranch)
-  const loading = isChartLoading || isEntriesLoading;
+  const {
+    data: chartData = [],
+    isLoading: isChartLoading,
+    isError: chartError,
+    error: chartErr,
+    refetch: refetchChart,
+    isFetching: chartFetching,
+  } = useLedger(selectedBranch)
+  const {
+    data: entries = [],
+    isLoading: isEntriesLoading,
+    isError: entriesError,
+    error: entriesErr,
+    refetch: refetchEntries,
+    isFetching: entriesFetching,
+  } = useJournalEntries(selectedBranch)
+
   const hasError = chartError || entriesError;
   const errorMessage = getErrorMessage(chartErr ?? entriesErr, "Failed to load ledger data");
 
@@ -59,8 +78,8 @@ export default function GeneralLedgerPage() {
       setIsSeeding(true);
       await seedAccounts();
       toast.success("Accounts seeded successfully");
-      refetchEntries();
-    } catch (err) {
+      void refetchEntries();
+    } catch {
       toast.error("Failed to seed accounts");
     } finally {
       setIsSeeding(false);
@@ -158,7 +177,7 @@ export default function GeneralLedgerPage() {
         hideTitle
         description="Profit & loss trends and journal entries."
         actions={
-          entries.length === 0 && !loading ? (
+          entries.length === 0 && !isEntriesLoading ? (
             <Button
               className={hubInfoActionClassName()}
               disabled={isSeeding}
@@ -171,6 +190,8 @@ export default function GeneralLedgerPage() {
         }
       />
 
+      <ListToolbar branchName={branchName} allBranches={showAllBranches} />
+
       {hasError && (
         <QueryErrorBanner
           message={errorMessage}
@@ -178,6 +199,7 @@ export default function GeneralLedgerPage() {
             void refetchChart();
             void refetchEntries();
           }}
+          loading={chartFetching || entriesFetching}
         />
       )}
 
@@ -196,22 +218,24 @@ export default function GeneralLedgerPage() {
         </div>
       </div>
 
-      <div className={ledgerPanelClassName("pt-2")}>
+      <HubCard hideTitle>
         <h2 className={`font-semibold text-lg mb-4 flex items-center gap-2 ${text.primary}`}>
           <FileText className={financeMetricIconClassName("indigo")} /> General Ledger (Journal Entries)
         </h2>
-        <div className={dataTableContainerClassName()}>
-        <Table 
-          columns={columns} 
-          dataSource={entries} 
+        <DataTable
+          columns={columns}
+          dataSource={entries}
           rowKey="id"
           loading={isEntriesLoading}
+          isError={entriesError}
+          errorMessage={getErrorMessage(entriesErr, "Failed to load journal entries")}
+          onRetry={() => void refetchEntries()}
+          retryLoading={entriesFetching}
           expandable={{ expandedRowRender }}
           pagination={{ pageSize: 20 }}
-          locale={{ emptyText: <span className={dataTableEmptyTextClassName()}>No journal entries found.</span> }}
+          emptyDescription="No journal entries found."
         />
-        </div>
-      </div>
+      </HubCard>
 
       <ConfirmDialog
         open={showSeedConfirm}

@@ -666,6 +666,7 @@ export function shouldShowMobileBreadcrumb(
 /** Maps mobile bottom-nav item ids to sidebar badge keys. */
 export function getMobileBottomNavBadgeId(navItemId: string): string | null {
   if (navItemId === "inventory") return "inventory";
+  if (navItemId === "kds") return "kds";
   if (navItemId === "more") return "aggregate";
   return null;
 }
@@ -940,7 +941,15 @@ const LEGACY_PATH_PREFIXES: Record<string, string> = {
 };
 
 export function isSidebarItemActive(item: SidebarItem, pathname: string): boolean {
-  const activeItem = findActiveSidebarItem(pathname);
+  let resolvedPath = pathname;
+  for (const [legacy, target] of Object.entries(LEGACY_PATH_PREFIXES)) {
+    if (pathname === legacy || pathname.startsWith(`${legacy}/`)) {
+      resolvedPath = pathname.replace(legacy, target);
+      break;
+    }
+  }
+
+  const activeItem = findActiveSidebarItem(resolvedPath);
   if (activeItem) {
     return item.href === activeItem.href;
   }

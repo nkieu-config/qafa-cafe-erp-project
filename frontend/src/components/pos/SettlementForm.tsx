@@ -1,6 +1,7 @@
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Calculator } from "lucide-react"
+import { Calculator, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { useSubmitSettlement } from '@/hooks/domains/useFinanceQueries'
 import type { SettlementExpected } from '@/types/api'
@@ -16,16 +17,48 @@ import {
 } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 
-export function SettlementForm({ branchIdNum, expected }: { branchIdNum: number | undefined, expected: SettlementExpected | undefined }) {
+type SettlementFormProps = {
+  branchIdNum: number | undefined
+  expected: SettlementExpected | undefined
+  expectedLoading?: boolean
+  expectedUnavailable?: boolean
+  canViewFinance?: boolean
+}
+
+function SettlementSummarySkeleton() {
+  return (
+    <div className={posSettlementSummaryClassName()} aria-hidden="true">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div
+          key={index}
+          className={cn(
+            "h-4 rounded-md bg-[var(--surface-inset)] animate-pulse motion-reduce:animate-none",
+            index === 2 && "h-5 mt-2",
+          )}
+        />
+      ))}
+    </div>
+  )
+}
+
+export function SettlementForm({
+  branchIdNum,
+  expected,
+  expectedLoading = false,
+  expectedUnavailable = false,
+  canViewFinance = false,
+}: SettlementFormProps) {
+  const router = useRouter()
   const [actualCash, setActualCash] = useState<string>("")
   const [actualCreditCard, setActualCreditCard] = useState<string>("")
   const [actualQR, setActualQR] = useState<string>("")
 
   const submitSettlementMutation = useSubmitSettlement();
+  const formDisabled = expectedUnavailable || submitSettlementMutation.isPending
 
   const handleSettlement = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!actualCash || !branchIdNum) return
+    if (!actualCash || !branchIdNum || expectedUnavailable) return
     try {
       await submitSettlementMutation.mutateAsync({
         branchId: branchIdNum,
@@ -33,7 +66,12 @@ export function SettlementForm({ branchIdNum, expected }: { branchIdNum: number 
         actualCreditCard: parseFloat(actualCreditCard || "0"),
         actualQR: parseFloat(actualQR || "0")
       });
-      toast.success("Settlement submitted successfully for HQ approval.")
+      toast.success("Settlement submitted for HQ approval.", canViewFinance ? {
+        action: {
+          label: "Finance Overview",
+          onClick: () => router.push("/finance/overview"),
+        },
+      } : undefined)
       setActualCash("")
       setActualCreditCard("")
       setActualQR("")
@@ -49,28 +87,32 @@ export function SettlementForm({ branchIdNum, expected }: { branchIdNum: number 
         <h2 className={`font-semibold text-lg ${text.primary}`}>Submit Shift Settlement</h2>
       </div>
       
-      <div className={posSettlementSummaryClassName()}>
-        <div className={`flex justify-between text-sm ${text.muted}`}>
-          <span>Total Sales (Cash):</span>
-          <span className="font-medium tabular-nums">฿{expected?.sales?.toLocaleString() || 0}</span>
+      {expectedLoading ? (
+        <SettlementSummarySkeleton />
+      ) : (
+        <div className={posSettlementSummaryClassName()}>
+          <div className={`flex justify-between text-sm ${text.muted}`}>
+            <span>Total Sales (Cash):</span>
+            <span className="font-medium tabular-nums">฿{expected?.sales?.toLocaleString() || 0}</span>
+          </div>
+          <div className={`flex justify-between text-sm ${text.muted}`}>
+            <span>Petty Cash Expenses:</span>
+            <span className="font-medium tabular-nums text-[var(--status-danger-fg)]">-฿{expected?.expenses?.toLocaleString() || 0}</span>
+          </div>
+          <div className={`pt-2 mt-2 border-t border-[var(--pos-panel-border)] flex justify-between font-semibold`}>
+            <span className={text.primary}>Expected Cash in Drawer:</span>
+            <span className={posSettlementHighlightClassName()}>฿{expected?.expectedCash?.toLocaleString() || 0}</span>
+          </div>
+          <div className={`flex justify-between text-sm ${text.muted} pt-2`}>
+            <span>Expected Credit Card:</span>
+            <span className="font-medium tabular-nums">฿{expected?.expectedCreditCard?.toLocaleString() || 0}</span>
+          </div>
+          <div className={`flex justify-between text-sm ${text.muted}`}>
+            <span>Expected QR Promtpay:</span>
+            <span className="font-medium tabular-nums">฿{expected?.expectedQR?.toLocaleString() || 0}</span>
+          </div>
         </div>
-        <div className={`flex justify-between text-sm ${text.muted}`}>
-          <span>Petty Cash Expenses:</span>
-          <span className="font-medium tabular-nums text-[var(--status-danger-fg)]">-฿{expected?.expenses?.toLocaleString() || 0}</span>
-        </div>
-        <div className={`pt-2 mt-2 border-t border-[var(--pos-panel-border)] flex justify-between font-semibold`}>
-          <span className={text.primary}>Expected Cash in Drawer:</span>
-          <span className={posSettlementHighlightClassName()}>฿{expected?.expectedCash?.toLocaleString() || 0}</span>
-        </div>
-        <div className={`flex justify-between text-sm ${text.muted} pt-2`}>
-          <span>Expected Credit Card:</span>
-          <span className="font-medium tabular-nums">฿{expected?.expectedCreditCard?.toLocaleString() || 0}</span>
-        </div>
-        <div className={`flex justify-between text-sm ${text.muted}`}>
-          <span>Expected QR Promtpay:</span>
-          <span className="font-medium tabular-nums">฿{expected?.expectedQR?.toLocaleString() || 0}</span>
-        </div>
-      </div>
+      )}
 
       <form onSubmit={handleSettlement} className="flex flex-col gap-4">
         <div>
@@ -82,10 +124,11 @@ export function SettlementForm({ branchIdNum, expected }: { branchIdNum: number 
             value={actualCash}
             onChange={e => setActualCash(e.target.value)}
             required
+            disabled={formDisabled}
             placeholder="e.g. 5500"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className={`text-sm font-medium mb-1.5 block ${text.secondary}`}>Actual Card Sales</label>
             <input 
@@ -94,6 +137,7 @@ export function SettlementForm({ branchIdNum, expected }: { branchIdNum: number 
               className={posNativeInputClassName("py-2")}
               value={actualCreditCard}
               onChange={e => setActualCreditCard(e.target.value)}
+              disabled={formDisabled}
               placeholder="e.g. 1200"
             />
           </div>
@@ -105,6 +149,7 @@ export function SettlementForm({ branchIdNum, expected }: { branchIdNum: number 
               className={posNativeInputClassName("py-2")}
               value={actualQR}
               onChange={e => setActualQR(e.target.value)}
+              disabled={formDisabled}
               placeholder="e.g. 3500"
             />
           </div>
@@ -112,9 +157,18 @@ export function SettlementForm({ branchIdNum, expected }: { branchIdNum: number 
         <Button
           type="submit"
           className={cn(posPrimaryActionClassName(), "w-full min-h-[44px] py-6 mt-2 border-0 shadow-lg")}
-          disabled={submitSettlementMutation.isPending || !actualCash}
+          disabled={formDisabled || !actualCash}
         >
-          {submitSettlementMutation.isPending ? "Submitting…" : "Submit Shift Settlement"}
+          {submitSettlementMutation.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden />
+              Submitting…
+            </>
+          ) : expectedLoading ? (
+            "Loading expected totals…"
+          ) : (
+            "Submit Shift Settlement"
+          )}
         </Button>
       </form>
     </div>

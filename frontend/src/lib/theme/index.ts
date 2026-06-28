@@ -151,6 +151,7 @@ export {
   kdsErrorRetryClassName,
   kdsLoadingClassName,
   kdsEmptyStateClassName,
+  kdsTicketGridClassName,
   kdsTicketClassName,
   kdsTicketHeaderClassName,
   kdsTicketFooterClassName,

@@ -14,6 +14,8 @@ import {
   resolveHubShellTitle,
   resolveSidebarHubId,
   isRedundantPageTitle,
+  isSidebarItemActive,
+  FLAT_SIDEBAR_ITEMS,
 } from "./navigation";
 
 describe("resolveBreadcrumbTrail", () => {
@@ -130,6 +132,26 @@ describe("getVisibleHubTabs", () => {
     expect(staffHrTabs.some((tab) => tab.path === "/hr/payroll")).toBe(false);
     expect(staffHrTabs.some((tab) => tab.path === "/hr/employees")).toBe(true);
   });
+
+  it("hides manager-only POS and inventory tabs from staff", () => {
+    const staffPosTabs = getVisibleHubTabs("pos", "STAFF");
+    expect(staffPosTabs.some((tab) => tab.path === "/pos/orders")).toBe(false);
+    expect(staffPosTabs.some((tab) => tab.path === "/pos/terminal")).toBe(true);
+
+    const staffInventoryTabs = getVisibleHubTabs("inventory", "STAFF");
+    expect(staffInventoryTabs.some((tab) => tab.path === "/inventory/stock-in")).toBe(false);
+    expect(staffInventoryTabs.some((tab) => tab.path === "/inventory/waste")).toBe(false);
+    expect(staffInventoryTabs.some((tab) => tab.path === "/inventory")).toBe(true);
+  });
+
+  it("shows manager-only POS and inventory tabs for managers", () => {
+    const managerPosTabs = getVisibleHubTabs("pos", "MANAGER");
+    expect(managerPosTabs.some((tab) => tab.path === "/pos/orders")).toBe(true);
+
+    const managerInventoryTabs = getVisibleHubTabs("inventory", "MANAGER");
+    expect(managerInventoryTabs.some((tab) => tab.path === "/inventory/stock-in")).toBe(true);
+    expect(managerInventoryTabs.some((tab) => tab.path === "/inventory/waste")).toBe(true);
+  });
 });
 
 describe("getMobileBottomNavItems", () => {
@@ -159,6 +181,10 @@ describe("resolveSidebarHubId", () => {
 
   it("returns aggregate key for more item", () => {
     expect(getMobileBottomNavBadgeId("more")).toBe("aggregate");
+  });
+
+  it("returns kds key for kitchen bottom nav", () => {
+    expect(getMobileBottomNavBadgeId("kds")).toBe("kds");
   });
 
   it("returns null for non-hub items", () => {
@@ -204,5 +230,36 @@ describe("legacy breadcrumb paths", () => {
       { label: "Organization", href: "/organization" },
       { label: "Users & Roles", href: null },
     ]);
+  });
+});
+
+describe("isSidebarItemActive legacy paths", () => {
+  const organizationItem = FLAT_SIDEBAR_ITEMS.find((item) => item.id === "organization");
+  const inventoryItem = FLAT_SIDEBAR_ITEMS.find((item) => item.id === "inventory");
+  const assetsItem = FLAT_SIDEBAR_ITEMS.find((item) => item.id === "assets");
+
+  it("highlights organization for legacy /users", () => {
+    expect(organizationItem).toBeDefined();
+    expect(isSidebarItemActive(organizationItem!, "/users")).toBe(true);
+  });
+
+  it("highlights organization for legacy /branches", () => {
+    expect(organizationItem).toBeDefined();
+    expect(isSidebarItemActive(organizationItem!, "/branches")).toBe(true);
+  });
+
+  it("highlights inventory for legacy /inventory/stock", () => {
+    expect(inventoryItem).toBeDefined();
+    expect(isSidebarItemActive(inventoryItem!, "/inventory/stock")).toBe(true);
+  });
+
+  it("highlights inventory for legacy /procurement/transfers", () => {
+    expect(inventoryItem).toBeDefined();
+    expect(isSidebarItemActive(inventoryItem!, "/procurement/transfers")).toBe(true);
+  });
+
+  it("highlights assets for legacy /assets/equipment", () => {
+    expect(assetsItem).toBeDefined();
+    expect(isSidebarItemActive(assetsItem!, "/assets/equipment")).toBe(true);
   });
 });

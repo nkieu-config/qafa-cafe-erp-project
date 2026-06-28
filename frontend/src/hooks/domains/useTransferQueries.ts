@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
+import { NAV_COUNTS_QUERY_KEY } from '@/lib/nav-counts';
 import type { CreateTransferDTO } from '@/types/schemas';
 
 export const useTransfers = (branchId?: number) => {
@@ -26,7 +27,9 @@ export const useCreateTransfer = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
       queryClient.invalidateQueries({ queryKey: ['branch'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-balance'] });
       queryClient.invalidateQueries({ queryKey: ['analyticsSummary'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
     },
   });
 };
@@ -41,7 +44,9 @@ export const useAcceptTransfer = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transfers'] });
       queryClient.invalidateQueries({ queryKey: ['branch'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-balance'] });
       queryClient.invalidateQueries({ queryKey: ['analyticsSummary'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
     },
   });
 };

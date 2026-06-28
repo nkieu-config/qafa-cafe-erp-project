@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
+import { NAV_COUNTS_QUERY_KEY } from '@/lib/nav-counts';
 import type { CreateUserPayload, UpdateUserPayload } from '@/types/api';
 
 // ==========================================
@@ -97,7 +98,10 @@ export const useCreateLeave = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: unknown) => fetchAPI(API_ENDPOINTS.hr.createLeave, { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leaveRequests'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
+    },
   });
 };
 
@@ -105,7 +109,10 @@ export const useUpdateLeaveStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) => fetchAPI(API_ENDPOINTS.hr.updateLeaveStatus(id), { method: 'PATCH', body: JSON.stringify({ status }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leaveRequests'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leaveRequests'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
+    },
   });
 };
 

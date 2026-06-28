@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
+import { NAV_COUNTS_QUERY_KEY } from '@/lib/nav-counts';
 
 // ==========================================
 // 📦 INVENTORY HOOKS
@@ -26,6 +27,7 @@ export const useAddInventoryBatch = () => {
     mutationFn: ({ branchId, data }: { branchId: number, data: unknown }) => fetchAPI(API_ENDPOINTS.branches.addBatch(branchId), { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['branch', variables.branchId] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
     },
   });
 };
@@ -45,6 +47,7 @@ export const useReportWaste = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['wasteLogs', variables.branchId] });
       queryClient.invalidateQueries({ queryKey: ['branch', variables.branchId] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
     },
   });
 };
@@ -70,6 +73,7 @@ export function useStockIn() {
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["inventory-balance", variables.branchId] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
     },
   });
 }
@@ -84,7 +88,9 @@ export function useRecordWaste() {
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["inventory-balance", variables.branchId] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
       queryClient.invalidateQueries({ queryKey: ["wasteLogs", variables.branchId] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
     },
   });
 }

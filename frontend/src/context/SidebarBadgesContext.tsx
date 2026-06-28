@@ -6,10 +6,11 @@ import { useAuth } from "@/context/AuthContext";
 import { API_ENDPOINTS } from "@/lib/endpoints";
 import { fetchAPI } from "@/lib/api";
 import {
-  computeSidebarChildTabBadges,
-  computeSidebarNavBadges,
+  buildSidebarBadgesFromNavCounts,
+  type NavCountsSnapshot,
   type SidebarNavBadgeMap,
 } from "@/lib/sidebar-badges";
+import { NAV_COUNTS_QUERY_KEY } from "@/lib/nav-counts";
 
 const BADGE_REFETCH_MS = 120_000;
 
@@ -28,14 +29,24 @@ function resolveBadgeBranchScope(
   if (role === "SUPER_ADMIN") {
     return {
       queryBranchId: activeBranchId,
-      summaryBranchKey: activeBranchId != null ? String(activeBranchId) : "ALL",
     };
   }
 
   const effectiveBranchId = activeBranchId ?? userBranchId ?? null;
   return {
     queryBranchId: effectiveBranchId,
-    summaryBranchKey: effectiveBranchId != null ? String(effectiveBranchId) : "ALL",
+  };
+}
+
+function toNavCountsSnapshot(data: NavCountsSnapshot & { branchId?: number | null }): NavCountsSnapshot {
+  return {
+    lowStock: data.lowStock,
+    expiringBatches: data.expiringBatches,
+    pendingTransfers: data.pendingTransfers,
+    kdsOrders: data.kdsOrders,
+    pendingPurchaseOrders: data.pendingPurchaseOrders,
+    pendingSettlements: data.pendingSettlements,
+    pendingLeave: data.pendingLeave,
   };
 }
 
@@ -43,76 +54,34 @@ export function SidebarBadgesProvider({ children }: { children: ReactNode }) {
   const { user, activeBranchId, isInitialized } = useAuth();
   const role = user?.role;
   const enabled = !!user && isInitialized;
-  const isManagerOrAdmin = role === "SUPER_ADMIN" || role === "MANAGER";
-  const { queryBranchId, summaryBranchKey } = resolveBadgeBranchScope(
+  const { queryBranchId } = resolveBadgeBranchScope(
     role,
     activeBranchId,
     user?.branchId,
   );
 
-  const { data: summary } = useQuery({
-    queryKey: ["analyticsSummary", summaryBranchKey],
-    queryFn: () => fetchAPI(API_ENDPOINTS.reports.executiveSummary(summaryBranchKey)),
+  const { data: navCounts } = useQuery({
+    queryKey: [NAV_COUNTS_QUERY_KEY, queryBranchId ?? "all", role],
+    queryFn: () =>
+      fetchAPI(API_ENDPOINTS.navCounts(queryBranchId ?? undefined)) as Promise<
+        NavCountsSnapshot & { branchId: number | null }
+      >,
     enabled,
     staleTime: 60_000,
     refetchInterval: BADGE_REFETCH_MS,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: purchaseOrders } = useQuery({
-    queryKey: ["purchaseOrders"],
-    queryFn: () => fetchAPI(API_ENDPOINTS.procurement.purchaseOrders),
-    enabled: enabled && isManagerOrAdmin,
-    staleTime: 60_000,
-    refetchInterval: BADGE_REFETCH_MS,
-  });
-
-  const { data: settlements } = useQuery({
-    queryKey: ["financeSettlements", queryBranchId],
-    queryFn: () => fetchAPI(API_ENDPOINTS.finance.settlements(queryBranchId ?? undefined)),
-    enabled: enabled && isManagerOrAdmin,
-    staleTime: 60_000,
-    refetchInterval: BADGE_REFETCH_MS,
-  });
-
-  const { data: leaveRequests } = useQuery({
-    queryKey: ["leaveRequests", queryBranchId, isManagerOrAdmin],
-    queryFn: () =>
-      fetchAPI(
-        isManagerOrAdmin ? API_ENDPOINTS.hr.leave(queryBranchId ?? undefined) : API_ENDPOINTS.hr.leaveMe,
-      ),
-    enabled: enabled && isManagerOrAdmin,
-    staleTime: 60_000,
-    refetchInterval: BADGE_REFETCH_MS,
-  });
-
-  const { data: transfers } = useQuery({
-    queryKey: ["transfers", queryBranchId ?? "all"],
-    queryFn: () =>
-      fetchAPI(
-        queryBranchId != null
-          ? API_ENDPOINTS.branches.transfers(queryBranchId)
-          : API_ENDPOINTS.branches.transfersAll,
-      ),
-    enabled,
-    staleTime: 60_000,
-    refetchInterval: BADGE_REFETCH_MS,
-  });
-
-  const badgeInput = useMemo(
-    () => ({
+  const { badges, childTabBadges } = useMemo(() => {
+    if (!navCounts) {
+      return { badges: {} as SidebarNavBadgeMap, childTabBadges: {} as SidebarNavBadgeMap };
+    }
+    return buildSidebarBadgesFromNavCounts(
+      toNavCountsSnapshot(navCounts),
       role,
-      summary,
-      purchaseOrders,
-      settlements,
-      leaveRequests,
-      transfers,
-      activeBranchId: queryBranchId,
-    }),
-    [role, summary, purchaseOrders, settlements, leaveRequests, transfers, queryBranchId],
-  );
-
-  const badges = useMemo(() => computeSidebarNavBadges(badgeInput), [badgeInput]);
-  const childTabBadges = useMemo(() => computeSidebarChildTabBadges(badgeInput), [badgeInput]);
+      queryBranchId,
+    );
+  }, [navCounts, role, queryBranchId]);
 
   const value = useMemo(
     () => ({ badges, childTabBadges }),

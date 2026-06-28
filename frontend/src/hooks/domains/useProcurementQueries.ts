@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
+import { NAV_COUNTS_QUERY_KEY } from '@/lib/nav-counts';
 
 // ==========================================
 // 🛒 PROCUREMENT HOOKS
@@ -23,7 +24,10 @@ export const useCreatePurchaseOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: unknown) => fetchAPI(API_ENDPOINTS.procurement.createPurchaseOrder, { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
+    },
   });
 };
 
@@ -34,7 +38,10 @@ export const useSubmitPurchaseOrder = () => {
       fetchAPI(API_ENDPOINTS.procurement.submitPurchaseOrder(id), {
         method: 'PATCH',
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
+    },
   });
 };
 
@@ -42,7 +49,10 @@ export const useApprovePurchaseOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => fetchAPI(API_ENDPOINTS.procurement.approvePurchaseOrder(id), { method: 'PATCH' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
+    },
   });
 };
 
@@ -50,7 +60,10 @@ export const useRejectPurchaseOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => fetchAPI(API_ENDPOINTS.procurement.rejectPurchaseOrder(id), { method: 'PATCH' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
+    },
   });
 };
 
@@ -71,6 +84,7 @@ export const useReceivePurchaseOrder = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
       queryClient.invalidateQueries({ queryKey: ['branchDetails'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
     },
   });
 };

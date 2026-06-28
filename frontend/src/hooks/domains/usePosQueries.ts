@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/lib/endpoints';
 import { fetchAPI } from '@/lib/api';
 import type { Order, OrderStatus } from '@/types/api';
 import { KDS_STATUSES, mergeKdsOrders, normalizeKdsOrders } from '@/lib/kds-utils';
+import { NAV_COUNTS_QUERY_KEY } from '@/lib/nav-counts';
 
 export const kdsOrdersQueryKey = (branchId?: number) => ['kdsOrders', branchId] as const;
 
@@ -51,6 +52,7 @@ export const useUpdateKdsOrderStatus = (branchId?: number) => {
       if (branchId) {
         queryClient.invalidateQueries({ queryKey: kdsOrdersQueryKey(branchId) });
       }
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
     },
   });
 };
@@ -69,7 +71,10 @@ export const useCreateOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: unknown) => fetchAPI(API_ENDPOINTS.orders.create, { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['orders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: [NAV_COUNTS_QUERY_KEY] });
+    },
   });
 };
 

@@ -314,9 +314,17 @@ export function kdsEmptyStateClassName(className?: string) {
   );
 }
 
+export function kdsTicketGridClassName(className?: string) {
+  return cn(
+    "grid gap-4 auto-rows-min",
+    "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[repeat(auto-fill,minmax(340px,1fr))]",
+    className,
+  );
+}
+
 export function kdsTicketClassName(urgency: KdsTicketUrgency, className?: string) {
   return cn(
-    "flex-shrink-0 w-[400px] rounded-2xl shadow-xl border-4 overflow-hidden flex flex-col",
+    "w-full min-h-[min(70vh,520px)] max-h-[min(85vh,720px)] rounded-2xl shadow-xl border-4 overflow-hidden flex flex-col",
     "bg-[var(--kds-ticket-bg)] transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none",
     kdsTicketBorder[urgency],
     className,
@@ -357,7 +365,7 @@ export function kdsItemNoteClassName(className?: string) {
 
 export function kdsStartButtonClassName(className?: string) {
   return cn(
-    "flex-1 text-[var(--on-kds-start-fg)] font-black text-2xl h-24 shadow-lg",
+    "flex-1 text-[var(--on-kds-start-fg)] font-black text-xl sm:text-2xl min-h-[4.5rem] sm:h-24 shadow-lg",
     "bg-[var(--kds-start-btn)] hover:opacity-90",
     "active:scale-95 motion-reduce:active:scale-100 transition-transform motion-reduce:transition-none",
     className,
@@ -366,7 +374,7 @@ export function kdsStartButtonClassName(className?: string) {
 
 export function kdsDoneButtonClassName(className?: string) {
   return cn(
-    "flex-1 text-[var(--on-kds-done-fg)] font-black text-2xl h-24 shadow-lg",
+    "flex-1 text-[var(--on-kds-done-fg)] font-black text-xl sm:text-2xl min-h-[4.5rem] sm:h-24 shadow-lg",
     "bg-[var(--kds-done-btn)] hover:opacity-90",
     "active:scale-95 motion-reduce:active:scale-100 transition-transform motion-reduce:transition-none",
     className,

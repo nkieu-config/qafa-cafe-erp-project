@@ -1,11 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { computeSidebarChildTabBadges, computeSidebarNavBadges, formatSidebarBadgeCount, resolveMobileBottomNavBadge } from "./sidebar-badges";
+import { computeSidebarChildTabBadges, computeSidebarNavBadges, formatSidebarBadgeCount, resolveMobileBottomNavBadge, buildSidebarBadgesFromNavCounts } from "./sidebar-badges";
 
 describe("computeSidebarNavBadges", () => {
   it("counts inventory alerts and pending transfers", () => {
     const badges = computeSidebarNavBadges({
       role: "STAFF",
-      summary: { lowStockAlerts: [{ id: "1" }], expiryAlerts: [{ id: "2" }] },
+      branchInventory: [
+        { id: 1, branchId: 2, ingredientId: 1, stock: 2, minStock: 5 },
+      ],
+      inventoryBatches: [
+        {
+          id: 1,
+          branchId: 2,
+          ingredientId: 2,
+          quantity: 1,
+          status: "ACTIVE",
+          expiryDate: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ],
       transfers: [
         { id: 1, status: "PENDING", toBranchId: 2, fromBranchId: 1, ingredientId: 1, quantity: 1, requestedById: 1, createdAt: "" },
       ],
@@ -49,6 +61,25 @@ describe("computeSidebarNavBadges", () => {
     });
     expect(badges.procurement).toBeUndefined();
   });
+
+  it("shows KDS badge when kitchen orders are waiting", () => {
+    const badges = computeSidebarNavBadges({
+      role: "STAFF",
+      activeBranchId: 1,
+      kdsOrders: [
+        {
+          id: 1,
+          queueNumber: 1,
+          branchId: 1,
+          status: "PENDING",
+          createdAt: new Date().toISOString(),
+          items: [],
+        },
+      ],
+    });
+    expect(badges.kds?.count).toBe(1);
+    expect(badges.kds?.tone).toBe("warning");
+  });
 });
 
 describe("formatSidebarBadgeCount", () => {
@@ -78,6 +109,60 @@ describe("computeSidebarChildTabBadges", () => {
     });
     expect(child["/inventory/transfers"]?.count).toBe(1);
   });
+
+  it("maps KDS orders to the kitchen tab", () => {
+    const child = computeSidebarChildTabBadges({
+      role: "STAFF",
+      activeBranchId: 1,
+      kdsOrders: [
+        {
+          id: 2,
+          queueNumber: 2,
+          branchId: 1,
+          status: "PREPARING",
+          createdAt: new Date().toISOString(),
+          items: [],
+        },
+      ],
+    });
+    expect(child["/kds"]?.count).toBe(1);
+  });
+
+  it("maps low stock inventory to the balance tab", () => {
+    const child = computeSidebarChildTabBadges({
+      role: "STAFF",
+      activeBranchId: 1,
+      branchInventory: [
+        { id: 1, branchId: 1, ingredientId: 1, stock: 1, minStock: 5 },
+        { id: 2, branchId: 1, ingredientId: 2, stock: 10, minStock: 5 },
+      ],
+    });
+    expect(child["/inventory"]?.count).toBe(1);
+  });
+});
+
+describe("buildSidebarBadgesFromNavCounts", () => {
+  it("builds parent and child badges from aggregate counts", () => {
+    const { badges, childTabBadges } = buildSidebarBadgesFromNavCounts(
+      {
+        lowStock: 2,
+        expiringBatches: 1,
+        pendingTransfers: 1,
+        kdsOrders: 3,
+        pendingPurchaseOrders: 1,
+        pendingSettlements: 1,
+        pendingLeave: 2,
+      },
+      "MANAGER",
+      1,
+    );
+    expect(badges.inventory?.count).toBe(4);
+    expect(badges.kds?.count).toBe(3);
+    expect(badges.procurement?.count).toBe(1);
+    expect(childTabBadges["/inventory"]?.count).toBe(2);
+    expect(childTabBadges["/inventory/batches"]?.count).toBe(1);
+    expect(childTabBadges["/kds"]?.count).toBe(3);
+  });
 });
 
 describe("resolveMobileBottomNavBadge", () => {
@@ -94,5 +179,12 @@ describe("resolveMobileBottomNavBadge", () => {
       inventory: { count: 4, tone: "warning", label: "4 alerts" },
     });
     expect(badge?.count).toBe(4);
+  });
+
+  it("returns kds badge for kitchen tab", () => {
+    const badge = resolveMobileBottomNavBadge("kds", {
+      kds: { count: 3, tone: "warning", label: "3 orders" },
+    });
+    expect(badge?.count).toBe(3);
   });
 });

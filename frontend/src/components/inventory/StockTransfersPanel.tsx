@@ -28,7 +28,9 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { TableActionButton } from "@/components/shared/table-action-button";
 import { StatusBadge, transferStatusTone } from "@/components/shared/status-badge";
 import { BranchEmptyState } from "@/components/shared/branch-empty-state";
+import { ListToolbar } from "@/components/shared/list-toolbar";
 import { Button } from "@/components/ui/button";
+import { getErrorMessage } from "@/lib/errors";
 import {
   compactPanelLinkClassName,
   formLineRowClassName,
@@ -76,7 +78,7 @@ export const StockTransfersPanel = forwardRef<
   const { user, activeBranchId } = useAuth();
   const branchId = activeBranchId ?? undefined;
 
-  const { data: transfersData, isLoading: loadingTransfers } = useTransfers(branchId);
+  const { data: transfersData, isLoading: loadingTransfers, isError: transfersError, error: transfersErr, refetch: refetchTransfers, isFetching: transfersFetching } = useTransfers(branchId);
   const { data: branchesData, isLoading: loadingBranches } = useBranches();
   const { data: ingredientsData, isLoading: loadingIng } = useIngredients();
 
@@ -93,6 +95,8 @@ export const StockTransfersPanel = forwardRef<
   const [form] = Form.useForm();
 
   const loading = loadingTransfers || loadingBranches || loadingIng;
+
+  const branchName = branches.find((b: Branch) => b.id === branchId)?.name;
 
   const searchParams = useSearchParams();
   const pendingFromUrl = searchParams.get("status") === "PENDING";
@@ -322,6 +326,10 @@ export const StockTransfersPanel = forwardRef<
       dataSource={visibleTransfers}
       rowKey="id"
       loading={loading}
+      isError={transfersError}
+      errorMessage={getErrorMessage(transfersErr, "Failed to load stock transfers")}
+      onRetry={() => void refetchTransfers()}
+      retryLoading={transfersFetching}
       hideBorders={variant === "page"}
       emptyDescription={emptyDescription}
       scroll={{ x: variant === "page" ? 960 : 720 }}
@@ -362,17 +370,20 @@ export const StockTransfersPanel = forwardRef<
 
       {variant === "page" && (
         <div className="space-y-4">
-          <div className="flex justify-end">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as "ALL" | "PENDING")}
-              className="min-h-[44px] rounded-md border px-3 text-sm border-[var(--border)] bg-[var(--table-container-bg)]"
-              aria-label="Filter transfers by status"
-            >
-              <option value="ALL">All statuses</option>
-              <option value="PENDING">Pending incoming</option>
-            </select>
-          </div>
+          <ListToolbar
+            branchName={branchName}
+            filters={
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as "ALL" | "PENDING")}
+                className="min-h-[44px] rounded-md border px-3 text-sm border-[var(--border)] bg-[var(--table-container-bg)] text-[var(--foreground)]"
+                aria-label="Filter transfers by status"
+              >
+                <option value="ALL">All statuses</option>
+                <option value="PENDING">Pending incoming</option>
+              </select>
+            }
+          />
           {table}
         </div>
       )}

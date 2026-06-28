@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { HubPageHeader } from "@/components/shared/hub-card"
+import { ListToolbar } from "@/components/shared/list-toolbar"
 import { QueryErrorBanner } from "@/components/shared/query-error-banner"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { StatusBadge, settlementStatusTone } from "@/components/shared/status-badge"
@@ -13,9 +14,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/context/AuthContext"
 import { toast } from "sonner"
 import { useFinanceSettlements, useFinanceExpenses, useApproveSettlement } from '@/hooks/domains/useFinanceQueries';
+import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { getErrorMessage } from "@/lib/errors"
 import { formatDate, formatDateTime } from "@/lib/intl-date"
-import { Settlement, Expense } from "@/types"
+import { Settlement, Expense, Branch } from "@/types"
 import {
   financeApproveButtonClassName,
   financeExpenseAmountClassName,
@@ -50,6 +52,9 @@ export default function FinanceDashboardPage() {
   const searchParams = useSearchParams()
   const pendingFromUrl = searchParams.get("status") === "PENDING"
   const branchIdNum = activeBranchId ? Number(activeBranchId) : undefined;
+  const { data: branches = [] } = useBranches();
+  const branchName = (branches as Branch[]).find((b) => b.id === branchIdNum)?.name;
+  const showAllBranches = !branchIdNum;
   const [approveTarget, setApproveTarget] = useState<Settlement | null>(null)
   const [settlementFilter, setSettlementFilter] = useState<"ALL" | "PENDING">(
     pendingFromUrl ? "PENDING" : "ALL",
@@ -132,9 +137,25 @@ export default function FinanceDashboardPage() {
         <QueryErrorBanner message={errorMessage} onRetry={handleRetry} />
       )}
 
+      <ListToolbar
+        branchName={branchName}
+        allBranches={showAllBranches}
+        filters={
+          <select
+            value={settlementFilter}
+            onChange={(e) => setSettlementFilter(e.target.value as "ALL" | "PENDING")}
+            className="min-h-[44px] rounded-md border px-3 text-sm border-[var(--border)] bg-[var(--table-container-bg)] text-[var(--foreground)]"
+            aria-label="Filter settlements by status"
+          >
+            <option value="ALL">All settlements</option>
+            <option value="PENDING">Pending approval</option>
+          </select>
+        }
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className={financeSectionPanelClassName("flex flex-col")}>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          <div className="mb-4">
             <h2 className={financeSectionTitleClassName("mb-0")}>
               <CheckCircle2 className={financeHubIconClassName()} />
               Shift Settlements
@@ -144,15 +165,6 @@ export default function FinanceDashboardPage() {
                 </span>
               )}
             </h2>
-            <select
-              value={settlementFilter}
-              onChange={(e) => setSettlementFilter(e.target.value as "ALL" | "PENDING")}
-              className="min-h-[44px] rounded-md border px-3 text-sm border-[var(--border)] bg-[var(--table-container-bg)]"
-              aria-label="Filter settlements by status"
-            >
-              <option value="ALL">All statuses</option>
-              <option value="PENDING">Pending approval</option>
-            </select>
           </div>
           <div className="overflow-x-auto">
             {isLoading ? (

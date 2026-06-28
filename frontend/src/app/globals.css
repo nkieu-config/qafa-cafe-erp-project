@@ -12,14 +12,6 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -103,15 +95,6 @@
   --chart-5: #7a5540;
 
   --radius: 0.75rem;
-
-  --sidebar: rgba(247, 247, 244, 0.85);
-  --sidebar-foreground: #26251e;
-  --sidebar-primary: #26251e;
-  --sidebar-primary-foreground: #f7f7f4;
-  --sidebar-accent: #ebeae5;
-  --sidebar-accent-foreground: #26251e;
-  --sidebar-border: rgba(230, 229, 224, 0.8);
-  --sidebar-ring: #d4842a;
 }
 
 /* Warm dark — espresso night (not cold slate) */
@@ -147,15 +130,6 @@
   --chart-3: #b8a9c9;
   --chart-4: #e8a87c;
   --chart-5: #b8a088;
-
-  --sidebar: rgba(38, 37, 30, 0.92);
-  --sidebar-foreground: #f7f7f4;
-  --sidebar-primary: #d4842a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #3d3b33;
-  --sidebar-accent-foreground: #f7f7f4;
-  --sidebar-border: rgba(74, 71, 64, 0.6);
-  --sidebar-ring: #d4842a;
 }
 
 @layer base {

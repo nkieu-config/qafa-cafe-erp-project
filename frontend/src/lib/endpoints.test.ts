@@ -34,4 +34,9 @@ describe('API_ENDPOINTS', () => {
     expect(API_ENDPOINTS.auth.logout).toBe('/auth/logout');
     expect(API_ENDPOINTS.auth.me).toBe('/auth/me');
   });
+
+  it('builds nav counts path', () => {
+    expect(API_ENDPOINTS.navCounts()).toBe('/nav-counts');
+    expect(API_ENDPOINTS.navCounts(4)).toBe('/nav-counts?branchId=4');
+  });
 });

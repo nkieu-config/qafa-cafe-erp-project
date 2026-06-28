@@ -23,7 +23,7 @@ import { BranchEmptyState } from "@/components/shared/branch-empty-state";
 import { DataTable } from "@/components/shared/data-table";
 import { StatusBadge, leaveStatusTone } from "@/components/shared/status-badge";
 import { TableActionButton } from "@/components/shared/table-action-button";
-import { LeaveRequest } from "@/types/api";
+import { LeaveRequest, Branch } from "@/types/api";
 import { useLeaveRequests, useUpdateLeaveStatus, useCreateLeave } from "@/hooks/domains/useHrQueries";
 import { formatDateRange } from "@/lib/intl-date";
 import { getErrorMessage } from "@/lib/errors";
@@ -32,6 +32,8 @@ import { hubCtaClassName, tableActionAccentClassName } from "@/lib/theme";
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { QueryErrorBanner } from "@/components/shared/query-error-banner";
+import { ListToolbar } from "@/components/shared/list-toolbar";
+import { useBranches } from "@/hooks/domains/useGeneralQueries";
 import { DatePicker } from "antd";
 import type { Dayjs } from "dayjs";
 
@@ -48,6 +50,8 @@ export default function LeaveRequestsPage() {
   const searchParams = useSearchParams();
   const pendingFromUrl = searchParams.get("status") === "PENDING";
   const branchIdNum = activeBranchId ? Number(activeBranchId) : undefined;
+  const { data: branches = [] } = useBranches();
+  const branchName = (branches as Branch[]).find((b) => b.id === branchIdNum)?.name;
 
   const {
     data: leaveRequests = [],
@@ -151,17 +155,20 @@ export default function LeaveRequestsPage() {
           />
         )}
         {isManagerOrAdmin && (
-          <div className="flex justify-end mb-4">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as "ALL" | "PENDING")}
-              className="min-h-[44px] rounded-md border px-3 text-sm border-[var(--border)] bg-[var(--table-container-bg)]"
-              aria-label="Filter leave requests by status"
-            >
-              <option value="ALL">All statuses</option>
-              <option value="PENDING">Pending approval</option>
-            </select>
-          </div>
+          <ListToolbar
+            branchName={branchName}
+            filters={
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as "ALL" | "PENDING")}
+                className="min-h-[44px] rounded-md border px-3 text-sm border-[var(--border)] bg-[var(--table-container-bg)] text-[var(--foreground)]"
+                aria-label="Filter leave requests by status"
+              >
+                <option value="ALL">All statuses</option>
+                <option value="PENDING">Pending approval</option>
+              </select>
+            }
+          />
         )}
         <DataTable
           columns={[
