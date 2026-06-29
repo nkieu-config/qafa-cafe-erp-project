@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, WifiOff } from "lucide-react";
 import { BranchScopeIndicator } from "@/components/shared/branch-scope-indicator";
+import { ImmersiveBranchToolbar } from "@/components/shared/immersive-branch-toolbar";
 import { SidebarNavBadge } from "@/components/shared/sidebar-nav-badge";
 import { useAuth } from "@/context/AuthContext";
 import { useMobileNav } from "@/context/MobileNavContext";
@@ -80,6 +81,8 @@ export function KdsImmersiveHeader({
         </div>
         <KdsConnectionBadge isConnected={isConnected} />
       </div>
+
+      <ImmersiveBranchToolbar />
 
       {!isLoading && (
         <div

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { BranchScopeIndicator } from "@/components/shared/branch-scope-indicator";
+import { ImmersiveBranchToolbar } from "@/components/shared/immersive-branch-toolbar";
 import { useAuth } from "@/context/AuthContext";
 import { useMobileNav } from "@/context/MobileNavContext";
 import { useBranches } from "@/hooks/domains/useGeneralQueries";
@@ -51,6 +52,7 @@ export function PosImmersiveHeader() {
           allBranches={activeBranchId == null}
         />
       </div>
+      <ImmersiveBranchToolbar className="max-w-md" />
       <p className={cn("text-sm hidden sm:block", text.muted)}>{resolvePosPageDescription(pathname)}</p>
     </header>
   );

@@ -433,9 +433,51 @@ export function kdsTicketGridClassName(className?: string) {
   );
 }
 
+export function kdsColumnBoardClassName(className?: string) {
+  return cn(
+    "flex flex-1 min-h-0 gap-3 sm:gap-4",
+    "max-lg:overflow-x-auto max-lg:snap-x max-lg:snap-mandatory max-lg:pb-1",
+    "lg:grid lg:grid-cols-2 lg:overflow-visible",
+    className,
+  );
+}
+
+export function kdsColumnClassName(className?: string) {
+  return cn(
+    "flex min-h-0 min-w-0 flex-col rounded-xl border",
+    "min-h-[min(50dvh,420px)]",
+    "max-lg:min-w-[min(88vw,420px)] max-lg:shrink-0 max-lg:snap-center",
+    "lg:min-h-0",
+    "border-[var(--kds-ticket-divider)] bg-[var(--kds-ticket-footer-bg)]",
+    className,
+  );
+}
+
+export function kdsColumnHeaderClassName(className?: string) {
+  return cn(
+    "shrink-0 border-b px-4 py-3 border-[var(--kds-ticket-divider)]",
+    className,
+  );
+}
+
+export function kdsColumnScrollClassName(className?: string) {
+  return cn(
+    "flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-3 sm:p-4",
+    className,
+  );
+}
+
+export function kdsColumnTicketStackClassName(className?: string) {
+  return cn("flex flex-col gap-4", className);
+}
+
+export function kdsColumnEmptyClassName(className?: string) {
+  return cn("py-10 text-center text-sm", text.muted, className);
+}
+
 export function kdsTicketClassName(urgency: KdsTicketUrgency, className?: string) {
   return cn(
-    "w-full min-h-[min(320px,52dvh)] sm:min-h-[420px] max-h-[min(85vh,720px)] lg:min-h-[min(70vh,520px)] rounded-2xl shadow-xl border-4 overflow-hidden flex flex-col",
+    "w-full rounded-2xl shadow-xl border-4 overflow-hidden flex flex-col shrink-0",
     "bg-[var(--kds-ticket-bg)] transition-[border-color,box-shadow] duration-150 motion-reduce:transition-none",
     kdsTicketBorder[urgency],
     className,
@@ -468,16 +510,40 @@ export function kdsItemQtyClassName(className?: string) {
 
 export function kdsItemNoteClassName(className?: string) {
   return cn(
-    "mt-2 text-xl font-bold px-2 py-1 rounded inline-block",
+    "mt-2 text-base sm:text-lg font-semibold px-2.5 py-1.5 rounded-md break-words",
     "bg-[var(--kds-note-bg)] text-[var(--kds-note-fg)]",
     className,
   );
 }
 
+export function kdsItemModifiersWrapClassName(className?: string) {
+  return cn("mt-1.5 flex flex-wrap gap-1.5", className);
+}
+
 export function kdsItemModifierClassName(className?: string) {
   return cn(
-    "mt-1 text-base font-semibold px-2 py-0.5 rounded inline-block",
+    "text-sm sm:text-base font-semibold px-2 py-0.5 rounded-md",
     "bg-[var(--kds-modifier-bg)] text-[var(--kds-modifier-fg)]",
+    className,
+  );
+}
+
+export function kdsTicketStatusBadgeClassName(
+  status: "PENDING" | "PREPARING",
+  className?: string,
+) {
+  return cn(
+    "mt-1.5 inline-flex text-[0.65rem] sm:text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded",
+    status === "PENDING"
+      ? "bg-black/15 text-[var(--on-kds-header-fg)]"
+      : "bg-white/25 text-[var(--on-kds-header-fg)]",
+    className,
+  );
+}
+
+export function kdsConfirmCancelButtonClassName(className?: string) {
+  return cn(
+    "flex-1 min-h-[4.5rem] sm:h-24 text-lg sm:text-xl font-bold",
     className,
   );
 }
