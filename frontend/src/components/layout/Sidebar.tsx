@@ -9,9 +9,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useBranchPickerInit } from "@/hooks/useBranchPickerInit";
 import { useSidebarExpandedGroups } from "@/hooks/useSidebarExpandedGroups";
 import { useSidebarNavBadges } from "@/hooks/useSidebarNavBadges";
-import { useSidebarPinnedItems } from "@/hooks/useSidebarPinnedItems";
-import { FLAT_SIDEBAR_ITEMS, SIDEBAR_GROUPS } from "@/lib/navigation";
-import { sidebarBrandLinkClassName, sidebarBrandTitleClassName, sidebarBrandMarkClassName, sidebarBrandMarkIconClassName, sidebarGroupButtonClassName, sidebarIconButtonClassName, sidebarPinnedLabelClassName, sidebarRootClassName, shell, shellHeaderInsetClassName } from "@/lib/theme/shell";
+import { SIDEBAR_GROUPS } from "@/lib/navigation";
+import { sidebarBrandLinkClassName, sidebarBrandTitleClassName, sidebarBrandMarkClassName, sidebarBrandMarkIconClassName, sidebarGroupButtonClassName, sidebarIconButtonClassName, sidebarRootClassName, shell, shellHeaderInsetClassName } from "@/lib/theme/shell";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/types/api";
 
@@ -32,11 +31,6 @@ export function Sidebar({ onNavigate, onCollapse, className }: SidebarProps) {
   const { expandedGroups, toggleGroup } = useSidebarExpandedGroups(user?.role as Role | undefined);
   const { isSuperAdmin, branches, activeBranchId, setActiveBranchId } = useBranchPickerInit();
   const { badges, childTabBadges } = useSidebarNavBadges();
-  const { canPin, pinnedIds, togglePin, isPinned } = useSidebarPinnedItems();
-
-  const pinnedItems = pinnedIds
-    .map((id) => FLAT_SIDEBAR_ITEMS.find((item) => item.id === id))
-    .filter((item): item is (typeof FLAT_SIDEBAR_ITEMS)[number] => !!item && item.roles.includes(role));
 
   return (
     <div className={sidebarRootClassName(className)}>
@@ -79,32 +73,8 @@ export function Sidebar({ onNavigate, onCollapse, className }: SidebarProps) {
       </div>
 
       <nav className="flex-1 p-4 overflow-y-auto custom-scrollbar" aria-label="Primary navigation">
-        {pinnedItems.length > 0 && (
-          <div className="mb-4">
-            <p className={sidebarPinnedLabelClassName()}>Pinned</p>
-            <div className="space-y-0.5">
-              {pinnedItems.map((item) => (
-                <SidebarNavItem
-                  key={`pinned-${item.id}`}
-                  item={item}
-                  pathname={pathname}
-                  role={role}
-                  onNavigate={onNavigate}
-                  badges={badges}
-                  childTabBadges={childTabBadges}
-                  canPin={canPin}
-                  isPinned={isPinned(item.id)}
-                  onTogglePin={togglePin}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
         {SIDEBAR_GROUPS.map((group, groupIdx) => {
-          const visibleItems = group.items.filter(
-            (item) => item.roles.includes(role) && !pinnedIds.includes(item.id),
-          );
+          const visibleItems = group.items.filter((item) => item.roles.includes(role));
           if (visibleItems.length === 0) return null;
 
           const isExpanded = expandedGroups[group.group];
@@ -140,9 +110,6 @@ export function Sidebar({ onNavigate, onCollapse, className }: SidebarProps) {
                       onNavigate={onNavigate}
                       badges={badges}
                       childTabBadges={childTabBadges}
-                      canPin={canPin}
-                      isPinned={isPinned(item.id)}
-                      onTogglePin={togglePin}
                     />
                   ))}
                 </div>

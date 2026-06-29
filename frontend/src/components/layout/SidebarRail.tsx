@@ -6,7 +6,6 @@ import { Coffee, PanelLeftOpen } from "lucide-react";
 import { SidebarNavBadge } from "@/components/shared/sidebar-nav-badge";
 import { useAuth } from "@/context/AuthContext";
 import { useSidebarNavBadges } from "@/hooks/useSidebarNavBadges";
-import { useSidebarPinnedItems } from "@/hooks/useSidebarPinnedItems";
 import { FLAT_SIDEBAR_ITEMS, findActiveSidebarItem, isSidebarItemActive } from "@/lib/navigation";
 import { sidebarRailExpandButtonClassName, sidebarRailLinkClassName, sidebarBrandMarkClassName, sidebarBrandMarkIconClassName, sidebarRootClassName, shell, shellHeaderInsetClassName } from "@/lib/theme/shell";
 import { cn } from "@/lib/utils";
@@ -23,15 +22,8 @@ export function SidebarRail({ onExpand, onNavigate, className }: SidebarRailProp
   const { user } = useAuth();
   const role = (user?.role ?? "STAFF") as Role;
   const { badges } = useSidebarNavBadges();
-  const { pinnedIds } = useSidebarPinnedItems();
 
-  const visibleItems = FLAT_SIDEBAR_ITEMS.filter(
-    (item) => item.roles.includes(role) && !pinnedIds.includes(item.id),
-  );
-  const pinnedItems = pinnedIds
-    .map((id) => FLAT_SIDEBAR_ITEMS.find((item) => item.id === id))
-    .filter((item): item is (typeof FLAT_SIDEBAR_ITEMS)[number] => !!item && item.roles.includes(role));
-  const railItems = [...pinnedItems, ...visibleItems];
+  const visibleItems = FLAT_SIDEBAR_ITEMS.filter((item) => item.roles.includes(role));
   const activeItem = findActiveSidebarItem(pathname);
 
   return (
@@ -51,19 +43,18 @@ export function SidebarRail({ onExpand, onNavigate, className }: SidebarRailProp
         className="flex-1 p-2 overflow-y-auto custom-scrollbar flex flex-col items-center gap-1"
         aria-label="Primary navigation"
       >
-        {railItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = isSidebarItemActive(item, pathname);
           const isCurrentPage = activeItem?.id === item.id;
           const ItemIcon = item.icon;
           const badge = badges[item.id];
-          const isPinned = pinnedIds.includes(item.id);
 
           return (
             <Link
               key={item.id}
               href={item.href}
               onClick={onNavigate}
-              title={isPinned ? `${item.label} (pinned)` : item.label}
+              title={item.label}
               aria-label={badge ? `${item.label}, ${badge.label}` : item.label}
               aria-current={isCurrentPage ? "page" : undefined}
               className={cn(sidebarRailLinkClassName(isActive, isCurrentPage), "relative")}

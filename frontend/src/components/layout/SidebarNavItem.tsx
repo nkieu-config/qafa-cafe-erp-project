@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Star } from "lucide-react";
 import { SidebarNavBadge } from "@/components/shared/sidebar-nav-badge";
 import {
   getHubConfig,
@@ -14,7 +13,7 @@ import {
 } from "@/lib/navigation";
 import { resolveChildTabHref, resolveSidebarItemHref } from "@/lib/operational-links";
 import type { SidebarNavBadgeMap } from "@/lib/sidebar-badges";
-import { sidebarNavChildLinkClassName, sidebarNavIconClassName, sidebarNavLinkClassName, sidebarPinButtonClassName, sidebarTreeIndentClassName } from "@/lib/theme/shell";
+import { sidebarNavChildLinkClassName, sidebarNavIconClassName, sidebarNavLinkClassName, sidebarTreeIndentClassName } from "@/lib/theme/shell";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/types/api";
 
@@ -25,9 +24,6 @@ type SidebarNavItemProps = {
   onNavigate?: () => void;
   badges?: SidebarNavBadgeMap;
   childTabBadges?: SidebarNavBadgeMap;
-  canPin?: boolean;
-  isPinned?: boolean;
-  onTogglePin?: (itemId: string) => void;
 };
 
 export function SidebarNavItem({
@@ -37,9 +33,6 @@ export function SidebarNavItem({
   onNavigate,
   badges,
   childTabBadges,
-  canPin = false,
-  isPinned = false,
-  onTogglePin,
 }: SidebarNavItemProps) {
   const ItemIcon = item.icon;
   const hubId = resolveSidebarHubId(item.id);
@@ -64,32 +57,18 @@ export function SidebarNavItem({
 
   return (
     <div className="space-y-0.5">
-      <div className="group/navitem flex items-center gap-1">
-        <Link
-          href={parentHref}
-          onClick={onNavigate}
-          aria-current={isParentCurrentPage ? "page" : undefined}
-          className={cn(sidebarNavLinkClassName(isHubActive, isParentCurrentPage), "min-w-0 flex-1")}
-        >
-          <ItemIcon className={sidebarNavIconClassName(isHubActive)} aria-hidden />
-          <span className="truncate">{item.label}</span>
-          {badge && (
-            <SidebarNavBadge count={badge.count} tone={badge.tone} label={badge.label} />
-          )}
-        </Link>
-        {canPin && onTogglePin && (
-          <button
-            type="button"
-            onClick={() => onTogglePin(item.id)}
-            className={sidebarPinButtonClassName(isPinned)}
-            aria-label={isPinned ? `Unpin ${item.label}` : `Pin ${item.label}`}
-            aria-pressed={isPinned}
-            title={isPinned ? "Unpin" : "Pin to top"}
-          >
-            <Star className={cn("w-3.5 h-3.5", isPinned && "fill-current")} aria-hidden />
-          </button>
+      <Link
+        href={parentHref}
+        onClick={onNavigate}
+        aria-current={isParentCurrentPage ? "page" : undefined}
+        className={sidebarNavLinkClassName(isHubActive, isParentCurrentPage)}
+      >
+        <ItemIcon className={sidebarNavIconClassName(isHubActive)} aria-hidden />
+        <span className="truncate">{item.label}</span>
+        {badge && (
+          <SidebarNavBadge count={badge.count} tone={badge.tone} label={badge.label} />
         )}
-      </div>
+      </Link>
 
       {showTree && (
         <ul

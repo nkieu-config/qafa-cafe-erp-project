@@ -66,48 +66,6 @@ export function resolveInitialExpandedGroups(role?: Role): Record<string, boolea
   return merged;
 }
 
-const PINNED_STORAGE_KEY = "sidebar-pinned-items";
-export const MAX_PINNED_SIDEBAR_ITEMS = 6;
-
-export function canPinSidebarItems(role?: Role) {
-  return role === "SUPER_ADMIN" || role === "MANAGER";
-}
-
-export function readPinnedSidebarItems(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(PINNED_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((id): id is string => typeof id === "string");
-  } catch {
-    return [];
-  }
-}
-
-export function writePinnedSidebarItems(ids: string[]) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(ids.slice(0, MAX_PINNED_SIDEBAR_ITEMS)));
-  } catch {
-    // ignore quota / private mode
-  }
-}
-
-export function sanitizePinnedSidebarItems(ids: string[], allowedIds: string[]): string[] {
-  const allowed = new Set(allowedIds);
-  const seen = new Set<string>();
-  const next: string[] = [];
-  for (const id of ids) {
-    if (!allowed.has(id) || seen.has(id)) continue;
-    seen.add(id);
-    next.push(id);
-    if (next.length >= MAX_PINNED_SIDEBAR_ITEMS) break;
-  }
-  return next;
-}
-
 /** Expand sidebar groups that contain the active route (pure, testable). */
 export function mergeExpandedGroupsForActivePath(
   prev: Record<string, boolean>,

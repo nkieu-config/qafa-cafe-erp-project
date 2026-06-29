@@ -39,7 +39,7 @@ export function shellHeaderInsetClassName(className?: string) {
 /** Full-width topbar region — inset from viewport top, subtle surface, bottom rule. */
 export function topbarRegionClassName(className?: string) {
   return cn(
-    "shrink-0 w-full border-b",
+    "relative z-30 shrink-0 w-full overflow-visible border-b",
     "border-[var(--border)]/50 bg-[var(--topbar-bg)] backdrop-blur-md",
     shellHeaderInsetClassName(),
     className,
@@ -428,7 +428,7 @@ export function profileMenuHeaderDividerClassName(className?: string) {
 
 export function profileMenuPanelClassName(className?: string) {
   return cn(
-    "absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border p-2 shadow-lg",
+    "z-[100] w-56 rounded-xl border p-2 shadow-lg",
     "bg-[var(--profile-menu-bg)] border-[var(--profile-menu-border)]",
     className,
   );
