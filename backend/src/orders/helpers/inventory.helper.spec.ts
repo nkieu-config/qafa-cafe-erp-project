@@ -18,7 +18,7 @@ describe('InventoryHelper', () => {
       ingredientRequirements = new Map<number, number>();
     });
 
-    it('should throw BadRequestException if stock is insufficient', async () => {
+    it('throws when stock is insufficient', async () => {
       ingredientRequirements.set(100, 50); // Need 50 units
 
       txMock.branchInventory.findUnique.mockResolvedValue({
@@ -42,7 +42,7 @@ describe('InventoryHelper', () => {
       expect(txMock.branchInventory.update).not.toHaveBeenCalled();
     });
 
-    it('should deduct from BranchInventory and InventoryBatches using FIFO correctly', async () => {
+    it('deducts from BranchInventory and InventoryBatches using FIFO', async () => {
       ingredientRequirements.set(100, 15); // Need 15 units
 
       txMock.branchInventory.findUnique.mockResolvedValue({
@@ -88,7 +88,7 @@ describe('InventoryHelper', () => {
       });
     });
 
-    it('should throw when batch records do not cover required quantity', async () => {
+    it('throws when batch records do not cover required quantity', async () => {
       ingredientRequirements.set(100, 15);
 
       txMock.branchInventory.findUnique.mockResolvedValue({

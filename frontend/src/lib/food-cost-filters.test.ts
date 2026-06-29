@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Product } from "@/types/api";
+import type { Ingredient, Product, RecipeItem } from "@/types/api";
+import { calcProductFoodCost, foodCostStatus } from "./food-cost";
 import {
   matchesFoodCostStatusFilter,
   productFoodCostBucket,
@@ -26,6 +27,40 @@ function product(overrides: Partial<Product> = {}): Product {
     ...overrides,
   };
 }
+
+describe("food-cost", () => {
+  it("computes food cost percent from recipe", () => {
+    const latte = {
+      id: 1,
+      name: "Latte",
+      price: 85,
+      category: "Coffee",
+      recipeItems: [
+        {
+          id: 1,
+          productId: 1,
+          ingredientId: 1,
+          quantity: 18,
+          ingredient: { id: 1, name: "Beans", unit: "g", costPerUnit: 0.5 },
+        },
+        {
+          id: 2,
+          productId: 1,
+          ingredientId: 2,
+          quantity: 150,
+          ingredient: { id: 2, name: "Milk", unit: "ml", costPerUnit: 0.05 },
+        },
+      ] as (RecipeItem & { ingredient: Ingredient })[],
+    } satisfies Product & { recipeItems: (RecipeItem & { ingredient: Ingredient })[] };
+
+    const { foodCostPercent } = calcProductFoodCost(latte);
+    expect(foodCostPercent).toBeGreaterThan(0);
+    expect(foodCostPercent).toBeLessThan(100);
+    expect(foodCostStatus(25)).toBe("good");
+    expect(foodCostStatus(35)).toBe("warn");
+    expect(foodCostStatus(45)).toBe("bad");
+  });
+});
 
 describe("food-cost-filters", () => {
   it("classifies food cost buckets", () => {

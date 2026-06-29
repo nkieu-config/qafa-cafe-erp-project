@@ -16,7 +16,7 @@ import {
   isRedundantPageTitle,
   isSidebarItemActive,
   FLAT_SIDEBAR_ITEMS,
-} from "./navigation";
+} from "./index";
 
 describe("resolveBreadcrumbTrail", () => {
   it("returns dashboard for root path", () => {

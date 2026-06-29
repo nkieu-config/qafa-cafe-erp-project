@@ -15,6 +15,12 @@ const eslintConfig = defineConfig([
       'prefer-const': 'warn',
     },
   },
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx', 'e2e/**/*.ts'],
+    rules: {
+      quotes: ['error', 'double', { avoidEscape: true }],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

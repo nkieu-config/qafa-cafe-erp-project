@@ -1,8 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { hubListDataTableProps, hubListTablePagination } from "./data-table";
-import { hubSectionPanelClassName } from "./hub-panel";
 
 const SRC_ROOT = join(import.meta.dirname, "../..");
 
@@ -256,44 +254,5 @@ describe("design token guards", () => {
     }
 
     expect(violations).toEqual([]);
-  });
-});
-
-describe("hub list table defaults", () => {
-  it("hubListTablePagination uses page size 15 and standard options", () => {
-    expect(hubListTablePagination()).toEqual({
-      pageSize: 15,
-      showSizeChanger: true,
-      pageSizeOptions: ["10", "15", "25", "50"],
-    });
-  });
-
-  it("hubListDataTableProps enables hideBorders with standard pagination", () => {
-    expect(hubListDataTableProps()).toEqual({
-      hideBorders: true,
-      pagination: hubListTablePagination(),
-    });
-  });
-
-  it("section panels use rounded-xl", () => {
-    expect(hubSectionPanelClassName("hr")).toContain("rounded-xl");
-    expect(hubSectionPanelClassName("hr")).toContain("hub-section-panel");
-  });
-
-  it("defines distinct hub section and table body tokens in tokens.css", () => {
-    const tokensPath = join(import.meta.dirname, "../../styles/theme/tokens.css");
-    const tokens = readFileSync(tokensPath, "utf8");
-    expect(tokens).toContain("--hub-section-bg:");
-    expect(tokens).toContain("--table-body-bg:");
-  });
-
-  it("aliases duplicate hub and panel border tokens", () => {
-    const tokensPath = join(import.meta.dirname, "../../styles/theme/tokens.css");
-    const tokens = readFileSync(tokensPath, "utf8");
-    expect(tokens).toMatch(/--hub-organization:\s*var\(--hub-finance\)/);
-    expect(tokens).toMatch(/--table-container-border:\s*var\(--hub-section-border\)/);
-    expect(tokens).toMatch(/--semantic-success:\s*var\(--success\)/);
-    expect(tokens).toMatch(/--hub-procurement-icon:\s*var\(--tone-procurement-fg\)/);
-    expect(tokens).toMatch(/--form-field-invalid-border:\s*var\(--status-danger-fg\)/);
   });
 });

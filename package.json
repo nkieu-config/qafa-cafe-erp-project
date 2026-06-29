@@ -6,7 +6,11 @@
   "scripts": {
     "prepare": "husky",
     "dev:backend": "npm run start:dev --workspace=backend",
-    "dev:frontend": "npm run dev --workspace=frontend"
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "test": "npm run test --workspace=backend && npm run test --workspace=frontend",
+    "test:unit": "npm run test --workspace=backend && npm run test --workspace=frontend",
+    "test:e2e:backend": "npm run test:e2e --workspace=backend",
+    "test:e2e:frontend": "npm run test:e2e --workspace=frontend"
   },
   "lint-staged": {
     "frontend/**/*.{ts,tsx}": [

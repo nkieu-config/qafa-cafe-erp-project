@@ -28,7 +28,7 @@ describe('AccountingService', () => {
       { id: 2, code: '4010', name: 'Sales Revenue', type: 'REVENUE' },
     ];
 
-    it('should throw BadRequestException if debits and credits do not balance', async () => {
+    it('throws when debits and credits do not balance', async () => {
       const entryData = {
         description: 'Unbalanced Entry',
         lines: [
@@ -48,7 +48,7 @@ describe('AccountingService', () => {
       expect(prismaMock.journalEntry.create).not.toHaveBeenCalled();
     });
 
-    it('should throw BadRequestException if account codes are invalid', async () => {
+    it('throws when account codes are invalid', async () => {
       const entryData = {
         description: 'Invalid Accounts',
         lines: [
@@ -70,7 +70,7 @@ describe('AccountingService', () => {
       expect(prismaMock.journalEntry.create).not.toHaveBeenCalled();
     });
 
-    it('should create journal entry successfully when balanced and accounts are valid', async () => {
+    it('creates journal entry when balanced and accounts are valid', async () => {
       const entryData = {
         branchId: 1,
         reference: 'TEST-001',

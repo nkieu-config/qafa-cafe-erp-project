@@ -23,7 +23,7 @@ describe('AppController', () => {
   });
 
   describe('health', () => {
-    it('should return ok when database is reachable', async () => {
+    it('returns ok when database is reachable', async () => {
       await expect(appController.health()).resolves.toEqual({ status: 'ok' });
     });
   });

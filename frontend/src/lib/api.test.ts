@@ -1,65 +1,65 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchAPI } from './api/client';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { fetchAPI } from "./api/client";
 
-describe('fetchAPI', () => {
+describe("fetchAPI", () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
+    vi.stubGlobal("fetch", vi.fn());
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it('throws with helpful message when network fails', async () => {
-    vi.mocked(fetch).mockRejectedValue(new Error('network down'));
+  it("throws with helpful message when network fails", async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error("network down"));
 
-    await expect(fetchAPI('/health')).rejects.toThrow(/Unable to reach the API/);
+    await expect(fetchAPI("/health")).rejects.toThrow(/Unable to reach the API/);
   });
 
-  it('throws on non-ok responses with server message', async () => {
+  it("throws on non-ok responses with server message", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: false,
       status: 400,
-      json: async () => ({ message: 'Invalid credentials' }),
+      json: async () => ({ message: "Invalid credentials" }),
     } as Response);
 
-    await expect(fetchAPI('/auth/login', { method: 'POST' })).rejects.toThrow(
-      'Invalid credentials',
+    await expect(fetchAPI("/auth/login", { method: "POST" })).rejects.toThrow(
+      "Invalid credentials",
     );
   });
 
-  it('returns parsed JSON on success', async () => {
+  it("returns parsed JSON on success", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify({ status: 'ok' }),
+      text: async () => JSON.stringify({ status: "ok" }),
     } as Response);
 
-    await expect(fetchAPI('/health')).resolves.toEqual({ status: 'ok' });
+    await expect(fetchAPI("/health")).resolves.toEqual({ status: "ok" });
   });
 
-  it('sends credentials on every request', async () => {
+  it("sends credentials on every request", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
-      text: async () => '{}',
+      text: async () => "{}",
     } as Response);
 
-    await fetchAPI('/branches');
+    await fetchAPI("/branches");
 
     expect(fetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        credentials: 'include',
+        credentials: "include",
       }),
     );
   });
 
-  it('returns null for 204 No Content', async () => {
+  it("returns null for 204 No Content", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
       status: 204,
-      text: async () => '',
+      text: async () => "",
     } as Response);
 
-    await expect(fetchAPI('/auth/logout', { method: 'POST' })).resolves.toBeNull();
+    await expect(fetchAPI("/auth/logout", { method: "POST" })).resolves.toBeNull();
   });
 });

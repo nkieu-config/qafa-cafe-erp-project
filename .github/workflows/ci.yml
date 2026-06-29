@@ -7,8 +7,8 @@ on:
     branches: [ "main" ]
 
 jobs:
-  backend-test:
-    name: Backend Unit Tests
+  backend-tests:
+    name: Backend — Jest unit & API e2e
     runs-on: ubuntu-latest
 
     services:
@@ -59,19 +59,19 @@ jobs:
       run: npm run lint
       working-directory: ./backend
 
-    - name: Run Tests
+    - name: Backend unit tests
       run: npm run test
       working-directory: ./backend
 
-    - name: Run E2E Tests
+    - name: Backend API e2e tests
       run: npm run test:e2e
       working-directory: ./backend
       env:
         DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
         JWT_SECRET: "test-jwt-secret-for-ci-only-32chars"
 
-  frontend-build:
-    name: Frontend Build Check
+  frontend-checks:
+    name: Frontend — Vitest, lint & build
     runs-on: ubuntu-latest
 
     steps:
@@ -106,7 +106,7 @@ jobs:
         NEXT_PUBLIC_API_URL: "http://localhost:3000"
 
   frontend-e2e:
-    name: Frontend Playwright Smoke
+    name: Frontend — Playwright smoke
     runs-on: ubuntu-latest
 
     services:
@@ -196,6 +196,6 @@ jobs:
       run: npx playwright install --with-deps chromium
       working-directory: ./frontend
 
-    - name: Run Playwright Smoke Tests
+    - name: Playwright smoke tests
       run: npm run test:e2e
       working-directory: ./frontend

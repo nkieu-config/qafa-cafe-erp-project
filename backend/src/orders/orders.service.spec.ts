@@ -46,7 +46,7 @@ describe('OrdersService', () => {
       items: [{ productId: 1, quantity: 2 }],
     };
 
-    it('should throw BadRequestException if product is not found', async () => {
+    it('throws when product is not found', async () => {
       prisma.product.findUnique.mockResolvedValue(null);
 
       await expect(service.createOrder(mockOrderData)).rejects.toThrow(
@@ -54,7 +54,7 @@ describe('OrdersService', () => {
       );
     });
 
-    it('should throw BadRequestException if not enough stock', async () => {
+    it('throws when stock is insufficient', async () => {
       prisma.product.findUnique.mockResolvedValue({
         id: 1,
         name: 'Latte',
@@ -108,7 +108,7 @@ describe('OrdersService', () => {
       );
     });
 
-    it('should successfully create order and deduct stock', async () => {
+    it('creates order and deducts stock', async () => {
       prisma.product.findUnique.mockResolvedValue({
         id: 1,
         price: 100,
@@ -170,7 +170,7 @@ describe('OrdersService', () => {
       expect(result).toBeDefined();
     });
 
-    it('should throw BadRequestException if promo code is invalid', async () => {
+    it('throws when promo code is invalid', async () => {
       prisma.product.findUnique.mockResolvedValue({
         id: 1,
         price: 100,
@@ -188,7 +188,7 @@ describe('OrdersService', () => {
       );
     });
 
-    it('should correctly calculate discounts for points and valid percentage promo', async () => {
+    it('calculates discounts for points and valid percentage promo', async () => {
       prisma.product.findUnique.mockResolvedValue({
         id: 1,
         price: 100,
@@ -244,7 +244,7 @@ describe('OrdersService', () => {
       });
     });
 
-    it('should throw if a beverage product has no recipe', async () => {
+    it('throws when beverage product has no recipe', async () => {
       prisma.product.findUnique.mockResolvedValue({
         id: 1,
         name: 'Latte',
@@ -260,7 +260,7 @@ describe('OrdersService', () => {
       );
     });
 
-    it('should complete retail-only orders at checkout', async () => {
+    it('completes retail-only orders at checkout', async () => {
       prisma.product.findUnique.mockResolvedValue({
         id: 2,
         name: 'Croissant',
@@ -308,7 +308,7 @@ describe('OrdersService', () => {
       ],
     };
 
-    it('should reject void for already cancelled orders', async () => {
+    it('rejects void for already cancelled orders', async () => {
       prisma.order.findUnique.mockResolvedValue({
         ...voidableOrder,
         status: 'CANCELLED',
@@ -319,7 +319,7 @@ describe('OrdersService', () => {
       );
     });
 
-    it('should reject void for previous-day orders', async () => {
+    it('rejects void for previous-day orders', async () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
@@ -331,7 +331,7 @@ describe('OrdersService', () => {
       await expect(service.voidOrder(5)).rejects.toThrow(BadRequestException);
     });
 
-    it('should void order, restore stock, and reverse loyalty points', async () => {
+    it('voids order, restores stock, and reverses loyalty points', async () => {
       prisma.order.findUnique.mockResolvedValue(voidableOrder as any);
       prisma.branchInventory.findUnique.mockResolvedValue({
         id: 1,
@@ -393,7 +393,7 @@ describe('OrdersService', () => {
       ],
     };
 
-    it('should reject refund for same-day orders', async () => {
+    it('rejects refund for same-day orders', async () => {
       prisma.order.findUnique.mockResolvedValue({
         ...refundableOrder,
         createdAt: new Date(),
@@ -402,7 +402,7 @@ describe('OrdersService', () => {
       await expect(service.refundOrder(8)).rejects.toThrow(BadRequestException);
     });
 
-    it('should refund order, restore stock, and enqueue order.refunded', async () => {
+    it('refunds order, restores stock, and enqueues order.refunded', async () => {
       prisma.order.findUnique.mockResolvedValue(refundableOrder as any);
       prisma.branchInventory.findUnique.mockResolvedValue({
         id: 1,

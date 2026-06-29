@@ -21,7 +21,7 @@ describe('HrService', () => {
   });
 
   describe('generatePayrollRun', () => {
-    it('should throw BadRequestException if run already exists', async () => {
+    it('throws when payroll run already exists', async () => {
       prisma.payrollRun.findFirst.mockResolvedValue({ id: 1 } as any);
 
       await expect(service.generatePayrollRun(1, 6, 2026)).rejects.toThrow(
@@ -29,7 +29,7 @@ describe('HrService', () => {
       );
     });
 
-    it('should calculate OT and deductions correctly', async () => {
+    it('calculates OT and deductions correctly', async () => {
       prisma.payrollRun.findFirst.mockResolvedValue(null);
 
       // Mock attendance records:
