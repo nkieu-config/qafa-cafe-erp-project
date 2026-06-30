@@ -129,7 +129,8 @@ describe('OrdersService', () => {
         stock: 100, // Sufficient stock
       } as any);
 
-      prisma.branchInventory.update.mockResolvedValue({} as any);
+      prisma.branchInventory.updateMany.mockResolvedValue({ count: 1 });
+      prisma.inventoryBatch.updateMany.mockResolvedValue({ count: 1 });
 
       prisma.inventoryBatch.findMany.mockResolvedValue([
         { id: 1, quantity: 100, status: 'ACTIVE' },
@@ -144,14 +145,14 @@ describe('OrdersService', () => {
 
       const result = await service.createOrder(mockOrderData);
 
-      expect(prisma.branchInventory.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { stock: 60 }, // 100 - 40
+      expect(prisma.branchInventory.updateMany).toHaveBeenCalledWith({
+        where: { id: 1, stock: { gte: 40 } },
+        data: { stock: { decrement: 40 } },
       });
 
-      expect(prisma.inventoryBatch.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { quantity: 60 },
+      expect(prisma.inventoryBatch.updateMany).toHaveBeenCalledWith({
+        where: { id: 1, quantity: { gte: 40 } },
+        data: { quantity: { decrement: 40 } },
       });
 
       expect(prisma.order.create).toHaveBeenCalledWith(
@@ -287,6 +288,16 @@ describe('OrdersService', () => {
     });
   });
 
+  describe('updateOrderStatus', () => {
+    it('rejects terminal statuses so void/refund effects cannot be bypassed', async () => {
+      await expect(service.updateOrderStatus(5, 'REFUNDED')).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(prisma.order.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
   describe('voidOrder', () => {
     const voidableOrder = {
       id: 5,
@@ -357,7 +368,7 @@ describe('OrdersService', () => {
 
       expect(prisma.branchInventory.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { stock: 100 },
+        data: { stock: { increment: 20 } },
       });
       expect(prisma.customer.update).toHaveBeenCalledWith({
         where: { id: 1 },

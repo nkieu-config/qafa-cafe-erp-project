@@ -66,8 +66,7 @@ export class PromotionsService {
     }
 
     const discountType = dto.discountType ?? existing.discountType;
-    const discountValue =
-      dto.discountValue ?? toNum(existing.discountValue);
+    const discountValue = dto.discountValue ?? toNum(existing.discountValue);
     if (discountType === 'PERCENTAGE' && discountValue > 100) {
       throw new BadRequestException('Percentage discount cannot exceed 100%');
     }

@@ -60,6 +60,31 @@ export function posMobileCartBarClassName(className?: string) {
   );
 }
 
+export function posMobileCartButtonClassName(className?: string) {
+  return cn(
+    "flex flex-1 min-h-[44px] items-center gap-2 rounded-lg border px-3 text-left transition-colors",
+    "border-[var(--pos-panel-border)] bg-[var(--pos-panel-bg)] hover:bg-[var(--table-row-hover)]",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]/50",
+    className,
+  );
+}
+
+export function posMobileCartIconClassName(className?: string) {
+  return cn("text-[var(--pos-accent-soft-fg)]", className);
+}
+
+export function posMobileCartTotalClassName(className?: string) {
+  return cn(typeHeadingClassName("ml-auto tabular-nums"), className);
+}
+
+export function posMobileCartSheetClassName(className?: string) {
+  return cn(
+    "h-[min(92dvh,800px)] gap-0 rounded-t-2xl p-0",
+    "border-[var(--pos-panel-border)] bg-[var(--pos-panel-bg)]",
+    className,
+  );
+}
+
 export function posCartTouchButtonClassName(className?: string) {
   return cn("h-11 w-11 min-h-[44px] min-w-[44px] p-0", className);
 }
@@ -508,12 +533,32 @@ export function kdsItemQtyClassName(className?: string) {
   return cn("font-black text-2xl text-[var(--kds-item-qty)]", className);
 }
 
+export function kdsItemNameClassName(className?: string) {
+  return cn(
+    "font-black text-xl leading-tight break-words sm:text-2xl",
+    text.primary,
+    className,
+  );
+}
+
 export function kdsItemNoteClassName(className?: string) {
   return cn(
     "mt-2 text-base sm:text-lg font-semibold px-2.5 py-1.5 rounded-md break-words",
     "bg-[var(--kds-note-bg)] text-[var(--kds-note-fg)]",
     className,
   );
+}
+
+export function kdsItemNoteLabelClassName(className?: string) {
+  return cn(
+    typeSectionLabelClassName("mr-1.5"),
+    "text-[var(--kds-note-fg)]",
+    className,
+  );
+}
+
+export function kdsItemNoteTextClassName(className?: string) {
+  return cn("font-medium", className);
 }
 
 export function kdsItemModifiersWrapClassName(className?: string) {
@@ -537,6 +582,13 @@ export function kdsTicketStatusBadgeClassName(
     status === "PENDING"
       ? "bg-black/15 text-[var(--on-kds-header-fg)]"
       : "bg-white/25 text-[var(--on-kds-header-fg)]",
+    className,
+  );
+}
+
+export function kdsTicketQueueClassName(className?: string) {
+  return cn(
+    "font-black text-3xl tracking-wider tabular-nums sm:text-4xl",
     className,
   );
 }

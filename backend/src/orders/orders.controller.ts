@@ -14,11 +14,12 @@ import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { RefundOrderDto } from './dto/refund-order.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
-import { OrderStatus } from '@prisma/client';
 import { assertBranchAccess, resolveBranchId } from '../auth/branch-scope.util';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { parseOptionalPositiveInt } from '../common/query-params.util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('orders')
@@ -48,7 +49,7 @@ export class OrdersController {
     }
     const branchId = resolveBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.ordersService.findByBranch(branchId);
   }
@@ -65,10 +66,10 @@ export class OrdersController {
   @Patch(':id/status')
   updateOrderStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body('status') status: OrderStatus,
+    @Body() dto: UpdateOrderStatusDto,
     @Request() req: RequestWithUser,
   ) {
-    return this.ordersService.updateOrderStatus(id, status, req.user);
+    return this.ordersService.updateOrderStatus(id, dto.status, req.user);
   }
 
   @Post(':id/void')

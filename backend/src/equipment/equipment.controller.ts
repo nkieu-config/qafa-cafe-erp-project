@@ -12,15 +12,18 @@ import {
 } from '@nestjs/common';
 import { EquipmentService } from './equipment.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 import { resolveBranchId } from '../auth/branch-scope.util';
+import { parseOptionalPositiveInt } from '../common/query-params.util';
 import {
   CreateEquipmentDto,
   LogMaintenanceDto,
   UpdateEquipmentDto,
 } from './dto/equipment.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('equipment')
 export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
@@ -32,7 +35,7 @@ export class EquipmentController {
   ) {
     const branchId = resolveBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.equipmentService.findAll(branchId);
   }
@@ -45,6 +48,7 @@ export class EquipmentController {
     return this.equipmentService.findOne(id, req.user);
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Post()
   create(@Body() dto: CreateEquipmentDto, @Request() req: RequestWithUser) {
     const branchId = resolveBranchId(req.user, dto.branchId);
@@ -63,6 +67,7 @@ export class EquipmentController {
     });
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Patch(':id')
   update(
     @Request() req: RequestWithUser,
@@ -78,6 +83,7 @@ export class EquipmentController {
     return this.equipmentService.update(id, updateData, req.user);
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Post(':id/maintenance')
   logMaintenance(
     @Request() req: RequestWithUser,

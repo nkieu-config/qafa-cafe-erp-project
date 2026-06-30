@@ -10,19 +10,21 @@ import {
   kdsConfirmCancelButtonClassName,
   kdsDoneButtonClassName,
   kdsItemDividerClassName,
+  kdsItemNameClassName,
   kdsItemModifierClassName,
   kdsItemModifiersWrapClassName,
   kdsItemNoteClassName,
+  kdsItemNoteLabelClassName,
+  kdsItemNoteTextClassName,
   kdsItemQtyClassName,
   kdsStartButtonClassName,
   kdsTicketClassName,
   kdsTicketFooterClassName,
   kdsTicketHeaderClassName,
+  kdsTicketQueueClassName,
   kdsTicketStatusBadgeClassName,
   kdsTimerChipClassName,
 } from "@/lib/theme/immersive";
-import { text } from "@/lib/theme/surface";
-import { cn } from "@/lib/utils";
 import type { Order, OrderItem, OrderStatus } from "@/types/api";
 
 export type KdsPendingAction = {
@@ -51,12 +53,7 @@ function KdsTicketItem({ item }: { item: OrderItem }) {
           {item.quantity}x
         </span>
         <div className="min-w-0 flex flex-col gap-1">
-          <span
-            className={cn(
-              text.primary,
-              "font-black text-xl sm:text-2xl leading-tight break-words",
-            )}
-          >
+          <span className={kdsItemNameClassName()}>
             {item.product?.name ?? "Item"}
           </span>
           {hasModifiers && (
@@ -70,8 +67,8 @@ function KdsTicketItem({ item }: { item: OrderItem }) {
           )}
           {item.notes?.trim() && (
             <p className={kdsItemNoteClassName()}>
-              <span className="font-bold uppercase text-xs tracking-wide mr-1.5">Note</span>
-              <span className="font-medium">{item.notes.trim()}</span>
+              <span className={kdsItemNoteLabelClassName()}>Note</span>
+              <span className={kdsItemNoteTextClassName()}>{item.notes.trim()}</span>
             </p>
           )}
         </div>
@@ -106,7 +103,7 @@ export function KdsOrderTicket({
         <div className="min-w-0">
           <div
             id={titleId}
-            className="font-black text-3xl sm:text-4xl tracking-wider tabular-nums"
+            className={kdsTicketQueueClassName()}
           >
             #{queueLabel}
           </div>

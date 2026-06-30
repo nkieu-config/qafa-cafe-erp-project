@@ -27,6 +27,30 @@ describe('ProcurementService', () => {
     prisma = module.get(PrismaService);
   });
 
+  describe('createPO', () => {
+    it('creates manual purchase orders as drafts', async () => {
+      prisma.purchaseOrder.create.mockResolvedValue({
+        id: 1,
+        status: 'DRAFT',
+      } as any);
+
+      await service.createPO(
+        {
+          branchId: 2,
+          supplierId: 3,
+          items: [{ ingredientId: 4, quantity: 10, price: 5 }],
+        },
+        9,
+      );
+
+      expect(prisma.purchaseOrder.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'DRAFT' }),
+        }),
+      );
+    });
+  });
+
   describe('submitPO', () => {
     it('moves DRAFT PO with items to PENDING', async () => {
       prisma.purchaseOrder.findUnique.mockResolvedValue({

@@ -7,6 +7,14 @@ export type BranchScopedUser = {
   branchId: number | null;
 };
 
+function requireOwnBranch(user: BranchScopedUser): number {
+  if (user.branchId == null) {
+    throw new ForbiddenException('This user is not assigned to a branch.');
+  }
+
+  return user.branchId;
+}
+
 /**
  * Resolves the effective branch id for a request.
  * Non-SUPER_ADMIN users may only access their own branch.
@@ -14,13 +22,13 @@ export type BranchScopedUser = {
 export function resolveBranchId(
   user: BranchScopedUser,
   requestedBranchId?: number | null,
-  fallback = 1,
 ): number {
   if (user.role === 'SUPER_ADMIN') {
-    return requestedBranchId ?? user.branchId ?? fallback;
+    if (requestedBranchId != null) return requestedBranchId;
+    return requireOwnBranch(user);
   }
 
-  const ownBranch = user.branchId ?? fallback;
+  const ownBranch = requireOwnBranch(user);
 
   if (requestedBranchId != null && requestedBranchId !== ownBranch) {
     throw new ForbiddenException('You do not have access to this branch.');
@@ -41,7 +49,7 @@ export function resolveOptionalBranchId(
     return requestedBranchId ?? undefined;
   }
 
-  const ownBranch = user.branchId ?? 1;
+  const ownBranch = requireOwnBranch(user);
 
   if (requestedBranchId != null && requestedBranchId !== ownBranch) {
     throw new ForbiddenException('You do not have access to this branch.');
@@ -59,8 +67,8 @@ export function assertBranchAccess(
 ): void {
   if (user.role === 'SUPER_ADMIN') return;
 
-  const ownBranch = user.branchId;
-  if (ownBranch != null && branchId !== ownBranch) {
+  const ownBranch = requireOwnBranch(user);
+  if (branchId !== ownBranch) {
     throw new ForbiddenException('You do not have access to this branch.');
   }
 }

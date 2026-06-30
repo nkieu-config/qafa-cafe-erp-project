@@ -10,6 +10,7 @@ describe('OutboxProcessor', () => {
     outboxEvent: {
       findMany: jest.Mock;
       update: jest.Mock;
+      updateMany: jest.Mock;
       findUnique: jest.Mock;
     };
   };
@@ -20,6 +21,7 @@ describe('OutboxProcessor', () => {
       outboxEvent: {
         findMany: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         findUnique: jest.fn(),
       },
     };
@@ -41,6 +43,8 @@ describe('OutboxProcessor', () => {
       {
         id: 1,
         eventType: 'order.created',
+        status: 'PENDING',
+        attempts: 0,
         payload: {
           order: { id: 1 },
           ingredientRequirements: [],
@@ -70,6 +74,8 @@ describe('OutboxProcessor', () => {
       {
         id: 2,
         eventType: 'order.status.updated',
+        status: 'PENDING',
+        attempts: 1,
         payload: { orderId: 9, status: 'COMPLETED', branchId: 1 },
       },
     ]);
@@ -89,9 +95,32 @@ describe('OutboxProcessor', () => {
     );
   });
 
+  it('skips events already claimed by another processor', async () => {
+    prisma.outboxEvent.findMany.mockResolvedValue([
+      {
+        id: 4,
+        eventType: 'order.status.updated',
+        status: 'PENDING',
+        attempts: 0,
+        payload: { orderId: 9, status: 'COMPLETED', branchId: 1 },
+      },
+    ]);
+    prisma.outboxEvent.updateMany.mockResolvedValue({ count: 0 });
+
+    await processor.handleCron();
+
+    expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+  });
+
   it('marks permanently failed after max attempts', async () => {
     prisma.outboxEvent.findMany.mockResolvedValue([
-      { id: 3, eventType: 'order.created', payload: {} },
+      {
+        id: 3,
+        eventType: 'order.created',
+        status: 'FAILED',
+        attempts: MAX_OUTBOX_ATTEMPTS - 1,
+        payload: {},
+      },
     ]);
     prisma.outboxEvent.findUnique.mockResolvedValue({
       attempts: MAX_OUTBOX_ATTEMPTS,

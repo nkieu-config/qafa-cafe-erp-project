@@ -52,7 +52,7 @@ export function ExpensesTable({ expenses, loading, expenseSearch }: ExpensesTabl
             <div key={expense.id} className={listMobileCardClassName("cursor-default")}>
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="min-w-0">
-                  <p className={cn(typeUiLabelClassName("font-semibold"), text.primary)}>
+                  <p className={cn(typeUiLabelClassName(), text.primary)}>
                     {expense.category}
                   </p>
                   <time className={cn(typeMicroClassName("tabular-nums"), text.subtle)} dateTime={expense.createdAt}>

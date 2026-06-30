@@ -17,6 +17,7 @@ import {
   authBrandTaglineClassName,
   authDemoChipClassName,
   authDemoCredentialsClassName,
+  authDemoCredentialsPasswordRowClassName,
   authDemoCredentialsToggleClassName,
   authDemoPanelClassName,
   authHeroGlowClassName,
@@ -256,7 +257,7 @@ export default function LoginContent() {
                     <span className={cn("text-right break-all", text.primary)}>{account.email}</span>
                   </p>
                 ))}
-                <p className="flex justify-between gap-2 border-t border-[var(--table-row-border)] pt-1">
+                <p className={authDemoCredentialsPasswordRowClassName()}>
                   <span>Password</span>
                   <span className={text.primary}>{DEMO_PASSWORD}</span>
                 </p>

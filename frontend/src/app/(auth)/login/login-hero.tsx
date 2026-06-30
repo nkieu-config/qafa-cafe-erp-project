@@ -3,6 +3,7 @@ import { ChefHat, Package, ShoppingCart, Users } from "lucide-react";
 import {
   authHeroCardClassName,
   authHeroModuleIconClassName,
+  authHeroModuleGlyphClassName,
   authHeroModuleLabelClassName,
   authHeroStatClassName,
   authHeroStatLabelClassName,
@@ -43,7 +44,7 @@ function HeroModuleIcons({ className }: { className?: string }) {
         const Icon = module.icon;
         return (
           <div key={module.label} className={authHeroModuleIconClassName()}>
-            <Icon className="h-4 w-4 text-[var(--brand-text)]" aria-hidden />
+            <Icon className={authHeroModuleGlyphClassName("h-4 w-4")} aria-hidden />
             <span className={authHeroModuleLabelClassName()}>{module.label}</span>
           </div>
         );

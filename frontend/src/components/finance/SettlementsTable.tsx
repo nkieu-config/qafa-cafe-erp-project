@@ -62,7 +62,7 @@ export function SettlementsTable({
             <div key={settlement.id} className={listMobileCardClassName("cursor-default")}>
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
-                  <p className={cn(typeUiLabelClassName("font-semibold"), text.primary)}>
+                  <p className={cn(typeUiLabelClassName(), text.primary)}>
                     {settlement.branch?.name ?? "Main"}
                   </p>
                   <time className={cn(typeMicroClassName("tabular-nums"), text.subtle)} dateTime={settlement.date}>

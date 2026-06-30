@@ -10,8 +10,11 @@ import {
   utilities as nestWinstonModuleUtilities,
 } from 'nest-winston';
 import * as winston from 'winston';
+import { assertRuntimeConfig, getCorsOrigins } from './config/runtime-config';
 
 async function bootstrap() {
+  assertRuntimeConfig();
+
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger({
       transports: [
@@ -39,9 +42,7 @@ async function bootstrap() {
   app.use(helmet());
   app.use(cookieParser());
   app.enableCors({
-    origin: process.env.CORS_ORIGIN
-      ? process.env.CORS_ORIGIN.split(',')
-      : ['http://localhost:3000', 'http://localhost:3001'],
+    origin: getCorsOrigins(),
     credentials: true,
   });
   app.useGlobalPipes(

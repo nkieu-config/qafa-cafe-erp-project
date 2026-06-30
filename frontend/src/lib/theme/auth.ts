@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { text } from "./surface";
+import { typeMicroClassName } from "./typography";
 
 export function authPageShellClassName(className?: string) {
   return cn("min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 lg:items-stretch bg-background", className);
@@ -80,8 +81,17 @@ export function authDemoCredentialsToggleClassName(className?: string) {
 
 export function authDemoCredentialsClassName(className?: string) {
   return cn(
-    "mt-2 space-y-1 rounded-md border px-2.5 py-2 font-mono text-[10px] leading-relaxed",
+    "mt-2 space-y-1 rounded-md border px-2.5 py-2 font-mono leading-relaxed",
+    typeMicroClassName(),
     "border-[var(--table-row-border)] bg-[var(--surface-elevated)] text-[var(--text-subtle)]",
+    className,
+  );
+}
+
+export function authDemoCredentialsPasswordRowClassName(className?: string) {
+  return cn(
+    "flex justify-between gap-2 border-t pt-1",
+    "border-[var(--table-row-border)]",
     className,
   );
 }
@@ -150,7 +160,11 @@ export function authHeroModuleIconClassName(className?: string) {
 }
 
 export function authHeroModuleLabelClassName(className?: string) {
-  return cn("text-[10px] font-medium uppercase tracking-wide text-center", text.muted, className);
+  return cn(typeMicroClassName("font-medium uppercase tracking-wide text-center"), text.muted, className);
+}
+
+export function authHeroModuleGlyphClassName(className?: string) {
+  return cn("text-[var(--brand-text)]", className);
 }
 
 export function authHeroStatsGridClassName(className?: string) {

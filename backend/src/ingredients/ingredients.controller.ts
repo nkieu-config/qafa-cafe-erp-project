@@ -18,6 +18,7 @@ import { IngredientsService } from './ingredients.service';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 import { resolveBranchId } from '../auth/branch-scope.util';
 import { CreateIngredientDto, UpdateIngredientDto } from './dto/ingredient.dto';
+import { parseOptionalPositiveInt } from '../common/query-params.util';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('ingredients')
@@ -31,7 +32,7 @@ export class IngredientsController {
   ) {
     const branchId = resolveBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.ingredientsService.getBranchInventory(branchId);
   }
@@ -43,7 +44,7 @@ export class IngredientsController {
   ) {
     const branchId = resolveBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.ingredientsService.getWasteLogs(branchId);
   }

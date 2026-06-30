@@ -10,13 +10,18 @@
     "test": "npm run test --workspace=backend && npm run test --workspace=frontend",
     "test:unit": "npm run test --workspace=backend && npm run test --workspace=frontend",
     "test:e2e:backend": "npm run test:e2e --workspace=backend",
-    "test:e2e:frontend": "npm run test:e2e --workspace=frontend"
+    "test:e2e:frontend": "npm run test:e2e --workspace=frontend",
+    "ci:check": "npm run ci:check:backend && npm run ci:check:frontend",
+    "ci:check:backend": "npm run type-check --workspace=backend && npm run lint --workspace=backend && npm run test --workspace=backend && npm run build --workspace=backend",
+    "ci:check:frontend": "npm run type-check --workspace=frontend && npm run lint --workspace=frontend && npm run test --workspace=frontend && NEXT_PUBLIC_API_URL=http://localhost:3000 npm run build --workspace=frontend"
   },
   "lint-staged": {
     "frontend/**/*.{ts,tsx}": [
+      "bash -c 'npm run lint --prefix frontend'",
       "bash -c 'npm run type-check --prefix frontend'"
     ],
     "backend/**/*.ts": [
+      "bash -c 'npm run lint --prefix backend'",
       "bash -c 'npm run type-check --prefix backend'"
     ]
   },

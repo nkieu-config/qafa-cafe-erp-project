@@ -158,15 +158,25 @@ export class BranchesService {
         if (remainingToDeduct <= 0) break;
         if (batch.quantity <= remainingToDeduct) {
           remainingToDeduct -= batch.quantity;
-          await tx.inventoryBatch.update({
-            where: { id: batch.id },
+          const updatedBatch = await tx.inventoryBatch.updateMany({
+            where: { id: batch.id, quantity: batch.quantity },
             data: { quantity: 0, status: 'DEPLETED' },
           });
+          if (updatedBatch.count === 0) {
+            throw new BadRequestException(
+              'Source batch changed while accepting transfer. Please retry.',
+            );
+          }
         } else {
-          await tx.inventoryBatch.update({
-            where: { id: batch.id },
-            data: { quantity: batch.quantity - remainingToDeduct },
+          const updatedBatch = await tx.inventoryBatch.updateMany({
+            where: { id: batch.id, quantity: { gte: remainingToDeduct } },
+            data: { quantity: { decrement: remainingToDeduct } },
           });
+          if (updatedBatch.count === 0) {
+            throw new BadRequestException(
+              'Source batch changed while accepting transfer. Please retry.',
+            );
+          }
           remainingToDeduct = 0;
         }
       }
@@ -178,15 +188,19 @@ export class BranchesService {
       }
 
       // Deduct from Source BranchInventory
-      await tx.branchInventory.update({
+      const updatedSourceInventory = await tx.branchInventory.updateMany({
         where: {
-          branchId_ingredientId: {
-            branchId: transfer.fromBranchId,
-            ingredientId: transfer.ingredientId,
-          },
+          branchId: transfer.fromBranchId,
+          ingredientId: transfer.ingredientId,
+          stock: { gte: transfer.quantity },
         },
         data: { stock: { decrement: transfer.quantity } },
       });
+      if (updatedSourceInventory.count === 0) {
+        throw new BadRequestException(
+          'Source branch does not have enough stock to transfer',
+        );
+      }
 
       // Add to Target InventoryBatch
       await tx.inventoryBatch.create({
@@ -199,30 +213,21 @@ export class BranchesService {
       });
 
       // Add to Target BranchInventory
-      const targetInv = await tx.branchInventory.findUnique({
+      await tx.branchInventory.upsert({
         where: {
           branchId_ingredientId: {
             branchId: transfer.toBranchId,
             ingredientId: transfer.ingredientId,
           },
         },
+        update: { stock: { increment: transfer.quantity } },
+        create: {
+          branchId: transfer.toBranchId,
+          ingredientId: transfer.ingredientId,
+          stock: transfer.quantity,
+          minStock: 0,
+        },
       });
-
-      if (targetInv) {
-        await tx.branchInventory.update({
-          where: { id: targetInv.id },
-          data: { stock: { increment: transfer.quantity } },
-        });
-      } else {
-        await tx.branchInventory.create({
-          data: {
-            branchId: transfer.toBranchId,
-            ingredientId: transfer.ingredientId,
-            stock: transfer.quantity,
-            minStock: 0,
-          },
-        });
-      }
 
       // Record AuditLog
       await tx.auditLog.create({

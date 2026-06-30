@@ -70,6 +70,12 @@ export class ProductionService {
     status: ProductionStatus,
     user: BranchScopedUser,
   ) {
+    if (status === 'COMPLETED') {
+      throw new BadRequestException(
+        'Use the complete endpoint to finish production orders.',
+      );
+    }
+
     const order = await this.prisma.productionOrder.findUnique({
       where: { id: orderId },
     });
@@ -130,11 +136,16 @@ export class ProductionService {
           );
         }
 
-        // Deduct
-        await tx.branchInventory.update({
-          where: { id: inventory.id },
-          data: { stock: inventory.stock - requiredQuantity },
+        // Deduct atomically so concurrent production cannot overwrite stock.
+        const updatedInventory = await tx.branchInventory.updateMany({
+          where: { id: inventory.id, stock: { gte: requiredQuantity } },
+          data: { stock: { decrement: requiredQuantity } },
         });
+        if (updatedInventory.count === 0) {
+          throw new BadRequestException(
+            `Insufficient stock for raw material: ${bom.rawIngredient.name}. Please retry.`,
+          );
+        }
 
         totalRawCost += requiredQuantity * toNum(bom.rawIngredient.costPerUnit);
       }
@@ -154,7 +165,7 @@ export class ProductionService {
       if (targetInventory) {
         await tx.branchInventory.update({
           where: { id: targetInventory.id },
-          data: { stock: targetInventory.stock + order.quantityToProduce },
+          data: { stock: { increment: order.quantityToProduce } },
         });
       } else {
         await tx.branchInventory.create({

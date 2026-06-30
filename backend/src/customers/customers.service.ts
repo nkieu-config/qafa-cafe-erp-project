@@ -19,16 +19,6 @@ export class CustomersService {
       `Handling order.created event for CRM Customer ${event.customerId}`,
     );
 
-    if (event.order.pointsEarned && event.order.pointsEarned > 0) {
-      await this.prisma.customer.update({
-        where: { id: event.customerId },
-        data: { points: { increment: event.order.pointsEarned } },
-      });
-      this.logger.log(
-        `Added ${event.order.pointsEarned} points to customer ${event.customerId}`,
-      );
-    }
-
     await this.checkAndUpdateTier(event.customerId);
   }
 

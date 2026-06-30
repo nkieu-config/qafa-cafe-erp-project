@@ -3,6 +3,7 @@ import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 import { resolveOptionalBranchId } from '../auth/branch-scope.util';
+import { parseOptionalPositiveInt } from '../common/query-params.util';
 
 @Controller('reports')
 @UseGuards(JwtAuthGuard)
@@ -16,7 +17,7 @@ export class ReportsController {
   ) {
     const branchId = resolveOptionalBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.reportsService.getSalesTrends(branchId);
   }
@@ -28,7 +29,7 @@ export class ReportsController {
   ) {
     const branchId = resolveOptionalBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.reportsService.getTopProducts(branchId);
   }
@@ -40,7 +41,7 @@ export class ReportsController {
   ) {
     const branchId = resolveOptionalBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.reportsService.getProfitLoss(branchId);
   }
@@ -52,7 +53,7 @@ export class ReportsController {
   ) {
     const branchId = resolveOptionalBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.reportsService.getExecutiveSummary(branchId);
   }

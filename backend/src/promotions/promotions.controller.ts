@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { PromotionsService } from './promotions.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import {
   CreatePromotionDto,
   TogglePromotionDto,
@@ -18,11 +20,12 @@ import {
   ValidatePromotionDto,
 } from './dto/promotion.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('promotions')
 export class PromotionsController {
   constructor(private readonly promotionsService: PromotionsService) {}
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Post()
   create(@Body() dto: CreatePromotionDto) {
     return this.promotionsService.create(dto);
@@ -33,6 +36,7 @@ export class PromotionsController {
     return this.promotionsService.findAll();
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
@@ -41,11 +45,13 @@ export class PromotionsController {
     return this.promotionsService.update(id, dto);
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.promotionsService.remove(id);
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Patch(':id/toggle')
   toggleActive(
     @Param('id', ParseIntPipe) id: number,

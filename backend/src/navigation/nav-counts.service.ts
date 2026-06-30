@@ -23,7 +23,10 @@ export class NavCountsService {
     user: BranchScopedUser,
     requestedBranchId?: number | null,
   ): Promise<NavCountsResponse> {
-    const branchId = resolveOptionalBranchId(user, requestedBranchId ?? undefined);
+    const branchId = resolveOptionalBranchId(
+      user,
+      requestedBranchId ?? undefined,
+    );
     const isManagerOrAdmin =
       user.role === Role.SUPER_ADMIN || user.role === Role.MANAGER;
 
@@ -41,11 +44,17 @@ export class NavCountsService {
       pendingLeave,
     ] = await Promise.all([
       branchId != null ? this.countLowStock(branchId) : Promise.resolve(0),
-      branchId != null ? this.countExpiringBatches(branchId, warningDate) : Promise.resolve(0),
+      branchId != null
+        ? this.countExpiringBatches(branchId, warningDate)
+        : Promise.resolve(0),
       this.countPendingTransfers(branchId),
       branchId != null ? this.countKdsOrders(branchId) : Promise.resolve(0),
-      isManagerOrAdmin ? this.countPendingPurchaseOrders(branchId) : Promise.resolve(0),
-      isManagerOrAdmin ? this.countPendingSettlements(branchId) : Promise.resolve(0),
+      isManagerOrAdmin
+        ? this.countPendingPurchaseOrders(branchId)
+        : Promise.resolve(0),
+      isManagerOrAdmin
+        ? this.countPendingSettlements(branchId)
+        : Promise.resolve(0),
       isManagerOrAdmin ? this.countPendingLeave(branchId) : Promise.resolve(0),
     ]);
 
@@ -71,7 +80,10 @@ export class NavCountsService {
     return Number(rows[0]?.count ?? 0);
   }
 
-  private async countExpiringBatches(branchId: number, warningDate: Date): Promise<number> {
+  private async countExpiringBatches(
+    branchId: number,
+    warningDate: Date,
+  ): Promise<number> {
     return this.prisma.inventoryBatch.count({
       where: {
         branchId,

@@ -8,6 +8,8 @@ describe('InventoryHelper', () => {
 
   beforeEach(() => {
     txMock = mockDeep<Prisma.TransactionClient>();
+    txMock.branchInventory.updateMany.mockResolvedValue({ count: 1 });
+    txMock.inventoryBatch.updateMany.mockResolvedValue({ count: 1 });
   });
 
   describe('deductInventoryFIFO', () => {
@@ -39,7 +41,7 @@ describe('InventoryHelper', () => {
         ),
       ).rejects.toThrow(BadRequestException);
 
-      expect(txMock.branchInventory.update).not.toHaveBeenCalled();
+      expect(txMock.branchInventory.updateMany).not.toHaveBeenCalled();
     });
 
     it('deducts from BranchInventory and InventoryBatches using FIFO', async () => {
@@ -67,24 +69,24 @@ describe('InventoryHelper', () => {
       );
 
       // Verify aggregate cache update
-      expect(txMock.branchInventory.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { stock: 35 }, // 50 - 15
+      expect(txMock.branchInventory.updateMany).toHaveBeenCalledWith({
+        where: { id: 1, stock: { gte: 15 } },
+        data: { stock: { decrement: 15 } },
       });
 
       // Verify FIFO logic
-      expect(txMock.inventoryBatch.update).toHaveBeenCalledTimes(2);
+      expect(txMock.inventoryBatch.updateMany).toHaveBeenCalledTimes(2);
 
       // Batch 1 should be depleted
-      expect(txMock.inventoryBatch.update).toHaveBeenNthCalledWith(1, {
-        where: { id: 10 },
+      expect(txMock.inventoryBatch.updateMany).toHaveBeenNthCalledWith(1, {
+        where: { id: 10, quantity: 10 },
         data: { quantity: 0, status: 'DEPLETED' },
       });
 
       // Batch 2 should be partially deducted
-      expect(txMock.inventoryBatch.update).toHaveBeenNthCalledWith(2, {
-        where: { id: 11 },
-        data: { quantity: 5 }, // 10 - 5
+      expect(txMock.inventoryBatch.updateMany).toHaveBeenNthCalledWith(2, {
+        where: { id: 11, quantity: { gte: 5 } },
+        data: { quantity: { decrement: 5 } },
       });
     });
 
@@ -148,12 +150,12 @@ describe('InventoryHelper', () => {
 
       expect(txMock.branchInventory.update).toHaveBeenCalledWith({
         where: { id: 1 },
-        data: { stock: 50 },
+        data: { stock: { increment: 10 } },
       });
 
       expect(txMock.inventoryBatch.update).toHaveBeenCalledWith({
         where: { id: 20 },
-        data: { quantity: 15 },
+        data: { quantity: { increment: 10 } },
       });
     });
   });

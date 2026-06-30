@@ -85,7 +85,7 @@ export class ProcurementService {
         poNumber: `PO-${Date.now()}`,
         branchId: data.branchId,
         supplierId: data.supplierId,
-        status: 'PENDING',
+        status: 'DRAFT',
         items: {
           create: data.items.map((item) => ({
             ingredientId: item.ingredientId,
@@ -223,30 +223,21 @@ export class ProcurementService {
         });
 
         // Update Cached BranchInventory
-        const inventory = await tx.branchInventory.findUnique({
+        await tx.branchInventory.upsert({
           where: {
             branchId_ingredientId: {
               branchId: po.branchId,
               ingredientId: item.ingredientId,
             },
           },
+          update: { stock: { increment: item.quantityRequested } },
+          create: {
+            branchId: po.branchId,
+            ingredientId: item.ingredientId,
+            stock: item.quantityRequested,
+            minStock: 0,
+          },
         });
-
-        if (inventory) {
-          await tx.branchInventory.update({
-            where: { id: inventory.id },
-            data: { stock: inventory.stock + item.quantityRequested },
-          });
-        } else {
-          await tx.branchInventory.create({
-            data: {
-              branchId: po.branchId,
-              ingredientId: item.ingredientId,
-              stock: item.quantityRequested,
-              minStock: 0,
-            },
-          });
-        }
       }
 
       // Mark PO as RECEIVED

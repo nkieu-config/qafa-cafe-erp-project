@@ -37,10 +37,19 @@ export class OutboxProcessor {
     });
 
     for (const event of events) {
-      await this.prisma.outboxEvent.update({
-        where: { id: event.id },
-        data: { status: 'PROCESSING', attempts: { increment: 1 } },
+      const claimed = await this.prisma.outboxEvent.updateMany({
+        where: {
+          id: event.id,
+          status: event.status,
+          attempts: event.attempts,
+        },
+        data: {
+          status: 'PROCESSING',
+          attempts: { increment: 1 },
+        },
       });
+
+      if (claimed.count === 0) continue;
 
       try {
         await this.dispatch(event.eventType, event.payload);

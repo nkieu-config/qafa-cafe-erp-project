@@ -50,6 +50,7 @@ export class BranchesController {
     return this.branchesService.getTransfers(branchId);
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Post('transfers')
   createTransfer(
     @Body() dto: CreateTransferDto,
@@ -65,6 +66,7 @@ export class BranchesController {
     });
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Post('transfers/:id/accept')
   acceptTransfer(
     @Param('id', ParseIntPipe) id: number,
@@ -97,6 +99,7 @@ export class BranchesController {
     return this.branchesService.getTransfers(id);
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Post(':id/batches')
   addInventoryBatch(
     @Param('id', ParseIntPipe) id: number,
@@ -107,6 +110,7 @@ export class BranchesController {
     return this.branchesService.addInventoryBatch(id, dto, req.user.userId);
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER', 'STAFF')
   @Post(':id/waste')
   reportWaste(
     @Param('id', ParseIntPipe) id: number,

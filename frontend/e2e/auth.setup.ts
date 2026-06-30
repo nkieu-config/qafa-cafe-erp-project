@@ -12,7 +12,7 @@ setup("authenticate manager", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(password);
-  await page.getByRole("button", { name: /sign in/i }).click();
+  await page.getByRole("button", { name: "Sign In", exact: true }).click();
   await page.waitForURL(/\/(dashboard)?$/);
 
   await page.context().storageState({ path: authFile });

@@ -10,7 +10,6 @@ const eslintConfig = defineConfig([
       // Common sync patterns (form reset, mount guards) — not worth blocking CI
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/immutability': 'off',
-      'react/no-unescaped-entities': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
       'prefer-const': 'warn',
     },
@@ -19,6 +18,15 @@ const eslintConfig = defineConfig([
     files: ['**/*.test.ts', '**/*.test.tsx', 'e2e/**/*.ts'],
     rules: {
       quotes: ['error', 'double', { avoidEscape: true }],
+    },
+  },
+  {
+    files: ['scripts/**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   // Override default ignores of eslint-config-next.

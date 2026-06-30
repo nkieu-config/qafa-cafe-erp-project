@@ -28,6 +28,7 @@ import { GeneratePayrollDto } from './dto/generate-payroll.dto';
 import { UpdateHourlyRateDto } from './dto/update-hourly-rate.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { parseOptionalPositiveInt } from '../common/query-params.util';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('hr')
@@ -89,7 +90,7 @@ export class HrController {
   ) {
     const resolvedBranchId = resolveOptionalBranchId(
       req.user,
-      branchId ? parseInt(branchId, 10) : undefined,
+      parseOptionalPositiveInt(branchId, 'branchId'),
     );
     return this.hrService.getLeaveRequests(resolvedBranchId);
   }
@@ -155,7 +156,7 @@ export class HrController {
   ) {
     const resolvedBranchId = resolveOptionalBranchId(
       req.user,
-      branchId ? parseInt(branchId, 10) : undefined,
+      parseOptionalPositiveInt(branchId, 'branchId'),
     );
     return this.hrService.getAllUsers(resolvedBranchId);
   }

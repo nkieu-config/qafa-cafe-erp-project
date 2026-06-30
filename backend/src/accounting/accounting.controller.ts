@@ -13,6 +13,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
 import { resolveOptionalBranchId } from '../auth/branch-scope.util';
+import { parseOptionalPositiveInt } from '../common/query-params.util';
 
 @Controller('accounting')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,7 +34,7 @@ export class AccountingController {
   ) {
     const resolvedBranchId = resolveOptionalBranchId(
       req.user,
-      branchId ? parseInt(branchId, 10) : undefined,
+      parseOptionalPositiveInt(branchId, 'branchId'),
     );
     return this.accountingService.getJournalEntries(resolvedBranchId);
   }
@@ -46,7 +47,7 @@ export class AccountingController {
   ) {
     const resolvedBranchId = resolveOptionalBranchId(
       req.user,
-      branchId ? parseInt(branchId, 10) : undefined,
+      parseOptionalPositiveInt(branchId, 'branchId'),
     );
     return this.accountingService.getProfitLoss(resolvedBranchId);
   }

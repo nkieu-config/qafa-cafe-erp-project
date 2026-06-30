@@ -11,10 +11,12 @@ import {
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
 
 @Controller('customers')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
 
@@ -43,6 +45,7 @@ export class CustomersController {
     return this.customersService.findOne(id);
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Patch(':id')
   update(
     @Param('id', ParseIntPipe) id: number,

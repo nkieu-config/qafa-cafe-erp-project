@@ -17,7 +17,11 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { FinanceService } from './finance.service';
 import type { RequestWithUser } from '../auth/interfaces/request-with-user.interface';
-import { resolveBranchId } from '../auth/branch-scope.util';
+import {
+  resolveBranchId,
+  resolveOptionalBranchId,
+} from '../auth/branch-scope.util';
+import { parseOptionalPositiveInt } from '../common/query-params.util';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { SubmitSettlementDto } from './dto/submit-settlement.dto';
 
@@ -26,6 +30,7 @@ import { SubmitSettlementDto } from './dto/submit-settlement.dto';
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
 
+  @Roles('SUPER_ADMIN', 'MANAGER')
   @Post('expenses')
   createExpense(
     @Body() dto: CreateExpenseDto,
@@ -47,7 +52,7 @@ export class FinanceController {
   ) {
     const branchId = resolveBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.financeService.getExpenses(
       branchId,
@@ -62,11 +67,12 @@ export class FinanceController {
   ) {
     const branchId = resolveBranchId(
       req.user,
-      branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
     );
     return this.financeService.calculateExpectedCash(branchId, new Date());
   }
 
+  @Roles('SUPER_ADMIN', 'MANAGER', 'STAFF')
   @Post('settlements')
   submitSettlement(
     @Body() dto: SubmitSettlementDto,
@@ -87,13 +93,10 @@ export class FinanceController {
     @Request() req: RequestWithUser,
     @Query('branchId') branchIdQuery?: string,
   ) {
-    const branchId =
-      req.user.role === 'SUPER_ADMIN' && branchIdQuery
-        ? parseInt(branchIdQuery, 10)
-        : resolveBranchId(
-            req.user,
-            branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
-          );
+    const branchId = resolveOptionalBranchId(
+      req.user,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
+    );
     return this.financeService.getSettlements(branchId);
   }
 
@@ -114,13 +117,10 @@ export class FinanceController {
     @Query('endDate') endDate?: string,
     @Query('branchId') branchIdQuery?: string,
   ) {
-    const branchId =
-      req.user.role === 'SUPER_ADMIN' && branchIdQuery
-        ? parseInt(branchIdQuery, 10)
-        : resolveBranchId(
-            req.user,
-            branchIdQuery ? parseInt(branchIdQuery, 10) : undefined,
-          );
+    const branchId = resolveOptionalBranchId(
+      req.user,
+      parseOptionalPositiveInt(branchIdQuery, 'branchId'),
+    );
 
     const csvData = await this.financeService.exportSales(
       branchId,

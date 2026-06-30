@@ -7,6 +7,7 @@ describe('WasteDisposalHelper', () => {
 
   beforeEach(() => {
     txMock = mockDeep<Prisma.TransactionClient>();
+    txMock.branchInventory.updateMany.mockResolvedValue({ count: 1 });
   });
 
   describe('disposeBatchAsWaste', () => {
@@ -62,9 +63,9 @@ describe('WasteDisposalHelper', () => {
           recordedById: 1,
         },
       });
-      expect(txMock.branchInventory.update).toHaveBeenCalledWith({
-        where: { id: 11 },
-        data: { stock: 2750 },
+      expect(txMock.branchInventory.updateMany).toHaveBeenCalledWith({
+        where: { id: 11, stock: { gte: 250 } },
+        data: { stock: { decrement: 250 } },
       });
       expect(txMock.inventoryBatch.update).toHaveBeenCalledWith({
         where: { id: 7 },
@@ -114,9 +115,9 @@ describe('WasteDisposalHelper', () => {
         where: { id: 5 },
         data: { quantity: 60, status: 'ACTIVE' },
       });
-      expect(txMock.branchInventory.update).toHaveBeenCalledWith({
-        where: { id: 3 },
-        data: { stock: 460 },
+      expect(txMock.branchInventory.updateMany).toHaveBeenCalledWith({
+        where: { id: 3, stock: { gte: 40 } },
+        data: { stock: { decrement: 40 } },
       });
     });
   });

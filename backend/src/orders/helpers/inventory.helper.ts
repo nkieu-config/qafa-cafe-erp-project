@@ -21,10 +21,15 @@ export class InventoryHelper {
       }
 
       // Deduct from BranchInventory (Cache)
-      await tx.branchInventory.update({
-        where: { id: branchInventory.id },
-        data: { stock: branchInventory.stock - neededQty },
+      const updatedInventory = await tx.branchInventory.updateMany({
+        where: { id: branchInventory.id, stock: { gte: neededQty } },
+        data: { stock: { decrement: neededQty } },
       });
+      if (updatedInventory.count === 0) {
+        throw new BadRequestException(
+          `Not enough stock for ${branchInventory.ingredient.name} at this branch.`,
+        );
+      }
 
       // FIFO Deduction from InventoryBatch
       let remainingToDeduct = neededQty;
@@ -43,15 +48,25 @@ export class InventoryHelper {
 
         if (batch.quantity <= remainingToDeduct) {
           remainingToDeduct -= batch.quantity;
-          await tx.inventoryBatch.update({
-            where: { id: batch.id },
+          const updatedBatch = await tx.inventoryBatch.updateMany({
+            where: { id: batch.id, quantity: batch.quantity },
             data: { quantity: 0, status: 'DEPLETED' },
           });
+          if (updatedBatch.count === 0) {
+            throw new BadRequestException(
+              `Inventory batch changed while deducting ${branchInventory.ingredient.name}. Please retry.`,
+            );
+          }
         } else {
-          await tx.inventoryBatch.update({
-            where: { id: batch.id },
-            data: { quantity: batch.quantity - remainingToDeduct },
+          const updatedBatch = await tx.inventoryBatch.updateMany({
+            where: { id: batch.id, quantity: { gte: remainingToDeduct } },
+            data: { quantity: { decrement: remainingToDeduct } },
           });
+          if (updatedBatch.count === 0) {
+            throw new BadRequestException(
+              `Inventory batch changed while deducting ${branchInventory.ingredient.name}. Please retry.`,
+            );
+          }
           remainingToDeduct = 0;
         }
       }
@@ -88,7 +103,7 @@ export class InventoryHelper {
 
       await tx.branchInventory.update({
         where: { id: branchInventory.id },
-        data: { stock: branchInventory.stock + qty },
+        data: { stock: { increment: qty } },
       });
 
       const activeBatch = await tx.inventoryBatch.findFirst({
@@ -99,7 +114,7 @@ export class InventoryHelper {
       if (activeBatch) {
         await tx.inventoryBatch.update({
           where: { id: activeBatch.id },
-          data: { quantity: activeBatch.quantity + qty },
+          data: { quantity: { increment: qty } },
         });
       } else {
         await tx.inventoryBatch.create({

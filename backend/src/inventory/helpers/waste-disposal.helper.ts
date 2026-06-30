@@ -1,4 +1,5 @@
 import { BatchStatus, Prisma, WasteLog } from '@prisma/client';
+import { BadRequestException } from '@nestjs/common';
 
 export class WasteDisposalHelper {
   static async deductFromBatch(
@@ -34,11 +35,18 @@ export class WasteDisposalHelper {
       },
     });
 
-    if (inventory) {
-      await tx.branchInventory.update({
-        where: { id: inventory.id },
-        data: { stock: Math.max(0, inventory.stock - quantity) },
-      });
+    if (!inventory) {
+      throw new BadRequestException('Branch inventory record was not found.');
+    }
+
+    const updated = await tx.branchInventory.updateMany({
+      where: { id: inventory.id, stock: { gte: quantity } },
+      data: { stock: { decrement: quantity } },
+    });
+    if (updated.count === 0) {
+      throw new BadRequestException(
+        'Branch inventory does not have enough stock to record this waste.',
+      );
     }
   }
 
